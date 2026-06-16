@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import { backgroundScrollDuration } from '../../engine/level-system'
 import { FORWARD_LINES } from './forward-lines-config'
+import { useMobileLayout } from '../../hooks/useMobileLayout'
 
 interface ForwardLinesBackgroundProps {
   active: boolean
@@ -8,17 +10,23 @@ interface ForwardLinesBackgroundProps {
 }
 
 const LINE_SPEED_BOOST = 2.8
+const MOBILE_LINE_COUNT = 16
 
 export function ForwardLinesBackground({
   active,
   level,
   speedMultiplier = 1,
 }: ForwardLinesBackgroundProps) {
+  const isMobile = useMobileLayout()
   const speedFactor = (48 / backgroundScrollDuration(level)) * LINE_SPEED_BOOST * speedMultiplier
+  const lines = useMemo(
+    () => (isMobile ? FORWARD_LINES.slice(0, MOBILE_LINE_COUNT) : FORWARD_LINES),
+    [isMobile],
+  )
 
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
-      {FORWARD_LINES.map((line) => (
+      {lines.map((line) => (
         <span
           key={line.id}
           className="forward-line absolute top-0 w-px rounded-full bg-[var(--color-charcoal-line)]"

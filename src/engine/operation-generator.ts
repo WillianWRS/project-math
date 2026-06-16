@@ -101,6 +101,13 @@ export function formatOperation(operation: Operation): string {
   return `${operation.operator} ${operation.operand}`
 }
 
+export const OPERATOR_COLOR_CLASS: Record<Operator, string> = {
+  '+': 'text-emerald-400',
+  '-': 'text-rose-400',
+  '×': 'text-amber-400',
+  '÷': 'text-sky-400',
+}
+
 export function evaluateAnswer(_base: number, operation: Operation, answer: number): boolean {
   return answer === operation.result
 }

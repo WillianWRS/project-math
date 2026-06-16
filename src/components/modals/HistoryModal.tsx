@@ -19,18 +19,18 @@ export function HistoryModal({ open, onClose, highScore }: HistoryModalProps) {
   return (
     <Modal open={open} title="Histórico" onClose={onClose}>
       {highScore ? (
-        <div className="space-y-3 rounded-xl bg-slate-800/60 p-4">
+        <div className="game-modal-card space-y-3 p-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Melhor score</p>
-            <p className="font-mono text-3xl font-bold text-sky-300">{highScore.score}</p>
+            <p className="text-xs uppercase tracking-widest text-charcoal-muted">Melhor score</p>
+            <p className="font-mono text-3xl font-bold text-amber-300">{highScore.score}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Data</p>
-            <p className="text-sm text-slate-200">{formatDate(highScore.date)}</p>
+            <p className="text-xs uppercase tracking-widest text-charcoal-muted">Data</p>
+            <p className="text-sm text-stone-300">{formatDate(highScore.date)}</p>
           </div>
         </div>
       ) : (
-        <p className="text-sm leading-relaxed text-slate-400">
+        <p className="text-sm leading-relaxed text-charcoal-muted">
           Nenhuma partida registrada ainda. Jogue uma partida para estabelecer seu recorde.
         </p>
       )}

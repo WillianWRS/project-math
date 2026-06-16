@@ -13,18 +13,18 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
+          className="fixed inset-0 z-[70] flex items-end justify-center p-4 sm:items-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
         >
-          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-charcoal/82" />
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby="modal-title"
-            className="relative w-full max-w-sm rounded-2xl border border-slate-700/80 bg-slate-900 p-5 shadow-2xl"
+            className="game-modal-panel relative w-full max-w-sm p-5"
             initial={{ opacity: 0, y: 24, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
@@ -32,13 +32,16 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 id="modal-title" className="text-lg font-semibold text-white">
+              <h2
+                id="modal-title"
+                className="text-sm font-bold uppercase tracking-[0.18em] text-stone-200"
+              >
                 {title}
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                className="game-btn-push flex h-9 w-9 items-center justify-center rounded-xl bg-charcoal-elevated text-stone-400 ring-1 ring-stone-700/50 transition hover:text-stone-100"
                 aria-label="Fechar"
               >
                 ✕

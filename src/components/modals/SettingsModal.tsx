@@ -15,10 +15,10 @@ export function SettingsModal({
 }: SettingsModalProps) {
   return (
     <Modal open={open} title="Configurações" onClose={onClose}>
-      <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl bg-slate-800/60 px-4 py-3">
+      <label className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
         <div>
-          <p className="font-medium text-white">Som</p>
-          <p className="text-xs text-slate-400">Efeitos de acerto, erro e level up</p>
+          <p className="font-medium text-stone-200">Som</p>
+          <p className="text-xs text-charcoal-muted">Efeitos de acerto, erro e level up</p>
         </div>
         <button
           type="button"
@@ -26,11 +26,11 @@ export function SettingsModal({
           aria-checked={soundEnabled}
           onClick={() => onSoundChange(!soundEnabled)}
           className={`relative h-8 w-14 rounded-full transition-colors ${
-            soundEnabled ? 'bg-sky-500' : 'bg-slate-600'
+            soundEnabled ? 'bg-amber-500' : 'bg-charcoal-elevated ring-1 ring-stone-700/50'
           }`}
         >
           <span
-            className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+            className={`absolute top-1 h-6 w-6 rounded-full bg-stone-100 shadow transition-transform ${
               soundEnabled ? 'left-7' : 'left-1'
             }`}
           />

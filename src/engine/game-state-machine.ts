@@ -17,6 +17,7 @@ export function createInitialSession(): GameSession {
     inputValue: '',
     isSubmitLocked: false,
     levelUpFlash: null,
+    answerFlash: null,
     beatRecord: false,
   }
 }
@@ -37,6 +38,7 @@ export function startGame(): GameSession {
     inputValue: '',
     isSubmitLocked: false,
     levelUpFlash: null,
+    answerFlash: null,
     beatRecord: false,
   }
 }
@@ -112,6 +114,7 @@ export function submitAnswer(session: GameSession): {
       timerMaxMs,
       isSubmitLocked: false,
       levelUpFlash: leveledUp ? level : null,
+      answerFlash: trimmed,
     },
     result: 'correct',
   }
@@ -129,6 +132,13 @@ export function clearLevelUpFlash(session: GameSession): GameSession {
     return session
   }
   return { ...session, levelUpFlash: null }
+}
+
+export function clearAnswerFlash(session: GameSession): GameSession {
+  if (session.answerFlash === null) {
+    return session
+  }
+  return { ...session, answerFlash: null }
 }
 
 export function setInputValue(session: GameSession, value: string): GameSession {

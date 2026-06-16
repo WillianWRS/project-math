@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ForwardLinesBackground } from './ForwardLinesBackground'
-import { formatOperation } from '../../engine/operation-generator'
+import { useMobileLayout } from '../../hooks/useMobileLayout'
+import { OPERATOR_COLOR_CLASS } from '../../engine/operation-generator'
+import type { Operation } from '../../engine/types'
 import type { GameSession } from '../../engine/types'
 import { HistoryModal } from '../modals/HistoryModal'
 import { SettingsModal } from '../modals/SettingsModal'
@@ -54,19 +56,21 @@ function SlideValue({
 }
 
 function OperationValue({
-  value,
+  operation,
   className,
   slotClassName,
 }: {
-  value: string
+  operation: Operation
   className?: string
   slotClassName?: string
 }) {
+  const key = `${operation.operator} ${operation.operand}`
+
   return (
     <div className={`relative overflow-hidden ${slotClassName ?? ''}`}>
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.p
-          key={value}
+          key={key}
           className={`absolute inset-x-0 font-mono tabular-nums ${className ?? ''}`}
           initial={{ x: '-100%', opacity: 0 }}
           animate={{
@@ -80,7 +84,8 @@ function OperationValue({
             transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
           }}
         >
-          {value}
+          <span className={OPERATOR_COLOR_CLASS[operation.operator]}>{operation.operator}</span>
+          <span className="text-stone-400"> {operation.operand}</span>
         </motion.p>
       </AnimatePresence>
     </div>
@@ -153,110 +158,197 @@ function CurtainOverlay({
   open: boolean
   initialOpen?: boolean
 }) {
-  const leftClosed = '0%'
-  const leftOpen = '-100%'
-  const rightClosed = '0%'
-  const rightOpen = '100%'
+  const [instant, setInstant] = useState(initialOpen)
+  const panelState = open ? 'open' : 'closed'
+  const visualState = initialOpen && instant && !open ? 'open' : panelState
+
+  useEffect(() => {
+    if (!initialOpen) return
+    const frame = requestAnimationFrame(() => setInstant(false))
+    return () => cancelAnimationFrame(frame)
+  }, [initialOpen])
+
+  const instantClass = instant ? 'curtain-panel--instant' : ''
 
   return (
     <>
-      <motion.div
-        className="curtain-panel curtain-panel-left"
-        initial={{ x: initialOpen ? leftOpen : leftClosed }}
-        animate={{ x: open ? leftOpen : leftClosed }}
-        transition={curtainTransition}
+      <div
+        className={`curtain-panel curtain-panel-left curtain-panel--${visualState} ${instantClass}`}
         aria-hidden
-      />
-      <motion.div
-        className="curtain-panel curtain-panel-right"
-        initial={{ x: initialOpen ? rightOpen : rightClosed }}
-        animate={{ x: open ? rightOpen : rightClosed }}
-        transition={curtainTransition}
+      >
+        <div className="curtain-panel__surface" />
+        <div className="curtain-panel__finisher" />
+        <div className="curtain-panel__seam" />
+      </div>
+      <div
+        className={`curtain-panel curtain-panel-right curtain-panel--${visualState} ${instantClass}`}
         aria-hidden
-      />
+      >
+        <div className="curtain-panel__surface" />
+        <div className="curtain-panel__finisher" />
+        <div className="curtain-panel__seam" />
+      </div>
     </>
   )
 }
 
-function MenuActionButton({
+function MenuHudButton({
   label,
   onClick,
-  variant = 'secondary',
   children,
 }: {
   label: string
   onClick: () => void
-  variant?: 'secondary' | 'play'
   children: ReactNode
 }) {
-  const isPlay = variant === 'play'
+  return (
+    <button type="button" onClick={onClick} className="game-menu-hud-btn" aria-label={label}>
+      <span className="game-menu-hud-btn__plate">
+        <span className="game-menu-hud-btn__icon">{children}</span>
+      </span>
+      <span className="game-menu-hud-btn__label">{label}</span>
+    </button>
+  )
+}
+
+function MenuHudInlineButton({
+  label,
+  onClick,
+  variant = 'default',
+  children,
+}: {
+  label: string
+  onClick: () => void
+  variant?: 'default' | 'accent'
+  children: ReactNode
+}) {
+  const plateClass =
+    variant === 'accent'
+      ? 'game-menu-hud-btn__plate game-menu-hud-btn__plate--inline game-menu-hud-btn__plate--accent game-menu-hud-btn__plate--wide'
+      : 'game-menu-hud-btn__plate game-menu-hud-btn__plate--inline'
 
   return (
     <button
       type="button"
       onClick={onClick}
+      className="game-menu-hud-btn game-menu-hud-btn--inline"
       aria-label={label}
-      className={
-        isPlay
-          ? 'game-btn-push game-btn-push-amber flex items-center gap-2.5 rounded-2xl bg-gradient-to-b from-amber-300 to-amber-500 px-7 py-3.5 text-lg font-bold tracking-wide text-amber-950'
-          : 'game-btn-push flex items-center gap-2 rounded-xl bg-gradient-to-b from-charcoal-elevated to-charcoal-field px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-stone-200 ring-1 ring-stone-600/45'
-      }
     >
-      {children}
-      <span>{label}</span>
+      <span className={plateClass}>
+        <span className="game-menu-hud-btn__icon">{children}</span>
+        <span className="game-menu-hud-btn__inline-text">{label}</span>
+      </span>
     </button>
   )
 }
 
-function ConfirmButton({
-  disabled,
-  onClick,
-  pulseKey,
-}: {
-  disabled: boolean
-  onClick: () => void
-  pulseKey: number
-}) {
-  const lastPulseRef = useRef(0)
-  const [shaking, setShaking] = useState(false)
-
-  useEffect(() => {
-    if (pulseKey === 0 || pulseKey === lastPulseRef.current) return
-    lastPulseRef.current = pulseKey
-    setShaking(true)
-    const timeout = window.setTimeout(() => setShaking(false), 320)
-    return () => window.clearTimeout(timeout)
-  }, [pulseKey])
-
+function MenuPlayButton({ onClick }: { onClick: () => void }) {
   return (
-    <div className="relative h-[4.25rem] w-[4.25rem] shrink-0">
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Iniciar partida"
+      className="game-btn-push game-btn-push-amber flex items-center gap-2.5 rounded-2xl bg-gradient-to-b from-amber-300 to-amber-500 px-7 py-3.5 text-lg font-bold tracking-wide text-amber-950"
+    >
+      <IconPlay />
+      <span>Play</span>
+    </button>
+  )
+}
+
+const answerFlashTransition = { duration: 0.52, ease: [0.22, 1, 0.36, 1] as const }
+
+function AnswerDigitPulse({ value }: { value: string }) {
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-visible"
+      aria-hidden
+    >
+      <motion.span
+        className="answer-digit-pulse-ring answer-digit-pulse-ring--inner absolute z-[1] font-mono text-4xl font-bold tabular-nums"
+        initial={{ scale: 1, opacity: 0.95 }}
+        animate={{ scale: 1.7, opacity: 0 }}
+        transition={answerFlashTransition}
+      >
+        {value}
+      </motion.span>
+      <motion.span
+        className="answer-digit-pulse-ring answer-digit-pulse-ring--outer absolute z-[1] font-mono text-4xl font-bold tabular-nums"
+        initial={{ scale: 1, opacity: 0.6 }}
+        animate={{ scale: 2.15, opacity: 0 }}
+        transition={{ ...answerFlashTransition, duration: 0.62, delay: 0.05 }}
+      >
+        {value}
+      </motion.span>
+      <motion.span
+        className="absolute z-[2] font-mono text-4xl font-bold tabular-nums text-amber-50"
+        initial={{ scale: 1, opacity: 1 }}
+        animate={{ scale: 0, opacity: 0 }}
+        transition={answerFlashTransition}
+        style={{ transformOrigin: 'center center' }}
+      >
+        {value}
+      </motion.span>
+    </div>
+  )
+}
+
+function AnswerInput({
+  value,
+  inputDisabled,
+  shake,
+  shakeKey,
+  answerFlash,
+  flashKey,
+  inputRef,
+  onChange,
+  onEnter,
+}: {
+  value: string
+  inputDisabled: boolean
+  shake: boolean
+  shakeKey: number
+  answerFlash: string | null
+  flashKey: number
+  inputRef: React.RefObject<HTMLInputElement | null>
+  onChange: (value: string) => void
+  onEnter: () => void
+}) {
+  return (
+    <div className="relative overflow-visible px-3 py-3">
       <AnimatePresence>
-        {pulseKey > 0 && (
-          <motion.span
-            key={pulseKey}
-            className="pointer-events-none absolute inset-0 rounded-full bg-emerald-400"
-            initial={{ scale: 1, opacity: 0.5 }}
-            animate={{ scale: 2.4, opacity: 0 }}
-            transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
-            aria-hidden
-          />
+        {answerFlash && (
+          <AnswerDigitPulse key={`${flashKey}-${answerFlash}`} value={answerFlash} />
         )}
       </AnimatePresence>
-      <motion.button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        className="game-btn-push game-btn-push-emerald relative flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full bg-gradient-to-b from-emerald-400 to-emerald-600 text-2xl font-bold text-emerald-950 disabled:cursor-not-allowed disabled:opacity-40"
-        aria-label="Confirmar"
-        animate={
-          shaking
-            ? { x: [0, -2, 2, -2, 2, 0], scale: [1, 1.07, 1] }
-            : { x: 0, scale: 1 }
-        }
-        transition={{ duration: 0.32, ease: 'easeOut' }}
+      <motion.div
+        key={shakeKey}
+        animate={shake ? { x: [0, -10, 10, -8, 8, -4, 4, 0] } : { x: 0 }}
+        transition={{ duration: 0.4 }}
       >
-        ✓
-      </motion.button>
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          enterKeyHint="go"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              onEnter()
+            }
+          }}
+          maxLength={2}
+          disabled={inputDisabled}
+          placeholder={answerFlash ? '' : '·'}
+          className={`game-answer-slot h-16 w-full bg-transparent text-center font-mono text-4xl font-bold tabular-nums outline-none disabled:opacity-50 ${
+            answerFlash ? 'text-transparent' : shake ? 'text-rose-400' : 'text-amber-50'
+          }`}
+          aria-label="Resposta"
+        />
+      </motion.div>
     </div>
   )
 }
@@ -317,8 +409,10 @@ export function GameScreen({
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [shakeKey, setShakeKey] = useState(0)
-  const [correctPulseKey, setCorrectPulseKey] = useState(0)
   const [presentation, setPresentation] = useState<PresentationPhase>('menu')
+  const isMobile = useMobileLayout()
+  const enterDurationMs = isMobile ? 340 : contentEnterDurationMs
+  const closeDurationMs = isMobile ? 420 : curtainDurationMs
   const prevScoreRef = useRef(0)
   const answerInputRef = useRef<HTMLInputElement>(null)
   const prevSubmitLockedRef = useRef(false)
@@ -342,6 +436,12 @@ export function GameScreen({
     setPresentation('closing')
   }
 
+  const handlePlayAgain = () => {
+    if (presentation !== 'in-game' || session.phase !== 'game_over') return
+    prevScoreRef.current = 0
+    onStart()
+  }
+
   useEffect(() => {
     if (presentation !== 'opening') return
 
@@ -351,33 +451,26 @@ export function GameScreen({
         onStart()
         return 'in-game'
       })
-    }, contentEnterDurationMs)
+    }, enterDurationMs)
 
     return () => window.clearTimeout(timeout)
-  }, [presentation, onStart])
+  }, [presentation, onStart, enterDurationMs])
 
   useEffect(() => {
     if (presentation !== 'closing') return
 
     const timeout = window.setTimeout(() => {
       setPresentation((current) => (current === 'closing' ? 'menu' : current))
-    }, curtainDurationMs)
+    }, closeDurationMs)
 
     return () => window.clearTimeout(timeout)
-  }, [presentation])
+  }, [presentation, closeDurationMs])
 
   useEffect(() => {
     if (session.isSubmitLocked && session.phase === 'playing') {
       setShakeKey((key) => key + 1)
     }
   }, [session.isSubmitLocked, session.phase])
-
-  useEffect(() => {
-    if (session.phase === 'playing' && session.score > prevScoreRef.current) {
-      setCorrectPulseKey((key) => key + 1)
-    }
-    prevScoreRef.current = session.score
-  }, [session.score, session.phase])
 
   useEffect(() => {
     if (session.phase === 'playing' && session.score === 0) {
@@ -409,14 +502,23 @@ export function GameScreen({
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-charcoal text-white">
-      <ForwardLinesBackground active level={session.level} speedMultiplier={isGameOver ? 0.1 : 1} />
+      <ForwardLinesBackground
+        active={presentation !== 'menu'}
+        level={session.level}
+        speedMultiplier={isGameOver ? 0.1 : 1}
+      />
 
       {showGameContent && (
         <motion.div
           className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
-          initial={{ x: '100%', opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={contentEnterTransition}
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          transition={
+            isMobile
+              ? { duration: 0.34, ease: [0.22, 1, 0.36, 1] }
+              : contentEnterTransition
+          }
+          style={{ willChange: presentation === 'opening' ? 'transform' : 'auto' }}
         >
           <header>
             <p className="text-xs uppercase tracking-widest text-charcoal-muted">Score</p>
@@ -440,27 +542,26 @@ export function GameScreen({
 
               <AnimatePresence>
                 {isGameOver && (
-                  <motion.button
-                    type="button"
+                  <motion.div
                     initial={{ opacity: 0, scale: 0.92 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.92 }}
                     transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                    onClick={handleReturnToMenu}
-                    className="game-btn-push absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-stone-300 ring-1 ring-stone-700/40"
-                    aria-label="Voltar ao menu"
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
                   >
-                    <IconBack />
-                    Menu
-                  </motion.button>
+                    <MenuHudInlineButton label="Menu" onClick={handleReturnToMenu}>
+                      <IconBack />
+                    </MenuHudInlineButton>
+                  </motion.div>
                 )}
               </AnimatePresence>
             </div>
           </header>
 
           <main className="mt-5 flex flex-1 flex-col items-center gap-4">
-            <div className="game-play-stack w-full max-w-xs overflow-hidden rounded-3xl bg-charcoal-field">
-              <div className="border-b border-stone-800/90 px-5 py-4 text-center">
+            <div className="game-play-stack w-full max-w-xs rounded-3xl bg-charcoal-field">
+              <div className="overflow-hidden">
+                <div className="border-b border-stone-800/90 px-5 py-4 text-center">
                 {isPlaying || isGameOver ? (
                   <SlideValue
                     value={session.baseNumber}
@@ -475,9 +576,9 @@ export function GameScreen({
               <div className="border-b border-stone-800/90 px-5 py-3 text-center">
                 {session.operation && (isPlaying || isGameOver) ? (
                   <OperationValue
-                    value={formatOperation(session.operation)}
+                    operation={session.operation}
                     slotClassName="h-10"
-                    className="text-3xl font-medium tracking-wide text-stone-500"
+                    className="text-3xl font-medium tracking-wide"
                   />
                 ) : (
                   <p className="font-mono text-3xl font-medium tabular-nums tracking-wide text-charcoal-muted">
@@ -485,46 +586,19 @@ export function GameScreen({
                   </p>
                 )}
               </div>
-
-              <div className="flex items-center gap-3 px-3 py-3">
-                <motion.div
-                  key={shakeKey}
-                  className="flex-1"
-                  animate={
-                    session.isSubmitLocked
-                      ? { x: [0, -10, 10, -8, 8, -4, 4, 0] }
-                      : { x: 0 }
-                  }
-                  transition={{ duration: 0.4 }}
-                >
-                  <input
-                    ref={answerInputRef}
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={session.inputValue}
-                    onChange={(event) => onInputChange(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault()
-                        onConfirm()
-                      }
-                    }}
-                    maxLength={2}
-                    disabled={!isPlaying || session.isSubmitLocked}
-                    placeholder="·"
-                    className={`game-answer-slot h-16 w-full bg-transparent text-center font-mono text-4xl font-bold tabular-nums text-amber-50 outline-none disabled:opacity-50 ${
-                      session.isSubmitLocked ? 'text-rose-400' : ''
-                    }`}
-                    aria-label="Resposta"
-                  />
-                </motion.div>
-                <ConfirmButton
-                  onClick={onConfirm}
-                  disabled={!isPlaying || session.isSubmitLocked}
-                  pulseKey={correctPulseKey}
-                />
               </div>
+
+              <AnswerInput
+                value={session.inputValue}
+                inputDisabled={!isPlaying || session.isSubmitLocked}
+                shake={session.isSubmitLocked}
+                shakeKey={shakeKey}
+                answerFlash={session.answerFlash}
+                flashKey={session.score}
+                inputRef={answerInputRef}
+                onChange={onInputChange}
+                onEnter={onConfirm}
+              />
             </div>
 
             <div className="w-full max-w-xs">
@@ -535,15 +609,22 @@ export function GameScreen({
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-4 w-full max-w-xs rounded-2xl bg-charcoal-field p-4 text-center"
+                className="mt-4 flex w-full max-w-xs flex-col items-center gap-4"
               >
-                <p className="text-sm uppercase tracking-wide text-charcoal-muted">Game over</p>
-                <p className="font-mono text-2xl font-bold text-white">{session.score} pts</p>
-                {session.beatRecord ? (
-                  <p className="mt-1 text-sm text-emerald-400">Novo recorde pessoal!</p>
-                ) : highScore ? (
-                  <p className="mt-1 text-sm text-charcoal-muted">Recorde: {highScore.score} pts</p>
-                ) : null}
+                <div className="w-full rounded-2xl bg-charcoal-field p-4 text-center">
+                  <p className="text-sm uppercase tracking-wide text-charcoal-muted">Game over</p>
+                  <p className="font-mono text-2xl font-bold text-white">{session.score} pts</p>
+                  {session.beatRecord ? (
+                    <p className="mt-1 text-sm text-emerald-400">Novo recorde pessoal!</p>
+                  ) : highScore ? (
+                    <p className="mt-1 text-sm text-charcoal-muted">Recorde: {highScore.score} pts</p>
+                  ) : null}
+                </div>
+                <MenuHudInlineButton label="Jogar novamente" variant="accent" onClick={handlePlayAgain}>
+                  <span className="scale-75">
+                    <IconPlay />
+                  </span>
+                </MenuHudInlineButton>
               </motion.div>
             )}
           </main>
@@ -562,20 +643,18 @@ export function GameScreen({
         <>
           <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
             <div className="pointer-events-auto">
-              <MenuActionButton label="Play" variant="play" onClick={handlePlay}>
-                <IconPlay />
-              </MenuActionButton>
+              <MenuPlayButton onClick={handlePlay} />
             </div>
           </div>
 
-          <footer className="fixed inset-x-0 bottom-0 z-[60] flex items-end justify-between px-5 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <MenuActionButton label="Histórico" onClick={() => setHistoryOpen(true)}>
+          <footer className="fixed inset-x-0 bottom-0 z-[60] flex items-end justify-between px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+            <MenuHudButton label="Histórico" onClick={() => setHistoryOpen(true)}>
               <IconTrophy />
-            </MenuActionButton>
+            </MenuHudButton>
 
-            <MenuActionButton label="Config" onClick={() => setSettingsOpen(true)}>
+            <MenuHudButton label="Config" onClick={() => setSettingsOpen(true)}>
               <IconGear />
-            </MenuActionButton>
+            </MenuHudButton>
           </footer>
         </>
       )}

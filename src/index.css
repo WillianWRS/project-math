@@ -45,6 +45,7 @@ body {
   animation-name: forward-line-scroll;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+  transform: translateZ(0);
 }
 
 @keyframes bg-scroll {
@@ -119,6 +120,182 @@ body {
   --shadow-color: #b45309;
 }
 
+.game-btn-push-secondary {
+  --shadow-color: #292524;
+}
+
+.game-menu-hud-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.game-menu-hud-btn__plate {
+  --hud-shadow: #080706;
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.07) 0%, transparent 38%),
+    linear-gradient(165deg, #35302b 0%, #221e1a 42%, #12100e 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 240, 215, 0.1),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+
+.game-menu-hud-btn__plate::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(251, 191, 36, 0.14);
+  pointer-events: none;
+}
+
+.game-menu-hud-btn__plate::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 18%;
+  right: 18%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.45), transparent);
+  pointer-events: none;
+}
+
+.game-menu-hud-btn__icon {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  color: #d6d0c6;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+.game-menu-hud-btn__label {
+  min-width: 4.75rem;
+  padding: 0.28rem 0.55rem;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #a8a095;
+  border-radius: 0.5rem;
+  background: linear-gradient(180deg, #2a2522 0%, #1a1714 100%);
+  box-shadow:
+    0 2px 0 #0a0908,
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: transform 0.1s ease;
+}
+
+.game-menu-hud-btn:active .game-menu-hud-btn__plate {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 240, 215, 0.08),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.game-menu-hud-btn:active .game-menu-hud-btn__label {
+  transform: translateY(1px);
+}
+
+.game-menu-hud-btn--inline {
+  flex-direction: row;
+}
+
+.game-menu-hud-btn__plate--inline {
+  width: auto;
+  min-width: 4.75rem;
+  height: 3.35rem;
+  padding: 0 1.15rem;
+  gap: 0.5rem;
+  flex-direction: row;
+  border-radius: 0.875rem;
+}
+
+.game-menu-hud-btn__plate--inline::before {
+  border-radius: 0.625rem;
+}
+
+.game-menu-hud-btn__inline-text {
+  position: relative;
+  z-index: 1;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #a8a095;
+  white-space: nowrap;
+}
+
+.game-menu-hud-btn__plate--accent {
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.09) 0%, transparent 38%),
+    linear-gradient(165deg, #453a28 0%, #2a2318 42%, #16120c 100%);
+}
+
+.game-menu-hud-btn__plate--accent::before {
+  border-color: rgba(251, 191, 36, 0.24);
+}
+
+.game-menu-hud-btn__plate--accent .game-menu-hud-btn__inline-text {
+  color: #fcd34d;
+}
+
+.game-menu-hud-btn__plate--accent .game-menu-hud-btn__icon {
+  color: #fcd34d;
+}
+
+.game-menu-hud-btn__plate--wide {
+  padding: 0 1.35rem;
+}
+
+.game-modal-panel {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(120, 113, 108, 0.35);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, transparent 42%),
+    linear-gradient(180deg, #2a2522 0%, #1f1b18 55%, #141210 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 215, 0.08),
+    0 16px 40px rgba(0, 0, 0, 0.55);
+}
+
+.game-modal-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.5), transparent);
+  pointer-events: none;
+}
+
+.game-modal-card {
+  border-radius: 0.875rem;
+  border: 1px solid rgba(87, 83, 78, 0.35);
+  background: rgba(20, 18, 16, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 .game-play-stack {
   box-shadow:
     inset 0 2px 16px rgba(0, 0, 0, 0.35),
@@ -133,68 +310,172 @@ body {
   color: transparent;
 }
 
+.answer-digit-pulse-ring {
+  color: transparent;
+  -webkit-text-stroke-width: 2px;
+  paint-order: stroke fill;
+}
+
+.answer-digit-pulse-ring--inner {
+  -webkit-text-stroke-color: rgba(52, 211, 153, 0.92);
+}
+
+.answer-digit-pulse-ring--outer {
+  -webkit-text-stroke-width: 1.5px;
+  -webkit-text-stroke-color: rgba(110, 231, 183, 0.45);
+}
+
 .curtain-panel {
-  --curtain-base: #12100e;
-  --curtain-fiber: #1a1714;
-  --curtain-fleck: #242019;
+  --curtain-metal: #12141a;
+  --curtain-accent: rgba(251, 191, 36, 0.14);
 
   position: fixed;
   top: 0;
   bottom: 0;
   z-index: 50;
   width: 50%;
+  overflow: hidden;
   pointer-events: none;
-  background-color: var(--curtain-base);
-  background-image:
-    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.62'/%3E%3C/svg%3E"),
-    repeating-linear-gradient(
-      93deg,
-      transparent 0 6px,
-      rgba(255, 248, 235, 0.018) 6px 7px,
-      transparent 7px 14px,
-      rgba(0, 0, 0, 0.06) 14px 15px
-    ),
-    repeating-linear-gradient(
-      3deg,
-      transparent 0 11px,
-      rgba(255, 255, 255, 0.012) 11px 12px,
-      transparent 12px 23px,
-      rgba(0, 0, 0, 0.05) 23px 24px
-    ),
-    radial-gradient(ellipse 120% 80% at 50% 0%, rgba(255, 245, 230, 0.035), transparent 55%),
-    linear-gradient(175deg, var(--curtain-fleck) 0%, var(--curtain-fiber) 38%, var(--curtain-base) 100%);
-  background-size:
-    160px 160px,
-    auto,
-    auto,
-    100% 100%,
-    100% 100%;
-  background-blend-mode: soft-light, overlay, multiply, normal, normal;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
-.curtain-panel::after {
+.curtain-panel__surface {
+  position: absolute;
+  inset: 0;
+  background-color: var(--curtain-metal);
+  background-image: url('/textura-layer2.jpg');
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+}
+
+.curtain-panel-left .curtain-panel__surface {
+  background-position: right center;
+}
+
+.curtain-panel-right .curtain-panel__surface {
+  background-position: left center;
+}
+
+/* Unifica textura fria com o charcoal/âmbar do jogo — só gradientes, sem filter */
+.curtain-panel__finisher {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 3px,
+      rgba(0, 0, 0, 0.028) 3px 4px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(14, 12, 10, 0.62) 0%,
+      rgba(20, 18, 16, 0.22) 38%,
+      rgba(20, 18, 16, 0.22) 62%,
+      rgba(14, 12, 10, 0.62) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.38) 0%,
+      transparent 22%,
+      transparent 78%,
+      rgba(0, 0, 0, 0.42) 100%
+    ),
+    radial-gradient(ellipse 75% 55% at 50% 45%, rgba(251, 191, 36, 0.045), transparent 70%);
+}
+
+/* Emenda: vão escuro + filete âmbar — painel HUD, não rebite fake */
+.curtain-panel__seam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.55) 8%,
+    rgba(0, 0, 0, 0.85) 50%,
+    rgba(0, 0, 0, 0.55) 92%,
+    transparent 100%
+  );
+}
+
+.curtain-panel__seam::before {
   content: '';
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px),
-    radial-gradient(circle at 72% 64%, rgba(0, 0, 0, 0.08) 0 1px, transparent 1px),
-    radial-gradient(circle at 44% 81%, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px);
-  background-size: 13px 17px, 19px 23px, 11px 15px;
-  opacity: 0.85;
-  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--curtain-accent) 12%,
+    rgba(251, 191, 36, 0.22) 50%,
+    var(--curtain-accent) 88%,
+    transparent 100%
+  );
+  opacity: 0.9;
+}
+
+.curtain-panel-left .curtain-panel__seam {
+  right: 0;
+  box-shadow:
+    inset -1px 0 0 rgba(251, 191, 36, 0.12),
+    4px 0 14px rgba(0, 0, 0, 0.5);
+}
+
+.curtain-panel-right .curtain-panel__seam {
+  left: 0;
+  box-shadow:
+    inset 1px 0 0 rgba(251, 191, 36, 0.12),
+    -4px 0 14px rgba(0, 0, 0, 0.5);
 }
 
 .curtain-panel-left {
   left: 0;
-  box-shadow:
-    inset -1px 0 0 rgba(255, 245, 230, 0.04),
-    inset -18px 0 36px rgba(0, 0, 0, 0.28);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .curtain-panel-right {
   right: 0;
-  box-shadow:
-    inset 1px 0 0 rgba(255, 245, 230, 0.04),
-    inset 18px 0 36px rgba(0, 0, 0, 0.28);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.curtain-panel-left .curtain-panel__surface {
+  box-shadow: inset -18px 0 36px rgba(0, 0, 0, 0.35);
+}
+
+.curtain-panel-right .curtain-panel__surface {
+  box-shadow: inset 18px 0 36px rgba(0, 0, 0, 0.35);
+}
+
+.curtain-panel--instant {
+  transition: none !important;
+}
+
+.curtain-panel-left.curtain-panel--closed {
+  transform: translate3d(0, 0, 0);
+}
+
+.curtain-panel-left.curtain-panel--open {
+  transform: translate3d(-100%, 0, 0);
+}
+
+.curtain-panel-right.curtain-panel--closed {
+  transform: translate3d(0, 0, 0);
+}
+
+.curtain-panel-right.curtain-panel--open {
+  transform: translate3d(100%, 0, 0);
+}
+
+@media (max-width: 768px) {
+  .curtain-panel-left,
+  .curtain-panel-right {
+    transition-duration: 0.42s;
+  }
+
+  .curtain-panel__seam {
+    width: 4px;
+  }
 }

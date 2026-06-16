@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   clearLevelUpFlash,
+  clearAnswerFlash,
   createInitialSession,
   markBeatRecord,
   returnToMenu,
@@ -69,6 +70,16 @@ export function useGame() {
 
     return () => window.clearTimeout(timeout)
   }, [session.isSubmitLocked])
+
+  useEffect(() => {
+    if (session.answerFlash === null) return
+
+    const timeout = window.setTimeout(() => {
+      setSession((current) => clearAnswerFlash(current))
+    }, 560)
+
+    return () => window.clearTimeout(timeout)
+  }, [session.answerFlash])
 
   useEffect(() => {
     if (session.levelUpFlash === null) return

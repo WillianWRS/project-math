@@ -19,6 +19,7 @@ export interface GameSession {
   inputValue: string
   isSubmitLocked: boolean
   levelUpFlash: number | null
+  answerFlash: string | null
   beatRecord: boolean
 }
 
