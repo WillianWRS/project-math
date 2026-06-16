@@ -7,6 +7,7 @@ interface ForwardLinesBackgroundProps {
   active: boolean
   level: number
   speedMultiplier?: number
+  theme?: 'default' | 'water'
 }
 
 const LINE_SPEED_BOOST = 2.8
@@ -16,6 +17,7 @@ export function ForwardLinesBackground({
   active,
   level,
   speedMultiplier = 1,
+  theme = 'default',
 }: ForwardLinesBackgroundProps) {
   const isMobile = useMobileLayout()
   const speedFactor = (48 / backgroundScrollDuration(level)) * LINE_SPEED_BOOST * speedMultiplier
@@ -23,13 +25,14 @@ export function ForwardLinesBackground({
     () => (isMobile ? FORWARD_LINES.slice(0, MOBILE_LINE_COUNT) : FORWARD_LINES),
     [isMobile],
   )
+  const lineClass = theme === 'water' ? 'forward-line forward-line--water' : 'forward-line'
 
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
       {lines.map((line) => (
         <span
           key={line.id}
-          className="forward-line absolute top-0 w-px rounded-full bg-[var(--color-charcoal-line)]"
+          className={`absolute top-0 w-px rounded-full ${lineClass}`}
           style={{
             height: line.height,
             left: `${line.left}%`,

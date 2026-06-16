@@ -14,10 +14,13 @@ import {
 } from '../engine/game-state-machine'
 import type { GameSession } from '../engine/types'
 import {
+  loadBackgroundTheme,
   loadHighScore,
   loadSoundEnabled,
+  saveBackgroundTheme,
   saveHighScore,
   saveSoundEnabled,
+  type BackgroundTheme,
   type HighScoreRecord,
 } from '../platform/storage'
 
@@ -25,6 +28,7 @@ export function useGame() {
   const [session, setSession] = useState<GameSession>(createInitialSession)
   const [highScore, setHighScore] = useState<HighScoreRecord | null>(() => loadHighScore())
   const [soundEnabled, setSoundEnabled] = useState(() => loadSoundEnabled())
+  const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>(() => loadBackgroundTheme())
   const sessionRef = useRef(session)
   sessionRef.current = session
 
@@ -113,14 +117,21 @@ export function useGame() {
     saveSoundEnabled(enabled)
   }, [])
 
+  const setTheme = useCallback((theme: BackgroundTheme) => {
+    setBackgroundTheme(theme)
+    saveBackgroundTheme(theme)
+  }, [])
+
   return {
     session,
     highScore,
     soundEnabled,
+    backgroundTheme,
     onStart,
     onReturnToMenu,
     onConfirm,
     onInputChange,
     toggleSound,
+    setBackgroundTheme: setTheme,
   }
 }

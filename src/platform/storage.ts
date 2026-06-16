@@ -1,5 +1,8 @@
 const HIGH_SCORE_KEY = 'project-math-high-score'
 const SOUND_KEY = 'project-math-sound'
+const BACKGROUND_THEME_KEY = 'project-math-background-theme'
+
+export type BackgroundTheme = 'default' | 'water'
 
 export interface HighScoreRecord {
   score: number
@@ -41,4 +44,18 @@ export function loadSoundEnabled(): boolean {
 
 export function saveSoundEnabled(enabled: boolean): void {
   localStorage.setItem(SOUND_KEY, String(enabled))
+}
+
+export function loadBackgroundTheme(): BackgroundTheme {
+  try {
+    const raw = localStorage.getItem(BACKGROUND_THEME_KEY)
+    if (raw === 'default' || raw === 'water') return raw
+    return 'default'
+  } catch {
+    return 'default'
+  }
+}
+
+export function saveBackgroundTheme(theme: BackgroundTheme): void {
+  localStorage.setItem(BACKGROUND_THEME_KEY, theme)
 }
