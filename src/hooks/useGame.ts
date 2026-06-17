@@ -3,6 +3,7 @@ import {
   clearLevelUpFlash,
   clearAnswerFlash,
   createInitialSession,
+  DEBUG_AUTO_CHECK_ALWAYS_ENABLED,
   markBeatRecord,
   returnToMenu,
   setInputValue,
@@ -23,7 +24,7 @@ import {
   type BackgroundTheme,
   type HighScoreRecord,
 } from '../platform/storage'
-import { playSfx, preloadSfx, syncAmbient } from '../platform/audio-service'
+import { playRandomWriteSfx, playSfx, preloadSfx, syncAmbient } from '../platform/audio-service'
 
 export function useGame() {
   const [session, setSession] = useState<GameSession>(createInitialSession)
@@ -34,6 +35,7 @@ export function useGame() {
   sessionRef.current = session
   const soundEnabledRef = useRef(soundEnabled)
   soundEnabledRef.current = soundEnabled
+  const gameOverFxHandledRef = useRef(false)
 
   useEffect(() => {
     preloadSfx()
@@ -42,14 +44,6 @@ export function useGame() {
   useEffect(() => {
     syncAmbient(soundEnabled && session.phase === 'playing')
   }, [soundEnabled, session.phase])
-
-  const prevPhaseRef = useRef(session.phase)
-  useEffect(() => {
-    if (prevPhaseRef.current === 'playing' && session.phase === 'game_over') {
-      playSfx('gameOver', soundEnabledRef.current)
-    }
-    prevPhaseRef.current = session.phase
-  }, [session.phase])
 
   useEffect(() => {
     if (session.phase !== 'playing') return
@@ -68,13 +62,19 @@ export function useGame() {
         if (next.phase !== 'game_over') return next
 
         const currentHigh = loadHighScore()
-        if (next.score > (currentHigh?.score ?? 0)) {
-          const record = saveHighScore(next.score)
-          setHighScore(record)
-          return markBeatRecord(next, true)
+        const beatRecord = next.score > (currentHigh?.score ?? 0)
+
+        if (!gameOverFxHandledRef.current) {
+          gameOverFxHandledRef.current = true
+          queueMicrotask(() => {
+            if (beatRecord) {
+              setHighScore(saveHighScore(next.score))
+            }
+            playSfx(beatRecord ? 'record' : 'gameOver', soundEnabledRef.current)
+          })
         }
 
-        return markBeatRecord(next, false)
+        return markBeatRecord(next, beatRecord)
       })
 
       frameId = requestAnimationFrame(loop)
@@ -116,15 +116,41 @@ export function useGame() {
 
   const onStart = useCallback(() => {
     if (sessionRef.current.phase === 'playing') return
+    gameOverFxHandledRef.current = false
     setSession(startGame())
   }, [])
 
   const onReturnToMenu = useCallback(() => {
+    gameOverFxHandledRef.current = false
     setSession(returnToMenu())
   }, [])
 
   const onConfirm = useCallback(() => {
     const { session: next, result } = submitAnswer(sessionRef.current)
+    setSession(next)
+
+    if (result === 'correct') {
+      playSfx('success', soundEnabledRef.current)
+    } else if (result === 'wrong') {
+      playSfx('error', soundEnabledRef.current)
+    }
+  }, [])
+
+  const onAutoCorrect = useCallback(() => {
+    const current = sessionRef.current
+    if (
+      current.phase !== 'playing' ||
+      current.isSubmitLocked ||
+      !current.operation ||
+      (!DEBUG_AUTO_CHECK_ALWAYS_ENABLED && current.autoCheckCharges <= 0)
+    ) {
+      return
+    }
+
+    const { session: next, result } = submitAnswer(
+      setInputValue(current, String(current.operation.result)),
+      { autoCheck: true },
+    )
     setSession(next)
 
     if (result === 'correct') {
@@ -140,6 +166,22 @@ export function useGame() {
 
   const playClick = useCallback(() => {
     playSfx('click', soundEnabledRef.current)
+  }, [])
+
+  const playGameStart = useCallback(() => {
+    playSfx('gameStart', soundEnabledRef.current)
+  }, [])
+
+  const playWriteKey = useCallback(() => {
+    playRandomWriteSfx(soundEnabledRef.current)
+  }, [])
+
+  const playEraseKey = useCallback(() => {
+    playSfx('erase', soundEnabledRef.current)
+  }, [])
+
+  const playGoToMenu = useCallback(() => {
+    playSfx('goToMenu', soundEnabledRef.current)
   }, [])
 
   const toggleSound = useCallback((enabled: boolean) => {
@@ -160,9 +202,14 @@ export function useGame() {
     onStart,
     onReturnToMenu,
     onConfirm,
+    onAutoCorrect,
     onInputChange,
     toggleSound,
     setBackgroundTheme: setTheme,
     playClick,
+    playGameStart,
+    playWriteKey,
+    playEraseKey,
+    playGoToMenu,
   }
 }

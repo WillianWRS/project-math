@@ -162,8 +162,205 @@ export function generateInitialBase(level: number = 1): number {
   return randomInt(5, 25)
 }
 
+export const PLUS_CYCLE_MAX_RESULT = 99
+export const MINUS_CYCLE_TARGET_RESULT = 1
+
 export interface GenerateOperationOptions {
   forceAddSubOnly?: boolean
+  forceFourSecondsRules?: boolean
+  forceTimesDivRules?: boolean
+  forcePlusCycleRules?: boolean
+  forcePlusPreCycleFinal?: boolean
+  forceMinusCycleRules?: boolean
+  forceMinusPreCycleFinal?: boolean
+}
+
+function buildTimesDivOnlyOperation(
+  base: number,
+  operator: '×' | '÷',
+  maxResult: number,
+): Operation | null {
+  if (operator === '×') {
+    const maxOperand = Math.floor(maxResult / base)
+    if (maxOperand < 1) return null
+    const operand = randomInt(1, maxOperand)
+    return { operator: '×', operand, result: base * operand }
+  }
+
+  if (base <= 1) return null
+
+  const divisors: number[] = []
+  for (let divisor = 2; divisor <= base; divisor += 1) {
+    if (base % divisor === 0) {
+      const result = base / divisor
+      if (isValidResult(result, maxResult)) {
+        divisors.push(divisor)
+      }
+    }
+  }
+
+  if (divisors.length === 0) return null
+
+  const operand = divisors[randomInt(0, divisors.length - 1)]
+  return { operator: '÷', operand, result: base / operand }
+}
+
+function buildFourSecondsOperation(base: number, operator: '+' | '-'): Operation {
+  const operand = randomInt(1, 9)
+
+  if (operator === '+') {
+    return { operator: '+', operand, result: base + operand }
+  }
+
+  return { operator: '-', operand, result: base - operand }
+}
+
+export function generateFourSecondsOperation(
+  base: number,
+  previous: Operation | null = null,
+): Operation {
+  const maxResult = getLevelRules(5).maxResult
+
+  for (let attempt = 0; attempt < 48; attempt += 1) {
+    const operator = Math.random() < 0.5 ? '+' : '-'
+    const operation = buildFourSecondsOperation(base, operator)
+    if (isValidOperation(operation, previous, maxResult)) {
+      return operation
+    }
+  }
+
+  for (const operator of ['+', '-'] as const) {
+    for (let operand = 1; operand <= 9; operand += 1) {
+      const operation =
+        operator === '+' ? { operator, operand, result: base + operand } : { operator, operand, result: base - operand }
+      if (isValidOperation(operation, previous, maxResult)) {
+        return operation
+      }
+    }
+  }
+
+  return { operator: '+', operand: 1, result: base + 1 }
+}
+
+export function generateTimesDivOperation(
+  base: number,
+  level: number,
+  previous: Operation | null = null,
+): Operation {
+  const maxResult = getLevelRules(Math.max(level, 5)).maxResult
+
+  for (let attempt = 0; attempt < 48; attempt += 1) {
+    const operator: '×' | '÷' = Math.random() < 0.5 ? '×' : '÷'
+    const operation = buildTimesDivOnlyOperation(base, operator, maxResult)
+    if (operation && isValidOperation(operation, previous, maxResult)) {
+      return operation
+    }
+  }
+
+  for (const operator of ['×', '÷'] as const) {
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+      const operation = buildTimesDivOnlyOperation(base, operator, maxResult)
+      if (operation && isValidOperation(operation, previous, maxResult)) {
+        return operation
+      }
+    }
+  }
+
+  const fallback = buildTimesDivOnlyOperation(base, '×', maxResult)
+  if (fallback) return fallback
+
+  return { operator: '×', operand: 1, result: base * 1 }
+}
+
+export function generatePlusPreCycleFinalOperation(
+  base: number,
+  previous: Operation | null = null,
+): Operation {
+  if (base > 1) {
+    const operation: Operation = { operator: '-', operand: base - 1, result: 1 }
+    if (!previous || !isSameOperation(operation, previous)) {
+      return operation
+    }
+  }
+
+  if (base >= 1) {
+    return { operator: '×', operand: 1, result: base }
+  }
+
+  return { operator: '+', operand: 1, result: 1 }
+}
+
+export function generatePlusCycleOperation(
+  base: number,
+  previous: Operation | null = null,
+): Operation {
+  const candidates: Operation[] = []
+
+  for (let operand = 1; operand <= 9; operand += 1) {
+    const result = base + operand
+    if (result > PLUS_CYCLE_MAX_RESULT) continue
+
+    const operation: Operation = { operator: '+', operand, result }
+    if (isValidOperation(operation, previous, PLUS_CYCLE_MAX_RESULT)) {
+      candidates.push(operation)
+    }
+  }
+
+  if (candidates.length > 0) {
+    return candidates[randomInt(0, candidates.length - 1)]
+  }
+
+  const operand = Math.max(1, Math.min(9, PLUS_CYCLE_MAX_RESULT - base))
+  return { operator: '+', operand, result: base + operand }
+}
+
+export function generateMinusPreCycleFinalOperation(
+  base: number,
+  previous: Operation | null = null,
+): Operation {
+  if (base < 99) {
+    const operation: Operation = { operator: '+', operand: 99 - base, result: 99 }
+    if (!previous || !isSameOperation(operation, previous)) {
+      return operation
+    }
+  }
+
+  if (base > 99) {
+    const operation: Operation = { operator: '-', operand: base - 99, result: 99 }
+    if (!previous || !isSameOperation(operation, previous)) {
+      return operation
+    }
+  }
+
+  if (base === 99) {
+    return { operator: '×', operand: 1, result: 99 }
+  }
+
+  return { operator: '+', operand: 1, result: base + 1 }
+}
+
+export function generateMinusCycleOperation(
+  base: number,
+  previous: Operation | null = null,
+): Operation {
+  const candidates: Operation[] = []
+
+  for (let operand = 1; operand <= 9; operand += 1) {
+    const result = base - operand
+    if (result < MINUS_CYCLE_TARGET_RESULT) continue
+
+    const operation: Operation = { operator: '-', operand, result }
+    if (isValidOperation(operation, previous, PLUS_CYCLE_MAX_RESULT)) {
+      candidates.push(operation)
+    }
+  }
+
+  if (candidates.length > 0) {
+    return candidates[randomInt(0, candidates.length - 1)]
+  }
+
+  const operand = Math.max(1, Math.min(9, base - 1))
+  return { operator: '-', operand, result: base - operand }
 }
 
 export function generateOperation(
@@ -172,7 +369,40 @@ export function generateOperation(
   previous: Operation | null = null,
   options: GenerateOperationOptions = {},
 ): Operation {
-  const { forceAddSubOnly = false } = options
+  const {
+    forceAddSubOnly = false,
+    forceFourSecondsRules = false,
+    forceTimesDivRules = false,
+    forcePlusCycleRules = false,
+    forcePlusPreCycleFinal = false,
+    forceMinusCycleRules = false,
+    forceMinusPreCycleFinal = false,
+  } = options
+
+  if (forcePlusPreCycleFinal) {
+    return generatePlusPreCycleFinalOperation(base, previous)
+  }
+
+  if (forceMinusPreCycleFinal) {
+    return generateMinusPreCycleFinalOperation(base, previous)
+  }
+
+  if (forceFourSecondsRules) {
+    return generateFourSecondsOperation(base, previous)
+  }
+
+  if (forceTimesDivRules) {
+    return generateTimesDivOperation(base, level, previous)
+  }
+
+  if (forcePlusCycleRules) {
+    return generatePlusCycleOperation(base, previous)
+  }
+
+  if (forceMinusCycleRules) {
+    return generateMinusCycleOperation(base, previous)
+  }
+
   const rules = getLevelRules(level)
   const allowedOperators: Operator[] = forceAddSubOnly
     ? ['+', '-']

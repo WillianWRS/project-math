@@ -20,11 +20,32 @@ export interface GameSession {
   isSubmitLocked: boolean
   levelUpFlash: number | null
   answerFlash: string | null
+  answerFlashAuto: boolean
   beatRecord: boolean
   /** Nível 5+: próximas N operações forçadas em +/− após acerto nos 2s finais */
   easyOperationsRemaining: number
   /** Acertos restantes para liberar nova ajuda clutch (0 = elegível) */
   clutchHelpCooldownRemaining: number
+  /** Cargas de auto-acerto disponíveis no teclado (0 = desabilitado) */
+  autoCheckCharges: number
+  /** Passo ativo do ciclo lateral (1–4); null = sem ciclo em andamento */
+  autoCheckCycleStep: number | null
+  /** Passo ativo do four-seconds-cycle (1–4); null = sem ciclo em andamento */
+  fourSecondsCycleStep: number | null
+  /** Acertos restantes no game changer 4s (+/−, operando 1–9); 0 = inativo */
+  fourSecondsGameChangerRemaining: number
+  /** Passo ativo do times-div-cycle (1–4); null = sem ciclo em andamento */
+  timesDivCycleStep: number | null
+  /** Acertos restantes no game changer ×÷; 0 = inativo */
+  timesDivGameChangerRemaining: number
+  /** Passo ativo do plus-cycle (1–4); null = sem ciclo em andamento */
+  plusCycleStep: number | null
+  /** Game changer + ativo (só +, operando 1–9, até resultado 99) */
+  plusGameChangerActive: boolean
+  /** Passo ativo do minus-cycle (1–4); null = sem ciclo em andamento */
+  minusCycleStep: number | null
+  /** Game changer − ativo (só −, operando 1–9, até resultado 1) */
+  minusGameChangerActive: boolean
 }
 
 export type SubmitResult = 'correct' | 'wrong' | 'locked' | 'empty'

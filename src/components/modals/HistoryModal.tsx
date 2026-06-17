@@ -17,11 +17,11 @@ function formatDate(iso: string): string {
 
 export function HistoryModal({ open, onClose, highScore }: HistoryModalProps) {
   return (
-    <Modal open={open} title="Histórico" onClose={onClose}>
+    <Modal open={open} title="Recorde" onClose={onClose}>
       {highScore ? (
         <div className="game-modal-card space-y-3 p-4">
           <div>
-            <p className="text-xs uppercase tracking-widest text-charcoal-muted">Melhor score</p>
+            <p className="text-xs uppercase tracking-widest text-charcoal-muted">Melhor pontuação</p>
             <p className="font-mono text-3xl font-bold text-amber-300">{highScore.score}</p>
           </div>
           <div>

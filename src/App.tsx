@@ -13,10 +13,15 @@ function App() {
       onStart={game.onStart}
       onReturnToMenu={game.onReturnToMenu}
       onConfirm={game.onConfirm}
+      onAutoCorrect={game.onAutoCorrect}
       onInputChange={game.onInputChange}
       onSoundChange={game.toggleSound}
       onBackgroundThemeChange={game.setBackgroundTheme}
       onPlayClick={game.playClick}
+      onPlayGameStart={game.playGameStart}
+      onPlayWriteKey={game.playWriteKey}
+      onPlayEraseKey={game.playEraseKey}
+      onPlayGoToMenu={game.playGoToMenu}
     />
   )
 }
