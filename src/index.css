@@ -160,6 +160,17 @@ body {
   visibility: hidden;
 }
 
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .game-side-card--slot-anchor,
+  .game-side-card--slot-anchor * {
+    animation: none !important;
+  }
+
+  .timer-bar-fill {
+    will-change: width;
+  }
+}
+
 .game-side-card-slot {
   position: relative;
   display: flex;

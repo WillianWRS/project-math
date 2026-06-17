@@ -26,6 +26,9 @@ import {
 } from '../platform/storage'
 import { playRandomWriteSfx, playSfx, preloadSfx, syncAmbient } from '../platform/audio-service'
 
+/** Intervalo de publicação do timer na UI — reduz re-renders sem alterar a barra visualmente. */
+const TIMER_UI_PUBLISH_MS = 100
+
 export function useGame() {
   const [session, setSession] = useState<GameSession>(createInitialSession)
   const [highScore, setHighScore] = useState<HighScoreRecord | null>(() => loadHighScore())
@@ -36,6 +39,7 @@ export function useGame() {
   const soundEnabledRef = useRef(soundEnabled)
   soundEnabledRef.current = soundEnabled
   const gameOverFxHandledRef = useRef(false)
+  const timerMsRef = useRef(session.timerMs)
 
   useEffect(() => {
     preloadSfx()
@@ -46,36 +50,53 @@ export function useGame() {
   }, [soundEnabled, session.phase])
 
   useEffect(() => {
+    timerMsRef.current = session.timerMs
+  }, [session.phase, session.score])
+
+  useEffect(() => {
     if (session.phase !== 'playing') return
 
     let lastTick = performance.now()
+    let lastPublish = lastTick
     let frameId = 0
 
     const loop = (now: number) => {
       const delta = now - lastTick
       lastTick = now
+      timerMsRef.current = Math.max(0, timerMsRef.current - delta)
 
-      setSession((current) => {
-        if (current.phase !== 'playing') return current
+      if (timerMsRef.current <= 0) {
+        setSession((current) => {
+          if (current.phase !== 'playing') return current
 
-        const next = tickTimer(current, delta)
-        if (next.phase !== 'game_over') return next
+          const next = tickTimer({ ...current, timerMs: 0 }, 0)
+          const currentHigh = loadHighScore()
+          const beatRecord = next.score > (currentHigh?.score ?? 0)
 
-        const currentHigh = loadHighScore()
-        const beatRecord = next.score > (currentHigh?.score ?? 0)
+          if (!gameOverFxHandledRef.current) {
+            gameOverFxHandledRef.current = true
+            queueMicrotask(() => {
+              if (beatRecord) {
+                setHighScore(saveHighScore(next.score))
+              }
+              playSfx(beatRecord ? 'record' : 'gameOver', soundEnabledRef.current)
+            })
+          }
 
-        if (!gameOverFxHandledRef.current) {
-          gameOverFxHandledRef.current = true
-          queueMicrotask(() => {
-            if (beatRecord) {
-              setHighScore(saveHighScore(next.score))
-            }
-            playSfx(beatRecord ? 'record' : 'gameOver', soundEnabledRef.current)
-          })
-        }
+          return markBeatRecord(next, beatRecord)
+        })
+        return
+      }
 
-        return markBeatRecord(next, beatRecord)
-      })
+      if (now - lastPublish >= TIMER_UI_PUBLISH_MS) {
+        lastPublish = now
+        const timerMs = timerMsRef.current
+        setSession((current) => {
+          if (current.phase !== 'playing') return current
+          if (Math.abs(current.timerMs - timerMs) < 1) return current
+          return { ...current, timerMs }
+        })
+      }
 
       frameId = requestAnimationFrame(loop)
     }

@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
+import { memo } from 'react'
 import { DEBUG_AUTO_CHECK_ALWAYS_ENABLED } from '../../engine/game-state-machine'
 
 interface NumericKeypadProps {
@@ -155,7 +156,7 @@ function AutoCheckButton({
   )
 }
 
-export function NumericKeypad({
+export const NumericKeypad = memo(function NumericKeypad({
   disabled = false,
   backspaceDisabled = false,
   waterLight = false,
@@ -234,4 +235,4 @@ export function NumericKeypad({
       </motion.button>
     </motion.div>
   )
-}
+})

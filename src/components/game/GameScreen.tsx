@@ -539,20 +539,22 @@ function PlayFieldsFrame({
   )
 }
 
-function TimerBar({ session }: { session: GameSession }) {
-  const ratio =
-    session.timerMaxMs > 0 ? Math.max(0, session.timerMs / session.timerMaxMs) : 0
+function TimerBar({
+  timerMs,
+  timerMaxMs,
+}: {
+  timerMs: number
+  timerMaxMs: number
+}) {
+  const ratio = timerMaxMs > 0 ? Math.max(0, timerMs / timerMaxMs) : 0
   const urgent = ratio < 0.25
   const showSpark = ratio > 0.015
 
-  if (session.phase !== 'playing') return null
-
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-charcoal-elevated">
-      <motion.div
-        className="relative h-full rounded-full"
-        animate={{ width: `${ratio * 100}%` }}
-        transition={{ duration: 0.08, ease: 'linear' }}
+      <div
+        className="timer-bar-fill relative h-full rounded-full transition-[width] duration-100 ease-linear"
+        style={{ width: `${ratio * 100}%` }}
       >
         <div
           className={`h-full w-full rounded-full ${
@@ -577,7 +579,7 @@ function TimerBar({ session }: { session: GameSession }) {
             />
           </>
         )}
-      </motion.div>
+      </div>
     </div>
   )
 }
@@ -923,7 +925,7 @@ export function GameScreen({
             {isPlaying && (
               <>
                 <div className="w-full max-w-xs">
-                  <TimerBar session={session} />
+                  <TimerBar timerMs={session.timerMs} timerMaxMs={session.timerMaxMs} />
                 </div>
                 <NumericKeypad
                   disabled={inputDisabled}

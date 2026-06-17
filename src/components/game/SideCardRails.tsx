@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useCallback, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { memo, useCallback, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import {
   RightSideCardCatalog,
   type RightCardVariant,
@@ -129,6 +129,8 @@ function useSideSlotTops(sideCount: number) {
   const rightSlotRefs = useRef<(HTMLDivElement | null)[]>([])
   const [slotTops, setSlotTops] = useState<number[] | null>(null)
 
+  const measureRafRef = useRef(0)
+
   const measure = useCallback(() => {
     const leftColumn = leftColumnRef.current
     if (!leftColumn) return
@@ -151,26 +153,30 @@ function useSideSlotTops(sideCount: number) {
     })
   }, [sideCount])
 
+  const scheduleMeasure = useCallback(() => {
+    cancelAnimationFrame(measureRafRef.current)
+    measureRafRef.current = requestAnimationFrame(measure)
+  }, [measure])
+
   useLayoutEffect(() => {
-    measure()
-    const frame = requestAnimationFrame(measure)
+    scheduleMeasure()
 
     const playRow = playRowRef.current
-    const observer = new ResizeObserver(measure)
+    const observer = new ResizeObserver(scheduleMeasure)
     if (playRow) observer.observe(playRow)
 
     return () => {
-      cancelAnimationFrame(frame)
+      cancelAnimationFrame(measureRafRef.current)
       observer.disconnect()
     }
-  }, [measure])
+  }, [scheduleMeasure])
 
   const setRightSlotRef = useCallback(
     (index: number) => (element: HTMLDivElement | null) => {
       rightSlotRefs.current[index] = element
-      measure()
+      scheduleMeasure()
     },
-    [measure],
+    [scheduleMeasure],
   )
 
   return { playRowRef, leftColumnRef, rightColumnRef, setRightSlotRef, slotTops }
@@ -505,7 +511,7 @@ function RightSideCardColumn({
   )
 }
 
-export function PlayFieldsSideLayout({
+export const PlayFieldsSideLayout = memo(function PlayFieldsSideLayout({
   autoCheckCycleStep = null,
   fourSecondsCycleStep = null,
   fourSecondsGameChangerRemaining = 0,
@@ -620,4 +626,4 @@ export function PlayFieldsSideLayout({
       </AnimatePresence>
     </div>
   )
-}
+})

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { backgroundScrollDuration } from '../../engine/level-system'
 import { FORWARD_LINES } from './forward-lines-config'
 import { useMobileLayout } from '../../hooks/useMobileLayout'
@@ -11,9 +11,9 @@ interface ForwardLinesBackgroundProps {
 }
 
 const LINE_SPEED_BOOST = 2.8
-const MOBILE_LINE_COUNT = 16
+const MOBILE_LINE_COUNT = 10
 
-export function ForwardLinesBackground({
+export const ForwardLinesBackground = memo(function ForwardLinesBackground({
   active,
   level,
   speedMultiplier = 1,
@@ -45,4 +45,4 @@ export function ForwardLinesBackground({
       ))}
     </div>
   )
-}
+})
