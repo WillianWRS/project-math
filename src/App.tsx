@@ -16,6 +16,7 @@ function App() {
       onInputChange={game.onInputChange}
       onSoundChange={game.toggleSound}
       onBackgroundThemeChange={game.setBackgroundTheme}
+      onPlayClick={game.playClick}
     />
   )
 }

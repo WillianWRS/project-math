@@ -21,6 +21,10 @@ export interface GameSession {
   levelUpFlash: number | null
   answerFlash: string | null
   beatRecord: boolean
+  /** Nível 5+: próximas N operações forçadas em +/− após acerto nos 2s finais */
+  easyOperationsRemaining: number
+  /** Acertos restantes para liberar nova ajuda clutch (0 = elegível) */
+  clutchHelpCooldownRemaining: number
 }
 
 export type SubmitResult = 'correct' | 'wrong' | 'locked' | 'empty'

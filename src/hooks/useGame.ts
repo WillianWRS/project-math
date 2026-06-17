@@ -23,6 +23,7 @@ import {
   type BackgroundTheme,
   type HighScoreRecord,
 } from '../platform/storage'
+import { playSfx, preloadSfx, syncAmbient } from '../platform/audio-service'
 
 export function useGame() {
   const [session, setSession] = useState<GameSession>(createInitialSession)
@@ -31,6 +32,24 @@ export function useGame() {
   const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>(() => loadBackgroundTheme())
   const sessionRef = useRef(session)
   sessionRef.current = session
+  const soundEnabledRef = useRef(soundEnabled)
+  soundEnabledRef.current = soundEnabled
+
+  useEffect(() => {
+    preloadSfx()
+  }, [])
+
+  useEffect(() => {
+    syncAmbient(soundEnabled && session.phase === 'playing')
+  }, [soundEnabled, session.phase])
+
+  const prevPhaseRef = useRef(session.phase)
+  useEffect(() => {
+    if (prevPhaseRef.current === 'playing' && session.phase === 'game_over') {
+      playSfx('gameOver', soundEnabledRef.current)
+    }
+    prevPhaseRef.current = session.phase
+  }, [session.phase])
 
   useEffect(() => {
     if (session.phase !== 'playing') return
@@ -105,11 +124,22 @@ export function useGame() {
   }, [])
 
   const onConfirm = useCallback(() => {
-    setSession((current) => submitAnswer(current).session)
+    const { session: next, result } = submitAnswer(sessionRef.current)
+    setSession(next)
+
+    if (result === 'correct') {
+      playSfx('success', soundEnabledRef.current)
+    } else if (result === 'wrong') {
+      playSfx('error', soundEnabledRef.current)
+    }
   }, [])
 
   const onInputChange = useCallback((value: string) => {
     setSession((current) => setInputValue(current, value))
+  }, [])
+
+  const playClick = useCallback(() => {
+    playSfx('click', soundEnabledRef.current)
   }, [])
 
   const toggleSound = useCallback((enabled: boolean) => {
@@ -133,5 +163,6 @@ export function useGame() {
     onInputChange,
     toggleSound,
     setBackgroundTheme: setTheme,
+    playClick,
   }
 }

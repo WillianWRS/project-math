@@ -1,9 +1,20 @@
 import { generateInitialBase, generateOperation, evaluateAnswer } from './operation-generator'
-import { levelTimerMs, scoreToLevel } from './level-system'
+import { levelTimerMs, scoreToLevel, crossedScoreMilestoneBurst } from './level-system'
 import type { GameSession, SubmitResult } from './types'
 
 const SUBMIT_LOCK_MS = 500
 const SCORE_PER_CORRECT = 10
+const CLUTCH_WINDOW_MS = 2_000
+const CLUTCH_EASY_OPERATIONS = 2
+const CLUTCH_RECHARGE_CORRECT = 8
+
+function canTriggerClutchHelp(session: GameSession): boolean {
+  return (
+    session.level >= 5 &&
+    session.timerMs <= CLUTCH_WINDOW_MS &&
+    session.clutchHelpCooldownRemaining === 0
+  )
+}
 
 export function createInitialSession(): GameSession {
   return {
@@ -19,12 +30,14 @@ export function createInitialSession(): GameSession {
     levelUpFlash: null,
     answerFlash: null,
     beatRecord: false,
+    easyOperationsRemaining: 0,
+    clutchHelpCooldownRemaining: 0,
   }
 }
 
 export function startGame(): GameSession {
-  const baseNumber = generateInitialBase()
   const level = 1
+  const baseNumber = generateInitialBase(level)
   const timerMaxMs = levelTimerMs(level)
 
   return {
@@ -34,12 +47,14 @@ export function startGame(): GameSession {
     timerMs: timerMaxMs,
     timerMaxMs,
     baseNumber,
-    operation: generateOperation(baseNumber),
+    operation: generateOperation(baseNumber, level, null),
     inputValue: '',
     isSubmitLocked: false,
     levelUpFlash: null,
     answerFlash: null,
     beatRecord: false,
+    easyOperationsRemaining: 0,
+    clutchHelpCooldownRemaining: 0,
   }
 }
 
@@ -90,7 +105,12 @@ export function submitAnswer(session: GameSession): {
 
   if (!isCorrect) {
     return {
-      session: { ...session, isSubmitLocked: true },
+      session: {
+        ...session,
+        isSubmitLocked: true,
+        clutchHelpCooldownRemaining:
+          session.clutchHelpCooldownRemaining > 0 ? CLUTCH_RECHARGE_CORRECT : 0,
+      },
       result: 'wrong',
     }
   }
@@ -101,6 +121,24 @@ export function submitAnswer(session: GameSession): {
   const timerMaxMs = levelTimerMs(level)
   const baseNumber = session.operation.result
   const leveledUp = level > previousLevel
+  const milestoneBurst = crossedScoreMilestoneBurst(session.score, score)
+  const levelUpFlash = leveledUp ? level : milestoneBurst ? 5 : null
+
+  let easyOperationsRemaining = session.easyOperationsRemaining
+  let clutchHelpCooldownRemaining = session.clutchHelpCooldownRemaining
+
+  if (canTriggerClutchHelp(session)) {
+    easyOperationsRemaining = CLUTCH_EASY_OPERATIONS
+    clutchHelpCooldownRemaining = CLUTCH_RECHARGE_CORRECT
+  } else if (clutchHelpCooldownRemaining > 0) {
+    clutchHelpCooldownRemaining -= 1
+  }
+
+  const forceAddSubOnly = easyOperationsRemaining > 0
+  const operation = generateOperation(baseNumber, level, session.operation, { forceAddSubOnly })
+  if (forceAddSubOnly) {
+    easyOperationsRemaining -= 1
+  }
 
   return {
     session: {
@@ -108,13 +146,15 @@ export function submitAnswer(session: GameSession): {
       score,
       level,
       baseNumber,
-      operation: generateOperation(baseNumber),
+      operation,
       inputValue: '',
       timerMs: timerMaxMs,
       timerMaxMs,
       isSubmitLocked: false,
-      levelUpFlash: leveledUp ? level : null,
+      levelUpFlash,
       answerFlash: trimmed,
+      easyOperationsRemaining,
+      clutchHelpCooldownRemaining,
     },
     result: 'correct',
   }
@@ -124,7 +164,7 @@ export function unlockSubmit(session: GameSession): GameSession {
   if (!session.isSubmitLocked) {
     return session
   }
-  return { ...session, isSubmitLocked: false }
+  return { ...session, isSubmitLocked: false, inputValue: '' }
 }
 
 export function clearLevelUpFlash(session: GameSession): GameSession {

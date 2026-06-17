@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { ForwardLinesBackground } from './ForwardLinesBackground'
+import { NumericKeypad } from './NumericKeypad'
 import { useMobileLayout } from '../../hooks/useMobileLayout'
 import { OPERATOR_COLOR_CLASS } from '../../engine/operation-generator'
 import type { Operation } from '../../engine/types'
@@ -20,6 +21,7 @@ interface GameScreenProps {
   onInputChange: (value: string) => void
   onSoundChange: (enabled: boolean) => void
   onBackgroundThemeChange: (theme: BackgroundTheme) => void
+  onPlayClick: () => void
 }
 
 type PresentationPhase = 'menu' | 'opening' | 'in-game' | 'closing'
@@ -218,12 +220,14 @@ function MenuHudInlineButton({
   onClick,
   variant = 'default',
   waterLight = false,
+  fill = false,
   children,
 }: {
   label: string
   onClick: () => void
   variant?: 'default' | 'accent'
   waterLight?: boolean
+  fill?: boolean
   children: ReactNode
 }) {
   const plateClass =
@@ -235,7 +239,7 @@ function MenuHudInlineButton({
     <button
       type="button"
       onClick={onClick}
-      className={`game-menu-hud-btn game-menu-hud-btn--inline${waterLight ? ' game-menu-hud-btn--water-light' : ''}`}
+      className={`game-menu-hud-btn game-menu-hud-btn--inline${fill ? ' game-menu-hud-btn--fill' : ''}${waterLight ? ' game-menu-hud-btn--water-light' : ''}`}
       aria-label={label}
     >
       <span className={plateClass}>
@@ -297,29 +301,25 @@ function AnswerDigitPulse({ value }: { value: string }) {
   )
 }
 
-function AnswerInput({
+function AnswerDisplay({
   value,
-  inputDisabled,
+  disabled,
   shake,
   shakeKey,
   answerFlash,
   flashKey,
-  inputRef,
-  onChange,
-  onEnter,
   waterLight = false,
 }: {
   value: string
-  inputDisabled: boolean
+  disabled: boolean
   shake: boolean
   shakeKey: number
   answerFlash: string | null
   flashKey: number
-  inputRef: React.RefObject<HTMLInputElement | null>
-  onChange: (value: string) => void
-  onEnter: () => void
   waterLight?: boolean
 }) {
+  const displayValue = answerFlash ? '' : value || '·'
+
   return (
     <div
       className={`relative overflow-visible px-3 py-3${waterLight ? ' game-answer-row--water' : ''}`}
@@ -334,37 +334,95 @@ function AnswerInput({
         animate={shake ? { x: [0, -10, 10, -8, 8, -4, 4, 0] } : { x: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <input
-          ref={inputRef}
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          enterKeyHint="go"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault()
-              onEnter()
-            }
-          }}
-          maxLength={2}
-          disabled={inputDisabled}
-          placeholder={answerFlash ? '' : '·'}
-          className={`game-answer-slot h-16 w-full bg-transparent text-center font-mono text-4xl font-bold tabular-nums outline-none disabled:opacity-50 ${
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label={`Resposta: ${value || 'vazio'}`}
+          className={`game-answer-slot flex h-16 w-full items-center justify-center bg-transparent text-center font-mono text-4xl font-bold tabular-nums ${
             waterLight ? 'game-answer-slot--water' : ''
           } ${
             answerFlash
               ? 'text-transparent'
               : shake
                 ? 'text-rose-400'
-                : waterLight
-                  ? 'text-sky-900'
-                  : 'text-amber-50'
-          }`}
-          aria-label="Resposta"
-        />
+                : value
+                  ? waterLight
+                    ? 'text-sky-900'
+                    : 'text-amber-50'
+                  : waterLight
+                    ? 'text-sky-700/35'
+                    : 'text-charcoal-muted/50'
+          } ${disabled ? 'opacity-50' : ''}`}
+        >
+          {displayValue}
+        </div>
       </motion.div>
+    </div>
+  )
+}
+
+function playBorderPulseStyle(level: number): CSSProperties {
+  const lv = Math.min(Math.max(level, 1), 5)
+  const base = 1.6 + lv * 0.65
+  const amplitude = 0.45 + lv * 0.28
+  const minW = base - amplitude / 2
+  const maxW = base + amplitude / 2
+
+  return {
+    '--play-border-min': `${minW.toFixed(2)}px`,
+    '--play-border-max': `${maxW.toFixed(2)}px`,
+    '--play-glow-min': `${8 + lv * 2}px`,
+    '--play-glow-max': `${14 + lv * 9}px`,
+    '--play-pulse-duration': `${(2.75 - lv * 0.2).toFixed(2)}s`,
+    '--play-pulse-scale-max': `${(1.004 + lv * 0.007).toFixed(3)}`,
+    '--play-glow-strength-min': `${0.16 + lv * 0.05}`,
+    '--play-glow-strength-max': `${0.34 + lv * 0.13}`,
+  } as CSSProperties
+}
+
+function playBorderBurstStyle(burstLevel: number): CSSProperties {
+  const lv = Math.min(Math.max(burstLevel, 1), 5)
+
+  return {
+    '--play-burst-scale': `${(1.028 + lv * 0.014).toFixed(3)}`,
+    '--play-border-burst': `${(2.2 + lv * 1.1).toFixed(2)}px`,
+    '--play-burst-glow': `${24 + lv * 10}px`,
+    '--play-ring-scale-end': `${(1.1 + lv * 0.03).toFixed(3)}`,
+  } as CSSProperties
+}
+
+function PlayFieldsFrame({
+  level,
+  levelUpFlash,
+  burstScore,
+  waterLight,
+  borderActive,
+  children,
+}: {
+  level: number
+  levelUpFlash: number | null
+  burstScore: number
+  waterLight: boolean
+  borderActive: boolean
+  children: ReactNode
+}) {
+  const burstLevel = levelUpFlash ?? level
+  const frameStyle = {
+    ...playBorderPulseStyle(level),
+    ...(levelUpFlash !== null ? playBorderBurstStyle(burstLevel) : {}),
+  }
+
+  return (
+    <div
+      key={levelUpFlash !== null ? `burst-${burstScore}` : 'play-fields'}
+      className={`game-play-stack-frame${
+        waterLight ? ' game-play-stack-frame--water' : ''
+      }${borderActive ? '' : ' game-play-stack-frame--inactive'}${
+        levelUpFlash !== null ? ' game-play-stack-frame--level-up' : ''
+      }`}
+      style={frameStyle}
+    >
+      {children}
     </div>
   )
 }
@@ -423,6 +481,7 @@ export function GameScreen({
   onSoundChange,
   backgroundTheme,
   onBackgroundThemeChange,
+  onPlayClick,
 }: GameScreenProps) {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -432,11 +491,25 @@ export function GameScreen({
   const enterDurationMs = isMobile ? 340 : contentEnterDurationMs
   const closeDurationMs = isMobile ? 420 : curtainDurationMs
   const prevScoreRef = useRef(0)
-  const answerInputRef = useRef<HTMLInputElement>(null)
-  const prevSubmitLockedRef = useRef(false)
+  const inputValueRef = useRef(session.inputValue)
+  inputValueRef.current = session.inputValue
 
   const isPlaying = session.phase === 'playing'
   const isGameOver = session.phase === 'game_over'
+  const inputDisabled = !isPlaying || session.isSubmitLocked
+
+  const appendDigit = useCallback(
+    (digit: string) => {
+      if (inputDisabled) return
+      onInputChange(`${inputValueRef.current}${digit}`)
+    },
+    [inputDisabled, onInputChange],
+  )
+
+  const backspaceDigit = useCallback(() => {
+    if (inputDisabled || inputValueRef.current.length === 0) return
+    onInputChange(inputValueRef.current.slice(0, -1))
+  }, [inputDisabled, onInputChange])
   const showGameContent = presentation === 'opening' || presentation === 'in-game'
   const showMenuChrome = presentation === 'menu'
   const isInGameScene = presentation !== 'menu'
@@ -452,12 +525,14 @@ export function GameScreen({
 
   const handleReturnToMenu = () => {
     if (presentation !== 'in-game') return
+    onPlayClick()
     onReturnToMenu()
     setPresentation('closing')
   }
 
   const handlePlayAgain = () => {
     if (presentation !== 'in-game' || session.phase !== 'game_over') return
+    onPlayClick()
     prevScoreRef.current = 0
     onStart()
   }
@@ -499,26 +574,26 @@ export function GameScreen({
   }, [session.phase, session.score])
 
   useEffect(() => {
-    if (!showGameContent || session.phase !== 'playing') return
+    if (session.phase !== 'playing' || session.isSubmitLocked) return
 
-    const timeout = window.setTimeout(() => {
-      answerInputRef.current?.focus()
-    }, 50)
-
-    return () => window.clearTimeout(timeout)
-  }, [showGameContent, session.phase, presentation])
-
-  useEffect(() => {
-    const wasLocked = prevSubmitLockedRef.current
-    prevSubmitLockedRef.current = session.isSubmitLocked
-
-    if (wasLocked && !session.isSubmitLocked && session.phase === 'playing') {
-      const timeout = window.setTimeout(() => {
-        answerInputRef.current?.focus()
-      }, 0)
-      return () => window.clearTimeout(timeout)
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key >= '0' && event.key <= '9') {
+        event.preventDefault()
+        appendDigit(event.key)
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        onConfirm()
+      }
+      if (event.key === 'Backspace') {
+        event.preventDefault()
+        backspaceDigit()
+      }
     }
-  }, [session.isSubmitLocked, session.phase])
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [session.phase, session.isSubmitLocked, appendDigit, backspaceDigit, onConfirm])
 
   return (
     <div
@@ -575,15 +650,31 @@ export function GameScreen({
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.92 }}
                     transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                    className="game-over-actions absolute inset-0 mx-auto flex max-w-md items-center justify-center px-4"
                   >
-                    <MenuHudInlineButton
-                      label="Menu"
-                      onClick={handleReturnToMenu}
-                      waterLight={useWaterBackground}
-                    >
-                      <IconBack />
-                    </MenuHudInlineButton>
+                    <div className="game-over-actions__row">
+                      <div aria-hidden />
+                      <MenuHudInlineButton
+                        label="Jogar novamente"
+                        variant="accent"
+                        onClick={handlePlayAgain}
+                        waterLight={useWaterBackground}
+                        fill
+                      >
+                        <span className="scale-75">
+                          <IconPlay />
+                        </span>
+                      </MenuHudInlineButton>
+                      <div className="flex items-center justify-start">
+                        <MenuHudInlineButton
+                          label="Menu"
+                          onClick={handleReturnToMenu}
+                          waterLight={useWaterBackground}
+                        >
+                          <IconBack />
+                        </MenuHudInlineButton>
+                      </div>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -591,72 +682,87 @@ export function GameScreen({
           </header>
 
           <main className="mt-5 flex flex-1 flex-col items-center gap-4">
-            <div
-              className={`game-play-stack w-full max-w-xs rounded-3xl ${
-                useWaterBackground ? 'game-play-stack--water' : 'bg-charcoal-field'
-              }`}
+            <PlayFieldsFrame
+              level={session.level}
+              levelUpFlash={session.levelUpFlash}
+              burstScore={session.score}
+              waterLight={useWaterBackground}
+              borderActive={isPlaying}
             >
-              <div className="overflow-hidden">
-                <div className="game-play-stack__divider border-b px-5 py-4 text-center">
-                {isPlaying || isGameOver ? (
-                  <SlideValue
-                    value={session.baseNumber}
-                    slotClassName="h-14"
-                    className={`text-5xl font-bold ${useWaterBackground ? 'text-sky-900' : 'text-white'}`}
-                  />
-                ) : (
-                  <p
-                    className={`font-mono text-5xl font-bold tabular-nums ${
-                      useWaterBackground ? 'text-sky-700/45' : 'text-charcoal-muted'
-                    }`}
-                  >
-                    —
-                  </p>
-                )}
-              </div>
+              <div
+                className={`game-play-stack w-full rounded-3xl ${
+                  useWaterBackground ? 'game-play-stack--water' : 'bg-charcoal-field'
+                }`}
+              >
+                <div className="game-play-stack__divider border-b px-3 py-4 text-center">
+                  {isPlaying || isGameOver ? (
+                    <SlideValue
+                      value={session.baseNumber}
+                      slotClassName="h-14"
+                      className={`text-5xl font-bold ${useWaterBackground ? 'text-sky-900' : 'text-white'}`}
+                    />
+                  ) : (
+                    <p
+                      className={`font-mono text-5xl font-bold tabular-nums ${
+                        useWaterBackground ? 'text-sky-700/45' : 'text-charcoal-muted'
+                      }`}
+                    >
+                      —
+                    </p>
+                  )}
+                </div>
 
-              <div className="game-play-stack__divider border-b px-5 py-3 text-center">
-                {session.operation && (isPlaying || isGameOver) ? (
-                  <OperationValue
-                    operation={session.operation}
-                    slotClassName="h-10"
-                    className="text-3xl font-medium tracking-wide"
-                  />
-                ) : (
-                  <p
-                    className={`font-mono text-3xl font-medium tabular-nums tracking-wide ${
-                      useWaterBackground ? 'text-sky-700/45' : 'text-charcoal-muted'
-                    }`}
-                  >
-                    —
-                  </p>
-                )}
-              </div>
-              </div>
+                <div className="game-play-stack__divider border-b px-3 py-3 text-center">
+                  {session.operation && (isPlaying || isGameOver) ? (
+                    <OperationValue
+                      operation={session.operation}
+                      slotClassName="h-10"
+                      className="text-3xl font-medium tracking-wide"
+                    />
+                  ) : (
+                    <p
+                      className={`font-mono text-3xl font-medium tabular-nums tracking-wide ${
+                        useWaterBackground ? 'text-sky-700/45' : 'text-charcoal-muted'
+                      }`}
+                    >
+                      —
+                    </p>
+                  )}
+                </div>
 
-              <AnswerInput
-                value={session.inputValue}
-                inputDisabled={!isPlaying || session.isSubmitLocked}
-                shake={session.isSubmitLocked}
-                shakeKey={shakeKey}
-                answerFlash={session.answerFlash}
-                flashKey={session.score}
-                inputRef={answerInputRef}
-                onChange={onInputChange}
-                onEnter={onConfirm}
-                waterLight={useWaterBackground}
-              />
-            </div>
+                <AnswerDisplay
+                  value={session.inputValue}
+                  disabled={inputDisabled}
+                  shake={session.isSubmitLocked}
+                  shakeKey={shakeKey}
+                  answerFlash={session.answerFlash}
+                  flashKey={session.score}
+                  waterLight={useWaterBackground}
+                />
+              </div>
+            </PlayFieldsFrame>
 
-            <div className="w-full max-w-xs">
-              <TimerBar session={session} />
-            </div>
+            {isPlaying && (
+              <>
+                <div className="w-full max-w-xs">
+                  <TimerBar session={session} />
+                </div>
+                <NumericKeypad
+                  disabled={inputDisabled}
+                  backspaceDisabled={session.inputValue.length === 0}
+                  waterLight={useWaterBackground}
+                  onDigit={appendDigit}
+                  onBackspace={backspaceDigit}
+                  onEnter={onConfirm}
+                />
+              </>
+            )}
 
             {isGameOver && (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-4 flex w-full max-w-xs flex-col items-center gap-4"
+                className="mt-4 w-full max-w-xs"
               >
                 <div
                   className={`game-over-card w-full rounded-2xl p-4 text-center ${
@@ -689,16 +795,6 @@ export function GameScreen({
                     </p>
                   ) : null}
                 </div>
-                <MenuHudInlineButton
-                  label="Jogar novamente"
-                  variant="accent"
-                  onClick={handlePlayAgain}
-                  waterLight={useWaterBackground}
-                >
-                  <span className="scale-75">
-                    <IconPlay />
-                  </span>
-                </MenuHudInlineButton>
               </motion.div>
             )}
           </main>
@@ -722,11 +818,23 @@ export function GameScreen({
           </div>
 
           <footer className="fixed inset-x-0 bottom-0 z-[60] flex items-end justify-between px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-            <MenuHudButton label="Histórico" onClick={() => setHistoryOpen(true)}>
+            <MenuHudButton
+              label="Histórico"
+              onClick={() => {
+                onPlayClick()
+                setHistoryOpen(true)
+              }}
+            >
               <IconTrophy />
             </MenuHudButton>
 
-            <MenuHudButton label="Config" onClick={() => setSettingsOpen(true)}>
+            <MenuHudButton
+              label="Config"
+              onClick={() => {
+                onPlayClick()
+                setSettingsOpen(true)
+              }}
+            >
               <IconGear />
             </MenuHudButton>
           </footer>

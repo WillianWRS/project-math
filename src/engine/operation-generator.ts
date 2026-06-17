@@ -1,62 +1,131 @@
 import type { Operation, Operator } from './types'
 
+const MIN_RESULT = 1
+const ALL_OPERATORS: Operator[] = ['+', '-', '×', '÷']
+
+interface LevelRules {
+  weights: Record<Operator, number>
+  maxResult: number
+  /** Nível 1: base + operando não pode passar de 10 */
+  maxCombined?: number
+}
+
+const LEVEL_RULES: Record<number, LevelRules> = {
+  1: {
+    weights: { '+': 0.5, '-': 0.5, '×': 0, '÷': 0 },
+    maxResult: 30,
+    maxCombined: 10,
+  },
+  2: {
+    weights: { '+': 0.45, '-': 0.45, '×': 0.1, '÷': 0 },
+    maxResult: 50,
+  },
+  3: {
+    weights: { '+': 0.35, '-': 0.35, '×': 0.2, '÷': 0.1 },
+    maxResult: 60,
+  },
+  4: {
+    weights: { '+': 0.3, '-': 0.3, '×': 0.2, '÷': 0.2 },
+    maxResult: 70,
+  },
+  5: {
+    weights: { '+': 0.25, '-': 0.25, '×': 0.25, '÷': 0.25 },
+    maxResult: 99,
+  },
+}
+
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
-function pickOperator(base: number): Operator {
-  if (base === 0) {
-    return Math.random() < 0.5 ? '+' : '×'
-  }
-
-  if (base <= 30) {
-    const roll = Math.random()
-    if (roll < 0.25) return '+'
-    if (roll < 0.5) return '-'
-    if (roll < 0.8) return '×'
-    return '÷'
-  }
-
-  if (base <= 70) {
-    const roll = Math.random()
-    if (roll < 0.35) return '+'
-    if (roll < 0.7) return '-'
-    if (roll < 0.95) return '×'
-    return '÷'
-  }
-
-  const roll = Math.random()
-  if (roll < 0.4) return '-'
-  if (roll < 0.8) return '÷'
-  if (roll < 0.9) return '+'
-  return '×'
+function getLevelRules(level: number): LevelRules {
+  const clamped = Math.min(Math.max(level, 1), 5)
+  return LEVEL_RULES[clamped]
 }
 
-function buildAddition(base: number): Operation {
-  const operand = randomInt(1, 99 - base)
+function isValidResult(result: number, maxResult: number): boolean {
+  return result >= MIN_RESULT && result <= maxResult
+}
+
+function isInverseMultiplyDividePair(current: Operation, previous: Operation): boolean {
+  return (
+    (previous.operator === '×' &&
+      current.operator === '÷' &&
+      current.operand === previous.operand) ||
+    (previous.operator === '÷' &&
+      current.operator === '×' &&
+      current.operand === previous.operand)
+  )
+}
+
+function isSameOperation(a: Operation, b: Operation): boolean {
+  return a.operator === b.operator && a.operand === b.operand
+}
+
+function isValidOperation(
+  operation: Operation,
+  previous: Operation | null,
+  maxResult: number,
+): boolean {
+  if (!isValidResult(operation.result, maxResult)) return false
+  if (operation.operand < 1) return false
+  if (previous && isSameOperation(operation, previous)) return false
+  if (previous && isInverseMultiplyDividePair(operation, previous)) return false
+  return true
+}
+
+function pickOperator(level: number, forceAddSubOnly = false): Operator {
+  if (forceAddSubOnly) {
+    return Math.random() < 0.5 ? '+' : '-'
+  }
+
+  const { weights } = getLevelRules(level)
+  const pool = ALL_OPERATORS.filter((op) => weights[op] > 0)
+  return weightedPick(pool, weights)
+}
+
+function weightedPick(pool: Operator[], weights: Record<Operator, number>): Operator {
+  const total = pool.reduce((sum, op) => sum + weights[op], 0)
+  let roll = Math.random() * total
+
+  for (const op of pool) {
+    roll -= weights[op]
+    if (roll <= 0) return op
+  }
+
+  return pool[pool.length - 1]
+}
+
+function buildAddition(base: number, maxResult: number, maxCombined?: number): Operation {
+  const maxOperand = maxResult - base
+  const combinedCap = maxCombined !== undefined ? maxCombined - base : maxOperand
+  const operand = randomInt(1, Math.max(1, Math.min(maxOperand, combinedCap)))
   return { operator: '+', operand, result: base + operand }
 }
 
-function buildSubtraction(base: number): Operation {
-  const operand = randomInt(1, base)
+function buildSubtraction(base: number, maxCombined?: number): Operation {
+  const maxOperand =
+    maxCombined !== undefined
+      ? Math.min(base - 1, maxCombined - base)
+      : base - 1
+  const operand = randomInt(1, Math.max(1, maxOperand))
   return { operator: '-', operand, result: base - operand }
 }
 
-function buildMultiplication(base: number): Operation {
-  const maxOperand = base === 0 ? randomInt(1, 99) : Math.floor(99 / base)
+function buildMultiplication(base: number, maxResult: number): Operation {
+  const maxOperand = Math.floor(maxResult / base)
   const operand = randomInt(1, Math.max(1, maxOperand))
   return { operator: '×', operand, result: base * operand }
 }
 
-function buildDivision(base: number): Operation {
-  if (base === 0) {
-    return buildAddition(base)
-  }
-
+function buildDivision(base: number, maxResult: number): Operation {
   const divisors: number[] = []
-  for (let d = 2; d <= base; d += 1) {
-    if (base % d === 0 && base / d <= 99) {
-      divisors.push(d)
+  for (let divisor = 2; divisor <= base; divisor += 1) {
+    if (base % divisor === 0) {
+      const result = base / divisor
+      if (isValidResult(result, maxResult)) {
+        divisors.push(divisor)
+      }
     }
   }
 
@@ -68,33 +137,66 @@ function buildDivision(base: number): Operation {
   return { operator: '÷', operand, result: base / operand }
 }
 
-function buildOperation(base: number, operator: Operator): Operation {
+function buildOperation(base: number, operator: Operator, rules: LevelRules): Operation {
+  const { maxResult, maxCombined } = rules
+
   switch (operator) {
     case '+':
-      return buildAddition(base)
+      return buildAddition(base, maxResult, maxCombined)
     case '-':
-      return base > 0 ? buildSubtraction(base) : buildAddition(base)
+      if (base <= 1 || (maxCombined !== undefined && base + 1 > maxCombined)) {
+        return buildAddition(base, maxResult, maxCombined)
+      }
+      return buildSubtraction(base, maxCombined)
     case '×':
-      return buildMultiplication(base)
+      return buildMultiplication(base, maxResult)
     case '÷':
-      return buildDivision(base)
+      return base > 1 ? buildDivision(base, maxResult) : buildMultiplication(base, maxResult)
   }
 }
 
-export function generateInitialBase(): number {
+export function generateInitialBase(level: number = 1): number {
+  if (level <= 1) {
+    return randomInt(2, 9)
+  }
   return randomInt(5, 25)
 }
 
-export function generateOperation(base: number): Operation {
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const operator = pickOperator(base)
-    const operation = buildOperation(base, operator)
-    if (operation.result >= 0 && operation.result <= 99) {
+export interface GenerateOperationOptions {
+  forceAddSubOnly?: boolean
+}
+
+export function generateOperation(
+  base: number,
+  level: number,
+  previous: Operation | null = null,
+  options: GenerateOperationOptions = {},
+): Operation {
+  const { forceAddSubOnly = false } = options
+  const rules = getLevelRules(level)
+  const allowedOperators: Operator[] = forceAddSubOnly
+    ? ['+', '-']
+    : ALL_OPERATORS.filter((op) => rules.weights[op] > 0)
+
+  for (let attempt = 0; attempt < 48; attempt += 1) {
+    const operator = pickOperator(level, forceAddSubOnly)
+    const operation = buildOperation(base, operator, rules)
+    if (isValidOperation(operation, previous, rules.maxResult)) {
       return operation
     }
   }
 
-  return buildAddition(Math.min(base, 50))
+  for (const operator of allowedOperators) {
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const operation = buildOperation(base, operator, rules)
+      if (isValidOperation(operation, previous, rules.maxResult)) {
+        return operation
+      }
+    }
+  }
+
+  const operand = Math.min(5, rules.maxResult - base)
+  return { operator: '+', operand: Math.max(1, operand), result: base + Math.max(1, operand) }
 }
 
 export function formatOperation(operation: Operation): string {

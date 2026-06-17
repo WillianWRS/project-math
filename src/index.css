@@ -11,6 +11,7 @@
 }
 
 html {
+  --game-main-column-width: 11.25rem;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -102,6 +103,30 @@ body {
 .game-scene-header--water .font-mono.text-4xl {
   color: #1a4a6e;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* Largura estreita só dos 3 campos (número, operação, resposta) */
+.game-main-column {
+  width: 100%;
+  max-width: var(--game-main-column-width);
+}
+
+.game-over-actions__row {
+  display: grid;
+  width: 100%;
+  max-width: 20rem;
+  grid-template-columns: 1fr var(--game-main-column-width) 1fr;
+  align-items: center;
+  column-gap: 0.35rem;
+  pointer-events: auto;
+}
+
+.game-over-actions__row .game-menu-hud-btn--fill .game-menu-hud-btn__inline-text {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+  letter-spacing: 0.08em;
+  font-size: 0.56rem;
 }
 
 .game-play-stack--water {
@@ -451,6 +476,21 @@ body {
   padding: 0 1.35rem;
 }
 
+.game-menu-hud-btn--fill {
+  width: 100%;
+}
+
+.game-menu-hud-btn--fill .game-menu-hud-btn__plate--inline {
+  width: 100%;
+  min-width: 0;
+  padding: 0 0.45rem;
+  justify-content: center;
+}
+
+.game-over-actions {
+  pointer-events: none;
+}
+
 .game-modal-panel {
   border-radius: 1.25rem;
   border: 1px solid rgba(120, 113, 108, 0.35);
@@ -561,12 +601,334 @@ body {
     0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
+/* Moldura pulsante dos 3 campos (número, operação, resposta) */
+.game-play-stack-frame {
+  position: relative;
+  width: 100%;
+  max-width: var(--game-main-column-width);
+  --play-border-min: 2px;
+  --play-border-max: 3px;
+  --play-glow-min: 10px;
+  --play-glow-max: 22px;
+  --play-pulse-duration: 2.6s;
+  --play-pulse-scale-max: 1.01;
+  --play-glow-strength-min: 0.2;
+  --play-glow-strength-max: 0.45;
+  --play-burst-scale: 1.035;
+  --play-border-burst: 4px;
+  --play-burst-glow: 34px;
+  --play-ring-scale-end: 1.12;
+}
+
+.game-play-stack-frame--inactive::before,
+.game-play-stack-frame--inactive::after {
+  display: none;
+}
+
+.game-play-stack-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 1.5rem;
+  border-style: solid;
+  border-color: rgba(251, 191, 36, 0.82);
+  pointer-events: none;
+  z-index: 3;
+  transform-origin: center;
+  animation: game-play-border-pulse-default var(--play-pulse-duration) ease-in-out infinite;
+}
+
+.game-play-stack-frame--water::before {
+  border-color: rgba(217, 119, 6, 0.9);
+  animation-name: game-play-border-pulse-water;
+}
+
+@keyframes game-play-border-pulse-default {
+  0%,
+  100% {
+    border-width: var(--play-border-min);
+    transform: scale(1);
+    border-color: rgba(251, 191, 36, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.1),
+      0 0 var(--play-glow-min) rgba(251, 191, 36, var(--play-glow-strength-min));
+  }
+  50% {
+    border-width: var(--play-border-max);
+    transform: scale(var(--play-pulse-scale-max));
+    border-color: rgba(251, 191, 36, 0.98);
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.3),
+      0 0 var(--play-glow-max) rgba(251, 191, 36, var(--play-glow-strength-max));
+  }
+}
+
+@keyframes game-play-border-pulse-water {
+  0%,
+  100% {
+    border-width: var(--play-border-min);
+    transform: scale(1);
+    border-color: rgba(180, 83, 9, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(217, 119, 6, 0.14),
+      0 0 var(--play-glow-min) rgba(251, 191, 36, var(--play-glow-strength-min));
+  }
+  50% {
+    border-width: var(--play-border-max);
+    transform: scale(var(--play-pulse-scale-max));
+    border-color: rgba(251, 191, 36, 0.98);
+    box-shadow:
+      0 0 0 1px rgba(253, 224, 71, 0.32),
+      0 0 var(--play-glow-max) rgba(251, 191, 36, var(--play-glow-strength-max));
+  }
+}
+
+@keyframes game-play-border-level-up-default {
+  0% {
+    transform: scale(1);
+    border-width: var(--play-border-min);
+    border-color: rgba(251, 191, 36, 1);
+    box-shadow:
+      0 0 0 2px rgba(251, 191, 36, 0.45),
+      0 0 var(--play-burst-glow) rgba(251, 191, 36, 0.65);
+  }
+  35% {
+    transform: scale(var(--play-burst-scale));
+    border-width: var(--play-border-burst);
+    border-color: rgba(253, 224, 71, 1);
+    box-shadow:
+      0 0 0 4px rgba(251, 191, 36, 0.35),
+      0 0 calc(var(--play-burst-glow) + 12px) rgba(251, 191, 36, 0.78);
+  }
+  100% {
+    transform: scale(1);
+    border-width: var(--play-border-min);
+    border-color: rgba(251, 191, 36, 0.82);
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.12),
+      0 0 var(--play-glow-min) rgba(251, 191, 36, var(--play-glow-strength-min));
+  }
+}
+
+@keyframes game-play-border-level-up-water {
+  0% {
+    transform: scale(1);
+    border-width: var(--play-border-min);
+    border-color: rgba(251, 191, 36, 1);
+    box-shadow:
+      0 0 0 2px rgba(217, 119, 6, 0.45),
+      0 0 var(--play-burst-glow) rgba(251, 191, 36, 0.65);
+  }
+  35% {
+    transform: scale(var(--play-burst-scale));
+    border-width: var(--play-border-burst);
+    border-color: rgba(253, 224, 71, 1);
+    box-shadow:
+      0 0 0 4px rgba(217, 119, 6, 0.35),
+      0 0 calc(var(--play-burst-glow) + 12px) rgba(251, 191, 36, 0.78);
+  }
+  100% {
+    transform: scale(1);
+    border-width: var(--play-border-min);
+    border-color: rgba(217, 119, 6, 0.9);
+    box-shadow:
+      0 0 0 1px rgba(180, 120, 20, 0.2),
+      0 0 var(--play-glow-min) rgba(251, 191, 36, var(--play-glow-strength-min));
+  }
+}
+
+.game-play-stack-frame--level-up::before {
+  animation: game-play-border-level-up-default 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.game-play-stack-frame--water.game-play-stack-frame--level-up::before {
+  animation-name: game-play-border-level-up-water;
+}
+
+.game-play-stack-frame--level-up::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 1.65rem;
+  border: 2px solid transparent;
+  pointer-events: none;
+  z-index: 2;
+  animation: game-play-border-ring-burst 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.game-play-stack-frame--water.game-play-stack-frame--level-up::after {
+  animation-name: game-play-border-ring-burst-water;
+}
+
+@keyframes game-play-border-ring-burst {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.96);
+    border-color: rgba(251, 191, 36, 0.7);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(var(--play-ring-scale-end));
+    border-color: rgba(251, 191, 36, 0);
+    box-shadow: 0 0 0 rgba(251, 191, 36, 0);
+  }
+}
+
+@keyframes game-play-border-ring-burst-water {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.96);
+    border-color: rgba(251, 191, 36, 0.75);
+    box-shadow: 0 0 20px rgba(217, 119, 6, 0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(var(--play-ring-scale-end));
+    border-color: rgba(251, 191, 36, 0);
+    box-shadow: 0 0 0 rgba(251, 191, 36, 0);
+  }
+}
+
+.game-play-stack {
+  overflow: hidden;
+}
+
 .game-answer-slot {
   caret-color: #fbbf24;
 }
 
 .game-answer-slot::placeholder {
   color: transparent;
+}
+
+.game-numeric-keypad {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.game-numeric-keypad__row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.game-numeric-keypad__key {
+  --key-shadow: #080706;
+
+  min-height: 3.25rem;
+  border: none;
+  border-radius: 0.875rem;
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #e7e0d4;
+  cursor: pointer;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.07) 0%, transparent 38%),
+    linear-gradient(165deg, #35302b 0%, #221e1a 42%, #12100e 100%);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow),
+    inset 0 1px 0 rgba(255, 240, 215, 0.1);
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.game-numeric-keypad__key:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 0 var(--key-shadow),
+    inset 0 1px 0 rgba(255, 240, 215, 0.08);
+}
+
+.game-numeric-keypad__key:disabled:not(.game-numeric-keypad__key--placeholder) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.game-numeric-keypad__key--placeholder {
+  opacity: 0.28;
+  cursor: default;
+  color: #6b6358;
+}
+
+.game-numeric-keypad__key--enter {
+  color: #fcd34d;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.09) 0%, transparent 38%),
+    linear-gradient(165deg, #453a28 0%, #2a2318 42%, #16120c 100%);
+}
+
+.game-numeric-keypad__key--enter-wide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 3.25rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.game-numeric-keypad__key--backspace {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a8a095;
+}
+
+.game-numeric-keypad__key--disabled-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.38;
+  cursor: not-allowed;
+  color: #6b6358;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.04) 0%, transparent 38%),
+    linear-gradient(165deg, #2a2522 0%, #1a1714 100%);
+  box-shadow:
+    0 3px 0 0 #080706,
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.game-numeric-keypad--water .game-numeric-keypad__key--disabled-slot {
+  color: rgba(30, 90, 122, 0.45);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.5) 0%, transparent 42%),
+    linear-gradient(165deg, #e8f4fc 0%, #dbeafe 100%);
+  box-shadow:
+    0 3px 0 0 rgba(26, 74, 110, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.game-numeric-keypad--water .game-numeric-keypad__key {
+  --key-shadow: rgba(26, 74, 110, 0.28);
+  color: #1e5a7a;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.72) 0%, transparent 42%),
+    linear-gradient(165deg, #f0f9ff 0%, #dbeafe 45%, #bfdbfe 100%);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.game-numeric-keypad--water .game-numeric-keypad__key--placeholder {
+  color: rgba(30, 90, 122, 0.35);
+}
+
+.game-numeric-keypad--water .game-numeric-keypad__key--enter {
+  --key-shadow: rgba(146, 100, 20, 0.28);
+  color: #78350f;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.75) 0%, transparent 42%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 48%, #fcd34d 100%);
 }
 
 .answer-digit-pulse-ring {
