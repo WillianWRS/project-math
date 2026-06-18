@@ -32,6 +32,7 @@ function getAmbientAudio(): HTMLAudioElement {
   }
   return ambientAudio
 }
+
 function getAudio(id: SfxId): HTMLAudioElement {
   let audio = cache.get(id)
   if (!audio) {
@@ -53,6 +54,11 @@ function getWriteAudio(index: number): HTMLAudioElement {
   return audio
 }
 
+function playAudio(audio: HTMLAudioElement): void {
+  audio.currentTime = 0
+  void audio.play().catch(() => {})
+}
+
 export function preloadSfx(): void {
   ;(Object.keys(AUDIO_PATHS) as SfxId[]).forEach((id) => {
     getAudio(id).load()
@@ -65,19 +71,14 @@ export function preloadSfx(): void {
 
 export function playSfx(id: SfxId, enabled: boolean): void {
   if (!enabled) return
-
-  const audio = getAudio(id)
-  audio.currentTime = 0
-  void audio.play().catch(() => {})
+  playAudio(getAudio(id))
 }
 
 export function playRandomWriteSfx(enabled: boolean): void {
   if (!enabled) return
 
   const index = Math.floor(Math.random() * WRITE_SFX_COUNT) + 1
-  const audio = getWriteAudio(index)
-  audio.currentTime = 0
-  void audio.play().catch(() => {})
+  playAudio(getWriteAudio(index))
 }
 
 export function syncAmbient(shouldPlay: boolean): void {
