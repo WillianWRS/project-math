@@ -714,13 +714,17 @@ export function GameScreen({
     const card = document.getElementById('share-card-template')
     if (!card || sharing) return
     setSharing(true)
-    await shareScoreCardFromElement(card)
-    setSharing(false)
+    try {
+      await shareScoreCardFromElement(card)
+    } finally {
+      setSharing(false)
+    }
   }
 
   const handlePlay = () => {
     if (presentation !== 'menu') return
     onPlayGameStart()
+    setSharing(false)
     setPresentation('opening')
   }
 
@@ -728,6 +732,7 @@ export function GameScreen({
     if (!isInGameScene) return
     onPlayGoToMenu()
     onReturnToMenu()
+    setSharing(false)
     setPresentation('closing')
   }
 
@@ -735,6 +740,7 @@ export function GameScreen({
     if (presentation !== 'in-game' || session.phase !== 'game_over') return
     onPlayGameStart()
     prevScoreRef.current = 0
+    setSharing(false)
     onStart()
   }
 

@@ -38,15 +38,11 @@ function restoreElementAfterCapture(element: HTMLElement, previous: ReturnType<t
   element.style.zIndex = previous.zIndex
 }
 
-export async function shareScoreCardFromElement(
-  element: HTMLElement,
-  options: ShareImageOptions = {},
-): Promise<void> {
+async function captureElementAsBlob(element: HTMLElement): Promise<Blob | null> {
   const { toBlob } = await import('html-to-image')
   const previousStyle = prepareElementForCapture(element)
-  let blob: Blob | null = null
   try {
-    blob = await toBlob(element, {
+    return await toBlob(element, {
       width: 1080,
       height: 1350,
       pixelRatio: 1,
@@ -56,12 +52,24 @@ export async function shareScoreCardFromElement(
   } finally {
     restoreElementAfterCapture(element, previousStyle)
   }
+}
+
+export async function shareScoreCardFromElement(
+  element: HTMLElement,
+  options: ShareImageOptions = {},
+): Promise<void> {
+  const blob = await captureElementAsBlob(element)
   if (!blob) return
 
   const filename = options.filename ?? 'project-math-score.png'
   const file = new File([blob], filename, { type: 'image/png' })
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ files: [file], title: 'Project Math' })
+    try {
+      await navigator.share({ files: [file], title: 'Project Math' })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      throw error
+    }
     return
   }
   downloadBlob(blob, filename)
