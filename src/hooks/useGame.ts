@@ -16,13 +16,13 @@ import {
 import type { GameSession } from '../engine/types'
 import {
   loadBackgroundTheme,
-  loadHighScore,
   loadSoundEnabled,
+  loadTopScores,
   saveBackgroundTheme,
-  saveHighScore,
   saveSoundEnabled,
+  saveTopScore,
   type BackgroundTheme,
-  type HighScoreRecord,
+  type ScoreRecord,
 } from '../platform/storage'
 import { playRandomWriteSfx, playSfx, preloadSfx, syncAmbient } from '../platform/audio-service'
 
@@ -31,7 +31,7 @@ const TIMER_UI_PUBLISH_MS = 100
 
 export function useGame() {
   const [session, setSession] = useState<GameSession>(createInitialSession)
-  const [highScore, setHighScore] = useState<HighScoreRecord | null>(() => loadHighScore())
+  const [topScores, setTopScores] = useState<ScoreRecord[]>(() => loadTopScores())
   const [soundEnabled, setSoundEnabled] = useState(() => loadSoundEnabled())
   const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>(() => loadBackgroundTheme())
   const sessionRef = useRef(session)
@@ -39,6 +39,7 @@ export function useGame() {
   const soundEnabledRef = useRef(soundEnabled)
   soundEnabledRef.current = soundEnabled
   const gameOverFxHandledRef = useRef(false)
+  const lastPersistedScoreRef = useRef<number | null>(null)
   const timerMsRef = useRef(session.timerMs)
 
   useEffect(() => {
@@ -68,22 +69,7 @@ export function useGame() {
       if (timerMsRef.current <= 0) {
         setSession((current) => {
           if (current.phase !== 'playing') return current
-
-          const next = tickTimer({ ...current, timerMs: 0 }, 0)
-          const currentHigh = loadHighScore()
-          const beatRecord = next.score > (currentHigh?.score ?? 0)
-
-          if (!gameOverFxHandledRef.current) {
-            gameOverFxHandledRef.current = true
-            queueMicrotask(() => {
-              if (beatRecord) {
-                setHighScore(saveHighScore(next.score))
-              }
-              playSfx(beatRecord ? 'record' : 'gameOver', soundEnabledRef.current)
-            })
-          }
-
-          return markBeatRecord(next, beatRecord)
+          return tickTimer({ ...current, timerMs: 0 }, 0)
         })
         return
       }
@@ -104,6 +90,23 @@ export function useGame() {
     frameId = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(frameId)
   }, [session.phase])
+
+  useEffect(() => {
+    if (session.phase !== 'game_over') return
+    if (gameOverFxHandledRef.current && lastPersistedScoreRef.current === session.score) return
+
+    gameOverFxHandledRef.current = true
+    lastPersistedScoreRef.current = session.score
+
+    const result = saveTopScore(session.score)
+    setTopScores(result.scores)
+    setSession((current) =>
+      current.phase === 'game_over' && current.beatRecord === result.isTop1
+        ? current
+        : markBeatRecord(current, result.isTop1),
+    )
+    playSfx(result.isTop1 ? 'record' : 'gameOver', soundEnabledRef.current)
+  }, [session.phase, session.score])
 
   useEffect(() => {
     if (!session.isSubmitLocked) return
@@ -138,11 +141,13 @@ export function useGame() {
   const onStart = useCallback(() => {
     if (sessionRef.current.phase === 'playing') return
     gameOverFxHandledRef.current = false
+    lastPersistedScoreRef.current = null
     setSession(startGame())
   }, [])
 
   const onReturnToMenu = useCallback(() => {
     gameOverFxHandledRef.current = false
+    lastPersistedScoreRef.current = null
     setSession(returnToMenu())
   }, [])
 
@@ -217,7 +222,7 @@ export function useGame() {
 
   return {
     session,
-    highScore,
+    topScores,
     soundEnabled,
     backgroundTheme,
     onStart,

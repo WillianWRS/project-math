@@ -7,7 +7,7 @@ function App() {
   return (
     <GameScreen
       session={game.session}
-      highScore={game.highScore}
+      topScores={game.topScores}
       soundEnabled={game.soundEnabled}
       backgroundTheme={game.backgroundTheme}
       onStart={game.onStart}

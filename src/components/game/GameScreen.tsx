@@ -11,11 +11,11 @@ import type { Operation } from '../../engine/types'
 import type { GameSession } from '../../engine/types'
 import { HistoryModal } from '../modals/HistoryModal'
 import { SettingsModal } from '../modals/SettingsModal'
-import type { BackgroundTheme, HighScoreRecord } from '../../platform/storage'
+import type { BackgroundTheme, ScoreRecord } from '../../platform/storage'
 
 interface GameScreenProps {
   session: GameSession
-  highScore: HighScoreRecord | null
+  topScores: ScoreRecord[]
   soundEnabled: boolean
   backgroundTheme: BackgroundTheme
   onStart: () => void
@@ -586,7 +586,7 @@ function TimerBar({
 
 export function GameScreen({
   session,
-  highScore,
+  topScores,
   soundEnabled,
   onStart,
   onReturnToMenu,
@@ -617,6 +617,7 @@ export function GameScreen({
   const isPlaying = session.phase === 'playing'
   const isGameOver = session.phase === 'game_over'
   const fourSecondsActive = isFourSecondsGameChangerActive(session)
+  const topScore = topScores[0] ?? null
   const timesDivActive = isTimesDivGameChangerActive(session)
   const plusActive = isPlusGameChangerActive(session)
   const minusActive = isMinusGameChangerActive(session)
@@ -967,13 +968,13 @@ export function GameScreen({
                   </p>
                   {session.beatRecord ? (
                     <p className="mt-1 text-sm text-emerald-400">Novo recorde pessoal!</p>
-                  ) : highScore ? (
+                  ) : topScore ? (
                     <p
                       className={`game-over-card__meta mt-1 text-sm ${
                         useWaterBackground ? '' : 'text-charcoal-muted'
                       }`}
                     >
-                      Recorde: {highScore.score} pontos
+                      Recorde: {topScore.score} pontos
                     </p>
                   ) : null}
                 </div>
@@ -1001,7 +1002,7 @@ export function GameScreen({
 
           <footer className="fixed inset-x-0 bottom-0 z-[60] flex items-end justify-between px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <MenuHudButton
-              label="Recorde"
+              label="Recordes"
               onClick={() => {
                 onPlayClick()
                 setHistoryOpen(true)
@@ -1023,11 +1024,7 @@ export function GameScreen({
         </>
       )}
 
-      <HistoryModal
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        highScore={highScore}
-      />
+      <HistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
