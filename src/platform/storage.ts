@@ -2,6 +2,7 @@ const TOP_SCORES_KEY = 'project-math-top-scores'
 const LEGACY_HIGH_SCORE_KEY = 'project-math-high-score'
 const SOUND_KEY = 'project-math-sound'
 const BACKGROUND_THEME_KEY = 'project-math-background-theme'
+const PLAYER_KEY = 'project-math-player'
 
 export const TOP_SCORES_LIMIT = 5
 
@@ -11,6 +12,24 @@ export interface ScoreRecord {
   score: number
   date: string
   id: string
+  durationMs: number
+}
+
+export interface PlayerDailyData {
+  dateKey: string
+  scoreAccumulated: number
+  goalClaimed: boolean
+  rewardedAdsWatched: number
+}
+
+export interface PlayerData {
+  displayName: string
+  xp: number
+  coins: number
+  walletAutoChecks: number
+  ownedThemeIds: BackgroundTheme[]
+  equippedThemeId: BackgroundTheme
+  daily: PlayerDailyData
 }
 
 /** @deprecated Use ScoreRecord */
@@ -18,31 +37,60 @@ export type HighScoreRecord = ScoreRecord
 
 export interface SaveTopScoreResult {
   scores: ScoreRecord[]
-  /** Pontuação entrou no top 5 e foi salva */
   saved: boolean
-  /** Nova pontuação é a melhor de todas (top 1) */
   isTop1: boolean
+}
+
+function clampNonNegative(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0
+}
+
+function isBackgroundTheme(value: unknown): value is BackgroundTheme {
+  return value === 'default' || value === 'water'
+}
+
+function createDailyDefaults(): PlayerDailyData {
+  return {
+    dateKey: '',
+    scoreAccumulated: 0,
+    goalClaimed: false,
+    rewardedAdsWatched: 0,
+  }
+}
+
+export function createDefaultPlayerData(): PlayerData {
+  return {
+    displayName: 'Jogador',
+    xp: 0,
+    coins: 0,
+    walletAutoChecks: 0,
+    ownedThemeIds: ['default', 'water'],
+    equippedThemeId: 'default',
+    daily: createDailyDefaults(),
+  }
 }
 
 function parseScoreRecord(value: unknown): ScoreRecord | null {
   if (!value || typeof value !== 'object') return null
   const record = value as Partial<ScoreRecord>
   if (typeof record.score !== 'number' || typeof record.date !== 'string') return null
+
   return {
-    score: record.score,
+    score: Math.max(0, Math.floor(record.score)),
     date: record.date,
     id: typeof record.id === 'string' ? record.id : record.date,
+    durationMs: clampNonNegative(record.durationMs),
   }
 }
 
-function createScoreRecord(score: number): ScoreRecord {
+function createScoreRecord(score: number, durationMs = 0): ScoreRecord {
   const date = new Date().toISOString()
   const id =
     typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
       : `${date}-${score}-${Math.random().toString(36).slice(2, 9)}`
 
-  return { score, date, id }
+  return { score, date, id, durationMs: clampNonNegative(durationMs) }
 }
 
 function compareScoreRecords(a: ScoreRecord, b: ScoreRecord): number {
@@ -97,13 +145,16 @@ export function loadHighScore(): ScoreRecord | null {
   return getTopScore()
 }
 
-export function qualifiesForTopScores(score: number, scores: ScoreRecord[] = loadTopScores()): boolean {
+export function qualifiesForTopScores(
+  score: number,
+  scores: ScoreRecord[] = loadTopScores(),
+): boolean {
   if (scores.length < TOP_SCORES_LIMIT) return true
   const lowest = scores[TOP_SCORES_LIMIT - 1]?.score ?? 0
   return score >= lowest
 }
 
-export function saveTopScore(score: number): SaveTopScoreResult {
+export function saveTopScore(score: number, durationMs = 0): SaveTopScoreResult {
   const current = loadTopScores()
   const previousTop1 = current[0]?.score ?? 0
 
@@ -111,7 +162,7 @@ export function saveTopScore(score: number): SaveTopScoreResult {
     return { scores: current, saved: false, isTop1: false }
   }
 
-  const record = createScoreRecord(score)
+  const record = createScoreRecord(score, durationMs)
   const scores = sortAndTrimScores([...current, record])
   localStorage.setItem(TOP_SCORES_KEY, JSON.stringify(scores))
 
@@ -142,16 +193,86 @@ export function saveSoundEnabled(enabled: boolean): void {
   localStorage.setItem(SOUND_KEY, String(enabled))
 }
 
-export function loadBackgroundTheme(): BackgroundTheme {
-  try {
-    const raw = localStorage.getItem(BACKGROUND_THEME_KEY)
-    if (raw === 'default' || raw === 'water') return raw
-    return 'default'
-  } catch {
-    return 'default'
+function parsePlayerData(value: unknown): PlayerData | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Partial<PlayerData>
+  const defaults = createDefaultPlayerData()
+
+  const ownedThemeIds = Array.isArray(raw.ownedThemeIds)
+    ? raw.ownedThemeIds.filter(isBackgroundTheme)
+    : defaults.ownedThemeIds
+
+  const normalizedOwnedThemeIds =
+    ownedThemeIds.length > 0
+      ? Array.from(new Set<BackgroundTheme>(['default', 'water', ...ownedThemeIds]))
+      : defaults.ownedThemeIds
+
+  const dailyRaw = raw.daily
+  const daily =
+    dailyRaw && typeof dailyRaw === 'object'
+      ? {
+          dateKey: typeof dailyRaw.dateKey === 'string' ? dailyRaw.dateKey : '',
+          scoreAccumulated: clampNonNegative(dailyRaw.scoreAccumulated),
+          goalClaimed: Boolean(dailyRaw.goalClaimed),
+          rewardedAdsWatched: Math.min(5, clampNonNegative(dailyRaw.rewardedAdsWatched)),
+        }
+      : createDailyDefaults()
+
+  return {
+    displayName:
+      typeof raw.displayName === 'string' && raw.displayName.trim().length > 0
+        ? raw.displayName
+        : defaults.displayName,
+    xp: clampNonNegative(raw.xp),
+    coins: clampNonNegative(raw.coins),
+    walletAutoChecks: clampNonNegative(raw.walletAutoChecks),
+    ownedThemeIds: normalizedOwnedThemeIds,
+    equippedThemeId:
+      isBackgroundTheme(raw.equippedThemeId) &&
+      normalizedOwnedThemeIds.includes(raw.equippedThemeId)
+        ? raw.equippedThemeId
+        : defaults.equippedThemeId,
+    daily,
   }
 }
 
+function migrateLegacyPlayerData(defaults: PlayerData): PlayerData {
+  const migrated = { ...defaults }
+
+  const legacyTheme = localStorage.getItem(BACKGROUND_THEME_KEY)
+  if (isBackgroundTheme(legacyTheme)) {
+    migrated.equippedThemeId = legacyTheme
+  }
+
+  return migrated
+}
+
+export function loadPlayerData(): PlayerData {
+  try {
+    const raw = localStorage.getItem(PLAYER_KEY)
+    if (raw) {
+      const parsed = parsePlayerData(JSON.parse(raw))
+      if (parsed) return parsed
+    }
+  } catch {
+    // no-op
+  }
+
+  const migrated = migrateLegacyPlayerData(createDefaultPlayerData())
+  savePlayerData(migrated)
+  return migrated
+}
+
+export function savePlayerData(player: PlayerData): void {
+  localStorage.setItem(PLAYER_KEY, JSON.stringify(player))
+}
+
+export function loadBackgroundTheme(): BackgroundTheme {
+  return loadPlayerData().equippedThemeId
+}
+
 export function saveBackgroundTheme(theme: BackgroundTheme): void {
-  localStorage.setItem(BACKGROUND_THEME_KEY, theme)
+  const player = loadPlayerData()
+  if (!player.ownedThemeIds.includes(theme)) return
+  savePlayerData({ ...player, equippedThemeId: theme })
 }

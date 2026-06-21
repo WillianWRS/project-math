@@ -9,22 +9,37 @@ import { OPERATOR_COLOR_CLASS } from '../../engine/operation-generator'
 import { SUBMIT_LOCK_MS } from '../../engine/game-state-machine'
 import type { Operation } from '../../engine/types'
 import type { GameSession } from '../../engine/types'
-import { HistoryModal } from '../modals/HistoryModal'
 import { SettingsModal } from '../modals/SettingsModal'
-import type { BackgroundTheme, ScoreRecord } from '../../platform/storage'
+import { PlayerModal } from '../modals/PlayerModal'
+import { ShopModal } from '../modals/ShopModal'
+import { RewardedAutoCheckModal } from '../modals/RewardedAutoCheckModal'
+import { AutoCheckTimeoutModal } from '../modals/AutoCheckTimeoutModal'
+import { ShareCardTemplate } from '../share/ShareCardTemplate'
+import { shareScoreCardFromElement } from '../../utils/share-score-card'
+import { xpToLevel } from '../../engine/player-level'
+import { formatDuration } from '../../engine/rewards'
+import type { BackgroundTheme, PlayerData, ScoreRecord } from '../../platform/storage'
+import type { PostGameRewards } from '../../hooks/useGame'
 
 interface GameScreenProps {
   session: GameSession
   topScores: ScoreRecord[]
+  player: PlayerData
+  lastGameRewards: PostGameRewards
   soundEnabled: boolean
   backgroundTheme: BackgroundTheme
   onStart: () => void
   onReturnToMenu: () => void
   onConfirm: () => void
   onAutoCorrect: () => void
+  onUseAutoCheckAtTimeout: () => void
+  onDeclineAutoCheckAtTimeout: () => void
   onInputChange: (value: string) => void
   onSoundChange: (enabled: boolean) => void
   onBackgroundThemeChange: (theme: BackgroundTheme) => void
+  onSaveDisplayName: (name: string) => void
+  onWatchRewardedAd: () => Promise<'completed' | 'dismissed' | 'limit'>
+  rewardedAdsWatched: number
   onPlayClick: () => void
   onPlayGameStart: () => void
   onPlayWriteKey: () => void
@@ -185,6 +200,22 @@ function IconBack() {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function IconShare() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="18" cy="5" r="3" stroke="currentColor" strokeWidth="2" />
+      <circle cx="6" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+      <circle cx="18" cy="19" r="3" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M8.7 10.7l6.6-3.4M8.7 13.3l6.6 3.4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
       />
     </svg>
   )
@@ -410,10 +441,12 @@ function AnswerDisplay({
   slotRef?: RefObject<HTMLDivElement | null>
 }) {
   const displayValue = answerFlash ? '' : value || '·'
+  const gameChangerActive = fourSecondsLight || timesDivLight || plusLight || minusLight
+  const useWaterAnswerRow = waterLight && !gameChangerActive
 
   return (
     <div
-      className={`relative overflow-visible px-3 py-3${waterLight ? ' game-answer-row--water' : ''}`}
+      className={`relative overflow-visible px-3 py-3${useWaterAnswerRow ? ' game-answer-row--water' : ''}`}
     >
       <AnimatePresence>
         {answerFlash && (
@@ -587,22 +620,31 @@ function TimerBar({
 export function GameScreen({
   session,
   topScores,
+  player,
+  lastGameRewards,
   soundEnabled,
   onStart,
   onReturnToMenu,
   onConfirm,
   onAutoCorrect,
+  onUseAutoCheckAtTimeout,
+  onDeclineAutoCheckAtTimeout,
   onInputChange,
   onSoundChange,
   backgroundTheme,
   onBackgroundThemeChange,
+  onSaveDisplayName,
+  onWatchRewardedAd,
+  rewardedAdsWatched,
   onPlayClick,
   onPlayGameStart,
   onPlayWriteKey,
   onPlayEraseKey,
   onPlayGoToMenu,
 }: GameScreenProps) {
-  const [historyOpen, setHistoryOpen] = useState(false)
+  const [playerOpen, setPlayerOpen] = useState(false)
+  const [shopOpen, setShopOpen] = useState(false)
+  const [rewardedOpen, setRewardedOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [shakeKey, setShakeKey] = useState(0)
   const [presentation, setPresentation] = useState<PresentationPhase>('menu')
@@ -611,11 +653,12 @@ export function GameScreen({
   const closeDurationMs = isMobile ? 420 : curtainDurationMs
   const prevScoreRef = useRef(0)
   const answerFieldRef = useRef<HTMLDivElement>(null)
-  const inputValueRef = useRef(session.inputValue)
-  inputValueRef.current = session.inputValue
+  const [sharing, setSharing] = useState(false)
 
   const isPlaying = session.phase === 'playing'
   const isGameOver = session.phase === 'game_over'
+  const playerLevel = xpToLevel(player.xp)
+  const elapsedText = formatDuration(session.elapsedMs)
   const fourSecondsActive = isFourSecondsGameChangerActive(session)
   const topScore = topScores[0] ?? null
   const timesDivActive = isTimesDivGameChangerActive(session)
@@ -627,16 +670,16 @@ export function GameScreen({
     (digit: string) => {
       if (inputDisabled) return
       onPlayWriteKey()
-      onInputChange(`${inputValueRef.current}${digit}`)
+      onInputChange(`${session.inputValue}${digit}`)
     },
-    [inputDisabled, onInputChange, onPlayWriteKey],
+    [inputDisabled, onInputChange, onPlayWriteKey, session.inputValue],
   )
 
   const backspaceDigit = useCallback(() => {
-    if (inputDisabled || inputValueRef.current.length === 0) return
+    if (inputDisabled || session.inputValue.length === 0) return
     onPlayEraseKey()
-    onInputChange(inputValueRef.current.slice(0, -1))
-  }, [inputDisabled, onInputChange, onPlayEraseKey])
+    onInputChange(session.inputValue.slice(0, -1))
+  }, [inputDisabled, onInputChange, onPlayEraseKey, session.inputValue])
   const showGameContent = presentation === 'opening' || presentation === 'in-game'
   const showMenuChrome = presentation === 'menu'
   const isInGameScene = presentation !== 'menu'
@@ -666,6 +709,14 @@ export function GameScreen({
   const showCurtain = presentation !== 'in-game'
   const curtainOpen = presentation === 'opening'
   const curtainInitialOpen = presentation === 'closing'
+
+  const handleShare = async () => {
+    const card = document.getElementById('share-card-template')
+    if (!card || sharing) return
+    setSharing(true)
+    await shareScoreCardFromElement(card)
+    setSharing(false)
+  }
 
   const handlePlay = () => {
     if (presentation !== 'menu') return
@@ -712,9 +763,13 @@ export function GameScreen({
   }, [presentation, closeDurationMs])
 
   useEffect(() => {
-    if (session.isSubmitLocked && session.phase === 'playing') {
+    if (!session.isSubmitLocked || session.phase !== 'playing') return
+
+    const frame = requestAnimationFrame(() => {
       setShakeKey((key) => key + 1)
-    }
+    })
+
+    return () => cancelAnimationFrame(frame)
   }, [session.isSubmitLocked, session.phase])
 
   useEffect(() => {
@@ -756,7 +811,7 @@ export function GameScreen({
       )}
       <ForwardLinesBackground
         active={presentation !== 'menu'}
-        level={session.level}
+        rhythmLevel={session.rhythmLevel}
         speedMultiplier={isGameOver ? 0.1 : 1}
         theme={useWaterBackground ? 'water' : 'default'}
       />
@@ -774,9 +829,17 @@ export function GameScreen({
           style={{ willChange: presentation === 'opening' ? 'transform' : 'auto' }}
         >
           <header className={useWaterBackground ? 'game-scene-header--water' : undefined}>
-            <p className="text-xs uppercase tracking-widest text-charcoal-muted">Pontuação</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase tracking-widest text-charcoal-muted">Pontuação</p>
+              <span className="game-player-level-badge rounded-md bg-charcoal-elevated px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-200">
+                Nível {playerLevel}
+              </span>
+            </div>
             <div className="relative left-1/2 h-12 w-screen -translate-x-1/2">
               <div className="relative mx-auto h-full max-w-md px-4">
+                <p className="pointer-events-none absolute inset-x-0 top-0 text-center text-xs text-charcoal-muted">
+                  {elapsedText}
+                </p>
                 <div className="flex h-full items-end">
                   <div className="relative h-12 min-w-0 flex-1 overflow-hidden">
                     <AnimatePresence mode="popLayout" initial={false}>
@@ -847,8 +910,8 @@ export function GameScreen({
               answerFieldRef={answerFieldRef}
             >
               <PlayFieldsFrame
-                level={session.level}
-                levelUpFlash={session.levelUpFlash}
+                level={session.rhythmLevel}
+                levelUpFlash={session.rhythmLevelUpFlash}
                 burstScore={session.score}
                 waterLight={useWaterBackground}
                 borderActive={isPlaying}
@@ -932,7 +995,7 @@ export function GameScreen({
                   disabled={inputDisabled}
                   backspaceDisabled={session.inputValue.length === 0}
                   waterLight={useWaterBackground}
-                  autoCheckCharges={session.autoCheckCharges}
+                  autoCheckCharges={player.walletAutoChecks}
                   onDigit={appendDigit}
                   onBackspace={backspaceDigit}
                   onAutoCorrect={onAutoCorrect}
@@ -966,6 +1029,20 @@ export function GameScreen({
                   >
                     {session.score} pontos
                   </p>
+                  <p className={`mt-1 text-xs ${useWaterBackground ? '' : 'text-charcoal-muted'}`}>
+                    Tempo: {elapsedText}
+                  </p>
+                  <p className="mt-1 text-xs">
+                    <span className="game-over-reward-xp">+{lastGameRewards.xpGained} XP</span>
+                    <span className="game-over-reward-sep"> • </span>
+                    <span className="game-over-reward-coins">+{lastGameRewards.coinsGained} moedas</span>
+                  </p>
+                  {lastGameRewards.goalCompleted && (
+                    <p className="mt-1 text-xs text-emerald-400">
+                      Meta diária completa!{' '}
+                      <span className="game-over-reward-xp">+1000 XP</span> e +1 auto-check
+                    </p>
+                  )}
                   {session.beatRecord ? (
                     <p className="mt-1 text-sm text-emerald-400">Novo recorde pessoal!</p>
                   ) : topScore ? (
@@ -977,6 +1054,15 @@ export function GameScreen({
                       Recorde: {topScore.score} pontos
                     </p>
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    disabled={sharing}
+                    className="game-btn-push game-btn-push-secondary mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-charcoal-elevated px-3 py-2 text-xs font-semibold tracking-wide text-stone-100"
+                  >
+                    {!sharing && <IconShare />}
+                    {sharing ? 'Gerando imagem...' : 'Compartilhar'}
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -994,6 +1080,28 @@ export function GameScreen({
 
       {showMenuChrome && (
         <>
+          <div className="fixed inset-x-0 top-0 z-[60] flex items-start justify-between px-6 pt-[max(1rem,env(safe-area-inset-top))]">
+            <MenuHudInlineButton
+              label="Loja"
+              onClick={() => {
+                onPlayClick()
+                setShopOpen(true)
+              }}
+            >
+              <IconTrophy />
+            </MenuHudInlineButton>
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              className="game-menu-hud-btn game-menu-hud-btn--inline opacity-50"
+            >
+              <span className="game-menu-hud-btn__plate game-menu-hud-btn__plate--inline">
+                <span className="game-menu-hud-btn__inline-text">Como jogar</span>
+              </span>
+            </button>
+          </div>
+
           <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
             <div className="pointer-events-auto">
               <MenuPlayButton onClick={handlePlay} />
@@ -1002,17 +1110,17 @@ export function GameScreen({
 
           <footer className="fixed inset-x-0 bottom-0 z-[60] flex items-end justify-between px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <MenuHudButton
-              label="Recordes"
+              label="Jogador"
               onClick={() => {
                 onPlayClick()
-                setHistoryOpen(true)
+                setPlayerOpen(true)
               }}
             >
               <IconTrophy />
             </MenuHudButton>
 
             <MenuHudButton
-              label="Configurações"
+              label="Config"
               onClick={() => {
                 onPlayClick()
                 setSettingsOpen(true)
@@ -1024,13 +1132,45 @@ export function GameScreen({
         </>
       )}
 
-      <HistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
+      <PlayerModal
+        open={playerOpen}
+        onClose={() => setPlayerOpen(false)}
+        player={player}
+        topScores={topScores}
+        onSaveName={onSaveDisplayName}
+        onOpenRewardedModal={() => {
+          setPlayerOpen(false)
+          setRewardedOpen(true)
+        }}
+      />
+      <ShopModal open={shopOpen} onClose={() => setShopOpen(false)} player={player} />
+      <RewardedAutoCheckModal
+        open={rewardedOpen}
+        onClose={() => setRewardedOpen(false)}
+        watchedToday={rewardedAdsWatched}
+        onWatchAd={onWatchRewardedAd}
+      />
+      <AutoCheckTimeoutModal
+        open={session.awaitingAutoCheckChoice && session.phase === 'playing'}
+        walletAutoChecks={player.walletAutoChecks}
+        onUse={onUseAutoCheckAtTimeout}
+        onDecline={onDeclineAutoCheckAtTimeout}
+      />
+      {isGameOver && (
+        <ShareCardTemplate
+          playerName={player.displayName}
+          level={playerLevel}
+          score={session.score}
+          durationText={elapsedText}
+        />
+      )}
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         soundEnabled={soundEnabled}
         onSoundChange={onSoundChange}
         backgroundTheme={backgroundTheme}
+        ownedThemeIds={player.ownedThemeIds}
         onBackgroundThemeChange={onBackgroundThemeChange}
       />
     </div>

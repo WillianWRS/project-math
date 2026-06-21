@@ -105,6 +105,15 @@ body {
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
+.game-scene-header--water .game-player-level-badge {
+  border: 1px solid rgba(125, 211, 252, 0.5);
+  background: linear-gradient(180deg, #f0f9ff 0%, #dbeafe 100%);
+  color: #1e5a7a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 1px 0 rgba(26, 74, 110, 0.12);
+}
+
 /* Largura estreita só dos 3 campos (número, operação, resposta) */
 .game-main-column {
   width: 100%;
@@ -680,6 +689,32 @@ body {
   color: #4a7a96;
 }
 
+.game-over-reward-xp {
+  color: #c084fc;
+  font-weight: 600;
+}
+
+.game-over-reward-coins {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.game-over-reward-sep {
+  color: #6b6358;
+}
+
+.game-over-card--water .game-over-reward-xp {
+  color: #9333ea;
+}
+
+.game-over-card--water .game-over-reward-coins {
+  color: #d97706;
+}
+
+.game-over-card--water .game-over-reward-sep {
+  color: #4a7a96;
+}
+
 .game-menu-hud-btn--water-light .game-menu-hud-btn__plate--inline {
   --hud-shadow: rgba(26, 74, 110, 0.28);
 
@@ -1040,6 +1075,38 @@ body {
   background: linear-gradient(180deg, #b8e8fa 0%, #8fd4f2 40%, #5ab8e6 100%);
 }
 
+.shop-theme-preview--locked {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.06) 0 8px,
+      rgba(0, 0, 0, 0.08) 8px 16px
+    ),
+    linear-gradient(180deg, #2a2522 0%, #1a1714 100%);
+}
+
+.player-stat-badge {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 0 #b45309;
+  pointer-events: none;
+}
+
+.player-rank-text--gold {
+  color: #fcd34d;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
+}
+
+.player-rank-text--silver {
+  color: #d1d5db;
+  text-shadow: 0 0 10px rgba(209, 213, 219, 0.18);
+}
+
+.player-rank-text--bronze {
+  color: #d97706;
+  text-shadow: 0 0 10px rgba(217, 119, 6, 0.2);
+}
+
 @keyframes settings-theme-pulse-default {
   0%,
   100% {
@@ -1101,6 +1168,46 @@ body {
 
 .game-play-stack--four-seconds .game-play-stack__divider {
   border-color: rgba(251, 146, 60, 0.22) !important;
+}
+
+.game-play-stack--four-seconds .game-answer-row--water,
+.game-play-stack--times-div .game-answer-row--water,
+.game-play-stack--plus-cycle .game-answer-row--water,
+.game-play-stack--minus-cycle .game-answer-row--water {
+  background: transparent;
+  border-top-color: transparent;
+}
+
+.game-play-stack--four-seconds .game-answer-slot--water {
+  color: #9a3412;
+}
+
+.game-play-stack--four-seconds .game-answer-slot--water:not(:empty) {
+  color: #7c2d12;
+}
+
+.game-play-stack--times-div .game-answer-slot--water {
+  color: #1e3a8a;
+}
+
+.game-play-stack--times-div .game-answer-slot--water:not(:empty) {
+  color: #172554;
+}
+
+.game-play-stack--plus-cycle .game-answer-slot--water {
+  color: #064e3b;
+}
+
+.game-play-stack--plus-cycle .game-answer-slot--water:not(:empty) {
+  color: #022c22;
+}
+
+.game-play-stack--minus-cycle .game-answer-slot--water {
+  color: #881337;
+}
+
+.game-play-stack--minus-cycle .game-answer-slot--water:not(:empty) {
+  color: #4c0519;
 }
 
 .game-play-stack--four-seconds .game-answer-slot:not(.game-answer-slot--water) {

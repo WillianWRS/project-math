@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
 import { Modal } from '../ui/Modal'
 import { loadTopScores, type ScoreRecord } from '../../platform/storage'
+import { formatDuration } from '../../engine/rewards'
 
 interface HistoryModalProps {
   open: boolean
@@ -16,12 +17,7 @@ function formatDate(iso: string): string {
 }
 
 export function HistoryModal({ open, onClose }: HistoryModalProps) {
-  const [topScores, setTopScores] = useState<ScoreRecord[]>([])
-
-  useEffect(() => {
-    if (!open) return
-    setTopScores(loadTopScores())
-  }, [open])
+  const topScores = useMemo<ScoreRecord[]>(() => (open ? loadTopScores() : []), [open])
 
   return (
     <Modal open={open} title="Recordes" onClose={onClose}>
@@ -49,11 +45,16 @@ export function HistoryModal({ open, onClose }: HistoryModalProps) {
                   <p className="truncate text-xs text-charcoal-muted">{formatDate(record.date)}</p>
                 </div>
               </div>
-              {index === 0 && (
-                <span className="shrink-0 text-[0.65rem] font-semibold uppercase tracking-widest text-amber-400/90">
-                  Top 1
+              <div className="text-right">
+                {index === 0 && (
+                  <span className="block shrink-0 text-[0.65rem] font-semibold uppercase tracking-widest text-amber-400/90">
+                    Top 1
+                  </span>
+                )}
+                <span className="text-xs text-charcoal-muted">
+                  {record.durationMs > 0 ? formatDuration(record.durationMs) : '—'}
                 </span>
-              )}
+              </div>
             </li>
           ))}
         </ol>

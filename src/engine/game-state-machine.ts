@@ -1,6 +1,6 @@
 import { generateInitialBase, generateOperation, evaluateAnswer } from './operation-generator'
 import { advanceSideCyclesOnCorrect } from './game-changer-cycles'
-import { levelTimerMs, scoreToLevel, crossedScoreMilestoneBurst } from './level-system'
+import { rhythmLevelTimerMs, scoreToRhythmLevel, crossedScoreMilestoneBurst } from './level-system'
 import type { GameSession, SubmitResult } from './types'
 const SUBMIT_LOCK_MS = 280
 const SCORE_PER_CORRECT = 10
@@ -9,7 +9,7 @@ const CLUTCH_EASY_OPERATIONS = 2
 const CLUTCH_RECHARGE_CORRECT = 8
 
 function canTriggerClutchHelp(session: GameSession): boolean {  return (
-    session.level >= 5 &&
+    session.rhythmLevel >= 5 &&
     session.timerMs <= CLUTCH_WINDOW_MS &&
     session.clutchHelpCooldownRemaining === 0
   )
@@ -19,20 +19,21 @@ export function createInitialSession(): GameSession {
   return {
     phase: 'idle',
     score: 0,
-    level: 1,
-    timerMs: levelTimerMs(1),
-    timerMaxMs: levelTimerMs(1),
+    rhythmLevel: 1,
+    timerMs: rhythmLevelTimerMs(1),
+    timerMaxMs: rhythmLevelTimerMs(1),
+    elapsedMs: 0,
     baseNumber: 0,
     operation: null,
     inputValue: '',
     isSubmitLocked: false,
-    levelUpFlash: null,
+    rhythmLevelUpFlash: null,
     answerFlash: null,
     answerFlashAuto: false,
     beatRecord: false,
+    awaitingAutoCheckChoice: false,
     easyOperationsRemaining: 0,
     clutchHelpCooldownRemaining: 0,
-    autoCheckCharges: 0,
     autoCheckCycleStep: null,
     fourSecondsCycleStep: null,
     fourSecondsGameChangerRemaining: 0,
@@ -46,27 +47,28 @@ export function createInitialSession(): GameSession {
 }
 
 export function startGame(): GameSession {
-  const level = 1
-  const baseNumber = generateInitialBase(level)
-  const timerMaxMs = levelTimerMs(level)
+  const rhythmLevel = 1
+  const baseNumber = generateInitialBase(rhythmLevel)
+  const timerMaxMs = rhythmLevelTimerMs(rhythmLevel)
 
   return {
     phase: 'playing',
     score: 0,
-    level,
+    rhythmLevel,
     timerMs: timerMaxMs,
     timerMaxMs,
+    elapsedMs: 0,
     baseNumber,
-    operation: generateOperation(baseNumber, level, null),
+    operation: generateOperation(baseNumber, rhythmLevel, null),
     inputValue: '',
     isSubmitLocked: false,
-    levelUpFlash: null,
+    rhythmLevelUpFlash: null,
     answerFlash: null,
     answerFlashAuto: false,
     beatRecord: false,
+    awaitingAutoCheckChoice: false,
     easyOperationsRemaining: 0,
     clutchHelpCooldownRemaining: 0,
-    autoCheckCharges: 0,
     autoCheckCycleStep: null,
     fourSecondsCycleStep: null,
     fourSecondsGameChangerRemaining: 0,
@@ -93,7 +95,6 @@ export function tickTimer(session: GameSession, deltaMs: number): GameSession {
     ...session,
     phase: 'game_over',
     timerMs: 0,
-    autoCheckCharges: 0,
     autoCheckCycleStep: null,
   }
 }
@@ -104,35 +105,28 @@ export function submitAnswer(
 ): {
   session: GameSession
   result: SubmitResult
+  autoCheckGranted: boolean
 } {
   if (session.phase !== 'playing') {
-    return { session, result: 'locked' }
+    return { session, result: 'locked', autoCheckGranted: false }
   }
 
   if (session.isSubmitLocked) {
-    return { session, result: 'locked' }
-  }
-
-  if (
-    options?.autoCheck &&
-    !DEBUG_AUTO_CHECK_ALWAYS_ENABLED &&
-    session.autoCheckCharges <= 0
-  ) {
-    return { session, result: 'locked' }
+    return { session, result: 'locked', autoCheckGranted: false }
   }
 
   if (!session.operation) {
-    return { session, result: 'locked' }
+    return { session, result: 'locked', autoCheckGranted: false }
   }
 
   const trimmed = session.inputValue.trim()
   if (trimmed === '') {
-    return { session, result: 'empty' }
+    return { session, result: 'empty', autoCheckGranted: false }
   }
 
   const answer = Number.parseInt(trimmed, 10)
   if (Number.isNaN(answer)) {
-    return { session, result: 'empty' }
+    return { session, result: 'empty', autoCheckGranted: false }
   }
 
   const isCorrect = evaluateAnswer(session.baseNumber, session.operation, answer)
@@ -146,17 +140,18 @@ export function submitAnswer(
           session.clutchHelpCooldownRemaining > 0 ? CLUTCH_RECHARGE_CORRECT : 0,
       },
       result: 'wrong',
+      autoCheckGranted: false,
     }
   }
 
-  const previousLevel = session.level
+  const previousRhythmLevel = session.rhythmLevel
   const score = session.score + SCORE_PER_CORRECT
-  const level = scoreToLevel(score)
-  const timerMaxMs = levelTimerMs(level)
+  const rhythmLevel = scoreToRhythmLevel(score)
+  const timerMaxMs = rhythmLevelTimerMs(rhythmLevel)
   const baseNumber = session.operation.result
-  const leveledUp = level > previousLevel
+  const leveledUp = rhythmLevel > previousRhythmLevel
   const milestoneBurst = crossedScoreMilestoneBurst(session.score, score)
-  const levelUpFlash = leveledUp ? level : milestoneBurst ? 5 : null
+  const rhythmLevelUpFlash = leveledUp ? rhythmLevel : milestoneBurst ? 5 : null
 
   let easyOperationsRemaining = session.easyOperationsRemaining
   let clutchHelpCooldownRemaining = session.clutchHelpCooldownRemaining
@@ -172,7 +167,7 @@ export function submitAnswer(
     clutchHelpCooldownRemaining -= 1
   }
 
-  const cycleUpdate = advanceSideCyclesOnCorrect({ ...session, score, level })
+  const cycleUpdate = advanceSideCyclesOnCorrect({ ...session, score, rhythmLevel })
   if (cycleUpdate.fourSecondsGameChangerRemaining !== undefined) {
     fourSecondsGameChangerRemaining = cycleUpdate.fourSecondsGameChangerRemaining
   }
@@ -218,52 +213,47 @@ export function submitAnswer(
 
   let operation
   if (forceFourSecondsRules) {
-    operation = generateOperation(baseNumber, level, session.operation, { forceFourSecondsRules: true })
+    operation = generateOperation(baseNumber, rhythmLevel, session.operation, { forceFourSecondsRules: true })
     fourSecondsGameChangerRemaining -= 1
   } else if (forceTimesDivRules) {
-    operation = generateOperation(baseNumber, level, session.operation, { forceTimesDivRules: true })
+    operation = generateOperation(baseNumber, rhythmLevel, session.operation, { forceTimesDivRules: true })
     timesDivGameChangerRemaining -= 1
   } else if (forcePlusCycleRules) {
-    operation = generateOperation(baseNumber, level, session.operation, { forcePlusCycleRules: true })
+    operation = generateOperation(baseNumber, rhythmLevel, session.operation, { forcePlusCycleRules: true })
   } else if (forceMinusCycleRules) {
-    operation = generateOperation(baseNumber, level, session.operation, { forceMinusCycleRules: true })
+    operation = generateOperation(baseNumber, rhythmLevel, session.operation, { forceMinusCycleRules: true })
   } else if (forcePlusPreCycleFinal) {
-    operation = generateOperation(baseNumber, level, session.operation, {
+    operation = generateOperation(baseNumber, rhythmLevel, session.operation, {
       forcePlusPreCycleFinal: true,
     })
   } else if (forceMinusPreCycleFinal) {
-    operation = generateOperation(baseNumber, level, session.operation, {
+    operation = generateOperation(baseNumber, rhythmLevel, session.operation, {
       forceMinusPreCycleFinal: true,
     })
   } else {
-    operation = generateOperation(baseNumber, level, session.operation, { forceAddSubOnly })
+    operation = generateOperation(baseNumber, rhythmLevel, session.operation, { forceAddSubOnly })
     if (forceAddSubOnly) {
       easyOperationsRemaining -= 1
     }
-  }
-
-  let autoCheckCharges = cycleUpdate.autoCheckCharges ?? session.autoCheckCharges
-  if (options?.autoCheck === true && !DEBUG_AUTO_CHECK_ALWAYS_ENABLED) {
-    autoCheckCharges -= 1
   }
 
   return {
     session: {
       ...session,
       score,
-      level,
+      rhythmLevel,
       baseNumber,
       operation,
       inputValue: '',
       timerMs: timerMaxMs,
       timerMaxMs,
       isSubmitLocked: false,
-      levelUpFlash,
+      rhythmLevelUpFlash,
       answerFlash: trimmed,
       answerFlashAuto: options?.autoCheck ?? false,
+      awaitingAutoCheckChoice: false,
       easyOperationsRemaining,
       clutchHelpCooldownRemaining,
-      autoCheckCharges,
       autoCheckCycleStep:
         cycleUpdate.autoCheckCycleStep !== undefined
           ? cycleUpdate.autoCheckCycleStep
@@ -286,6 +276,7 @@ export function submitAnswer(
       minusGameChangerActive,
     },
     result: 'correct',
+    autoCheckGranted: Boolean(cycleUpdate.autoCheckGranted),
   }
 }
 
@@ -297,10 +288,10 @@ export function unlockSubmit(session: GameSession): GameSession {
 }
 
 export function clearLevelUpFlash(session: GameSession): GameSession {
-  if (session.levelUpFlash === null) {
+  if (session.rhythmLevelUpFlash === null) {
     return session
   }
-  return { ...session, levelUpFlash: null }
+  return { ...session, rhythmLevelUpFlash: null }
 }
 
 export function clearAnswerFlash(session: GameSession): GameSession {

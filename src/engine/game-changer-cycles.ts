@@ -13,7 +13,6 @@ export const SIDE_CYCLE_MIN_LEVEL = 5
 type CycleAdvanceUpdate = Partial<
   Pick<
     GameSession,
-    | 'autoCheckCharges'
     | 'autoCheckCycleStep'
     | 'fourSecondsCycleStep'
     | 'fourSecondsGameChangerRemaining'
@@ -24,7 +23,9 @@ type CycleAdvanceUpdate = Partial<
     | 'minusCycleStep'
     | 'minusGameChangerActive'
   >
->
+> & {
+  autoCheckGranted?: boolean
+}
 
 export function isFourSecondsGameChangerActive(session: GameSession): boolean {
   return session.fourSecondsGameChangerRemaining > 0
@@ -61,7 +62,7 @@ function advanceAutoCheckCycle(session: GameSession): CycleAdvanceUpdate {
   if (session.autoCheckCycleStep >= SIDE_CYCLE_STEPS) {
     return {
       autoCheckCycleStep: null,
-      autoCheckCharges: session.autoCheckCharges + 1,
+      autoCheckGranted: true,
     }
   }
 
@@ -129,7 +130,7 @@ function rollNewCycleEvents(session: GameSession): CycleAdvanceUpdate {
     session.timesDivCycleStep === null &&
     session.plusCycleStep === null &&
     session.minusCycleStep === null
-  const eligibleForRightCycle = noRightCycle && session.level >= SIDE_CYCLE_MIN_LEVEL
+  const eligibleForRightCycle = noRightCycle && session.rhythmLevel >= SIDE_CYCLE_MIN_LEVEL
 
   if (eligibleForRightCycle) {
     const candidates: Array<'fourSeconds' | 'timesDiv' | 'plus' | 'minus'> = []

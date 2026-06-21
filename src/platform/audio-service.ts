@@ -1,5 +1,7 @@
 const AUDIO_PATHS = {
   success: '/audio/success.mp3',
+  autoCheck: '/audio/auto-check.mp3',
+  gameChanger: '/audio/game-changer.mp3',
   error: '/audio/error.mp3',
   click: '/audio/click.mp3',
   gameOver: '/audio/game-over.mp3',
@@ -72,6 +74,23 @@ export function preloadSfx(): void {
 export function playSfx(id: SfxId, enabled: boolean): void {
   if (!enabled) return
   playAudio(getAudio(id))
+}
+
+export function playCorrectAnswerSfx(
+  gameChangerActive: boolean,
+  enabled: boolean,
+  fromAutoCheck = false,
+): void {
+  if (!enabled) return
+  if (fromAutoCheck) {
+    playSfx('autoCheck', enabled)
+    return
+  }
+  if (gameChangerActive) {
+    playSfx('gameChanger', enabled)
+    return
+  }
+  playSfx('success', enabled)
 }
 
 export function playRandomWriteSfx(enabled: boolean): void {

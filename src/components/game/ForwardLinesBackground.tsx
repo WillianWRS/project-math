@@ -1,11 +1,11 @@
 import { memo, useMemo } from 'react'
-import { backgroundScrollDuration } from '../../engine/level-system'
+import { rhythmBackgroundScrollDuration } from '../../engine/level-system'
 import { FORWARD_LINES } from './forward-lines-config'
 import { useMobileLayout } from '../../hooks/useMobileLayout'
 
 interface ForwardLinesBackgroundProps {
   active: boolean
-  level: number
+  rhythmLevel: number
   speedMultiplier?: number
   theme?: 'default' | 'water'
 }
@@ -15,12 +15,13 @@ const MOBILE_LINE_COUNT = 10
 
 export const ForwardLinesBackground = memo(function ForwardLinesBackground({
   active,
-  level,
+  rhythmLevel,
   speedMultiplier = 1,
   theme = 'default',
 }: ForwardLinesBackgroundProps) {
   const isMobile = useMobileLayout()
-  const speedFactor = (48 / backgroundScrollDuration(level)) * LINE_SPEED_BOOST * speedMultiplier
+  const speedFactor =
+    (48 / rhythmBackgroundScrollDuration(rhythmLevel)) * LINE_SPEED_BOOST * speedMultiplier
   const lines = useMemo(
     () => (isMobile ? FORWARD_LINES.slice(0, MOBILE_LINE_COUNT) : FORWARD_LINES),
     [isMobile],

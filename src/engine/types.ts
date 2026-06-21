@@ -11,23 +11,23 @@ export interface Operation {
 export interface GameSession {
   phase: GamePhase
   score: number
-  level: number
+  rhythmLevel: number
   timerMs: number
   timerMaxMs: number
+  elapsedMs: number
   baseNumber: number
   operation: Operation | null
   inputValue: string
   isSubmitLocked: boolean
-  levelUpFlash: number | null
+  rhythmLevelUpFlash: number | null
   answerFlash: string | null
   answerFlashAuto: boolean
   beatRecord: boolean
+  awaitingAutoCheckChoice: boolean
   /** Nível 5+: próximas N operações forçadas em +/− após acerto nos 2s finais */
   easyOperationsRemaining: number
   /** Acertos restantes para liberar nova ajuda clutch (0 = elegível) */
   clutchHelpCooldownRemaining: number
-  /** Cargas de auto-acerto disponíveis no teclado (0 = desabilitado) */
-  autoCheckCharges: number
   /** Passo ativo do ciclo lateral (1–4); null = sem ciclo em andamento */
   autoCheckCycleStep: number | null
   /** Passo ativo do four-seconds-cycle (1–4); null = sem ciclo em andamento */
