@@ -74,7 +74,7 @@ export function useGame() {
   useEffect(() => {
     timerMsRef.current = session.timerMs
     elapsedMsRef.current = session.elapsedMs
-  }, [session.phase, session.score, session.timerMs, session.elapsedMs])
+  }, [session.phase, session.score, session.timerMs, session.elapsedMs, session.awaitingAutoCheckChoice])
 
   useEffect(() => {
     if (session.phase !== 'playing') return
@@ -101,10 +101,9 @@ export function useGame() {
           }
           return tickTimer({ ...current, timerMs: 0 }, 0)
         })
-        return
       }
 
-      if (now - lastPublish >= TIMER_UI_PUBLISH_MS) {
+      if (now - lastPublish >= TIMER_UI_PUBLISH_MS && !sessionRef.current.awaitingAutoCheckChoice) {
         lastPublish = now
         const timerMs = timerMsRef.current
         const elapsedMs = elapsedMsRef.current
