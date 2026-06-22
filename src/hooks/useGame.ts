@@ -16,11 +16,13 @@ import {
 import { scoreToCoins } from '../engine/rewards'
 import type { GameSession } from '../engine/types'
 import { usePlayer } from './usePlayer'
+import { useBenchmark } from './useBenchmark'
 import { ensureDailyFresh } from '../platform/daily-reset'
 import { isAnyGameChangerActive } from '../engine/game-changer-cycles'
 import { loadSoundEnabled, loadTopScores, saveSoundEnabled, saveTopScore, type ScoreRecord } from '../platform/storage'
 import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, preloadSfx, syncAmbient } from '../platform/audio-service'
 import { gameTimerStore } from '../platform/game-timer-store'
+import type { BenchmarkVirtualKey } from '../engine/benchmark-types'
 
 const TIMER_UI_PUBLISH_MS = 100
 const DAILY_GOAL_SCORE = 1000
@@ -43,7 +45,6 @@ export function useGame() {
   })
   const { player, commitPlayer, grantAutoCheck, spendAutoCheck, setEquippedTheme, ...playerActions } =
     usePlayer()
-
   const sessionRef = useRef(session)
   const playerRef = useRef(player)
   const soundEnabledRef = useRef(soundEnabled)
@@ -51,6 +52,42 @@ export function useGame() {
   const lastPersistedScoreRef = useRef<number | null>(null)
   const timerMsRef = useRef(session.timerMs)
   const elapsedMsRef = useRef(session.elapsedMs)
+
+  const benchmarkSessionRef = useRef(false)
+  const [benchmarkMode, setBenchmarkMode] = useState(false)
+  const onBenchmarkVirtualKeyPress = useCallback(
+    (key: BenchmarkVirtualKey) => {
+      if (key.startsWith('digit-')) {
+        playRandomWriteSfx(soundEnabledRef.current)
+      }
+    },
+    [],
+  )
+  const onBenchmarkCorrectAnswer = useCallback(
+    (sessionBeforeSubmit: GameSession, fromAutoCheck: boolean) => {
+      playCorrectAnswerSfx(
+        isAnyGameChangerActive(sessionBeforeSubmit),
+        soundEnabledRef.current,
+        fromAutoCheck,
+      )
+    },
+    [],
+  )
+  const {
+    benchmarkActive,
+    benchmarkMetrics,
+    benchmarkVirtualKeypadPress,
+    onStartBenchmark,
+    onInterruptBenchmark,
+    resetBenchmark,
+  } = useBenchmark({
+    session,
+    setSession,
+    grantAutoCheck,
+    spendAutoCheck,
+    onVirtualKeyPress: onBenchmarkVirtualKeyPress,
+    onBenchmarkCorrectAnswer,
+  })
 
   useEffect(() => {
     sessionRef.current = session
@@ -80,6 +117,7 @@ export function useGame() {
 
   useEffect(() => {
     if (session.phase !== 'playing') return
+    if (benchmarkActive) return
 
     let lastTick = performance.now()
     let lastPublish = lastTick
@@ -115,10 +153,11 @@ export function useGame() {
 
     frameId = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(frameId)
-  }, [session.phase])
+  }, [session.phase, benchmarkActive])
 
   useEffect(() => {
     if (session.phase !== 'game_over') return
+    if (benchmarkSessionRef.current) return
     if (gameOverFxHandledRef.current && lastPersistedScoreRef.current === session.score) return
 
     gameOverFxHandledRef.current = true
@@ -187,17 +226,34 @@ export function useGame() {
 
   const onStart = useCallback(() => {
     if (sessionRef.current.phase === 'playing') return
+    benchmarkSessionRef.current = false
+    setBenchmarkMode(false)
+    resetBenchmark()
     gameOverFxHandledRef.current = false
     lastPersistedScoreRef.current = null
     setLastGameRewards({ xpGained: 0, coinsGained: 0, goalCompleted: false })
     setSession(startGame())
-  }, [])
+  }, [resetBenchmark])
+
+  const onStartBenchmarkSession = useCallback(() => {
+    if (sessionRef.current.phase === 'playing') return
+    benchmarkSessionRef.current = true
+    setBenchmarkMode(true)
+    gameOverFxHandledRef.current = false
+    lastPersistedScoreRef.current = null
+    setLastGameRewards({ xpGained: 0, coinsGained: 0, goalCompleted: false })
+    onStartBenchmark()
+  }, [onStartBenchmark])
 
   const onReturnToMenu = useCallback(() => {
+    onInterruptBenchmark()
+    benchmarkSessionRef.current = false
+    setBenchmarkMode(false)
+    resetBenchmark()
     gameOverFxHandledRef.current = false
     lastPersistedScoreRef.current = null
     setSession(returnToMenu())
-  }, [])
+  }, [onInterruptBenchmark, resetBenchmark])
 
   const applyAnswerResult = useCallback(
     (current: GameSession, fromAutoCheck = false) => {
@@ -305,7 +361,12 @@ export function useGame() {
     backgroundTheme: player.equippedThemeId,
     player,
     lastGameRewards,
+    benchmarkActive,
+    benchmarkMetrics,
+    benchmarkVirtualKeypadPress,
+    benchmarkMode,
     onStart,
+    onStartBenchmarkSession,
     onReturnToMenu,
     onConfirm,
     onAutoCorrect,

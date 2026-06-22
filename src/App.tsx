@@ -10,9 +10,13 @@ function App() {
       topScores={game.topScores}
       player={game.player}
       lastGameRewards={game.lastGameRewards}
+      benchmarkMode={game.benchmarkMode}
+      benchmarkMetrics={game.benchmarkMetrics}
+      benchmarkVirtualKeypadPress={game.benchmarkVirtualKeypadPress}
       soundEnabled={game.soundEnabled}
       backgroundTheme={game.backgroundTheme}
       onStart={game.onStart}
+      onStartBenchmarkSession={game.onStartBenchmarkSession}
       onReturnToMenu={game.onReturnToMenu}
       onConfirm={game.onConfirm}
       onAutoCorrect={game.onAutoCorrect}

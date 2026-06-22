@@ -1,1 +1,1 @@
-export { m as motion, AnimatePresence } from 'motion/react'
+export { m as motion, AnimatePresence, useReducedMotion } from 'motion/react'

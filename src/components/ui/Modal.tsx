@@ -1,5 +1,7 @@
-import { AnimatePresence, motion } from '../../lib/motion'
+import { AnimatePresence, motion, useReducedMotion } from '../../lib/motion'
+import { MODAL_BACKDROP_TRANSITION, MODAL_PANEL_TRANSITION } from '../../lib/motion-transitions'
 import type { ReactNode } from 'react'
+import { ModalScrollArea } from './ModalScrollArea'
 
 interface ModalProps {
   open: boolean
@@ -10,26 +12,39 @@ interface ModalProps {
 }
 
 export function Modal({ open, title, onClose, children, closeOnBackdrop = true }: ModalProps) {
+  const reduceMotion = useReducedMotion()
+
+  const panelTransition = reduceMotion ? { duration: 0 } : MODAL_PANEL_TRANSITION
+  const backdropTransition = reduceMotion ? { duration: 0 } : MODAL_BACKDROP_TRANSITION
+  const panelInitial = reduceMotion ? false : { y: '100%' }
+  const panelAnimate = { y: 0 }
+  const panelExit = reduceMotion ? undefined : { y: '100%' }
+
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          className="fixed inset-0 z-[70] flex items-start justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={closeOnBackdrop ? onClose : undefined}
-        >
-          <div className="absolute inset-0 bg-charcoal/82" />
+        <>
+          <motion.button
+            key="modal-backdrop"
+            type="button"
+            aria-label="Fechar modal"
+            className="game-modal-backdrop fixed inset-0 z-[70] border-0 bg-charcoal/82 p-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={backdropTransition}
+            onClick={closeOnBackdrop ? onClose : undefined}
+          />
           <motion.div
+            key="modal-panel"
             role="dialog"
             aria-modal="true"
             aria-labelledby="modal-title"
-            className="game-modal-panel relative flex max-h-[min(90dvh,42rem)] w-full max-w-sm flex-col p-5"
-            initial={{ opacity: 0, y: 24, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+            className="game-modal-panel game-modal-panel--sheet fixed inset-x-0 bottom-0 z-[71] mx-auto flex max-h-[min(88dvh,40rem)] w-full max-w-sm flex-col p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+            initial={panelInitial}
+            animate={panelAnimate}
+            exit={panelExit}
+            transition={panelTransition}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -48,11 +63,9 @@ export function Modal({ open, title, onClose, children, closeOnBackdrop = true }
                 ✕
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1 [touch-action:pan-y] [-webkit-overflow-scrolling:touch]">
-              {children}
-            </div>
+            <ModalScrollArea>{children}</ModalScrollArea>
           </motion.div>
-        </motion.div>
+        </>
       )}
     </AnimatePresence>
   )

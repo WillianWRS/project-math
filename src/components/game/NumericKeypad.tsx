@@ -1,12 +1,15 @@
 import { AnimatePresence, motion } from '../../lib/motion'
 import { memo } from 'react'
 import { DEBUG_AUTO_CHECK_ALWAYS_ENABLED } from '../../engine/game-state-machine'
+import type { BenchmarkVirtualKey } from '../../engine/benchmark-types'
 
 interface NumericKeypadProps {
   disabled?: boolean
+  interactionLocked?: boolean
   backspaceDisabled?: boolean
   waterLight?: boolean
   autoCheckCharges?: number
+  virtualPress?: { key: BenchmarkVirtualKey; token: number } | null
   onDigit: (digit: string) => void
   onBackspace: () => void
   onAutoCorrect: () => void
@@ -27,12 +30,12 @@ const keypadReveal = {
   container: {
     hidden: {},
     show: {
-      transition: { staggerChildren: 0.018, delayChildren: 0.03 },
+      transition: { staggerChildren: 0.01, delayChildren: 0.02 },
     },
   },
   key: {
     hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { duration: 0.18, ease: keypadRevealEase } },
+    show: { opacity: 1, transition: { duration: 0.14, ease: keypadRevealEase } },
   },
 } as const
 
@@ -94,11 +97,17 @@ function IconProhibited() {
 
 function AutoCheckButton({
   disabled,
+  interactionLocked,
   charges,
+  virtualPressed,
+  virtualPressToken,
   onAutoCorrect,
 }: {
   disabled: boolean
+  interactionLocked: boolean
   charges: number
+  virtualPressed: boolean
+  virtualPressToken: number | null
   onAutoCorrect: () => void
 }) {
   const enabled = DEBUG_AUTO_CHECK_ALWAYS_ENABLED || charges > 0
@@ -107,13 +116,18 @@ function AutoCheckButton({
 
   return (
     <motion.button
+      key={virtualPressed && virtualPressToken !== null ? `auto-${virtualPressToken}` : 'auto'}
       type="button"
       disabled={disabled || !enabled}
       variants={keypadReveal.key}
+      whileTap={disabled || !enabled ? undefined : { scale: 0.97, y: 1 }}
+      animate={virtualPressed ? { scale: [1, 0.97, 1], y: [0, 1, 0] } : undefined}
+      transition={virtualPressed ? { duration: 0.2, ease: 'easeOut' } : autoCheckTransition}
       className={`game-numeric-keypad__key game-numeric-keypad__key--auto${
         enabled ? ' game-numeric-keypad__key--debug' : ''
-      }`}
+      }${virtualPressed ? ' game-numeric-keypad__key--virtual-press' : ''}`}
       onClick={onAutoCorrect}
+      aria-disabled={interactionLocked ? 'true' : undefined}
       aria-label={
         enabled
           ? DEBUG_AUTO_CHECK_ALWAYS_ENABLED
@@ -121,7 +135,6 @@ function AutoCheckButton({
             : `Auto acerto (${charges} uso${charges === 1 ? '' : 's'})`
           : 'Auto acerto indisponível'
       }
-      transition={autoCheckTransition}
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
@@ -157,33 +170,55 @@ function AutoCheckButton({
 
 export const NumericKeypad = memo(function NumericKeypad({
   disabled = false,
+  interactionLocked = false,
   backspaceDisabled = false,
   waterLight = false,
   autoCheckCharges = 0,
+  virtualPress = null,
   onDigit,
   onBackspace,
   onAutoCorrect,
   onEnter,
 }: NumericKeypadProps) {
   const keypadClass = waterLight ? 'game-numeric-keypad game-numeric-keypad--water' : 'game-numeric-keypad'
+  const isVirtualPressed = (key: BenchmarkVirtualKey) => virtualPress?.key === key
+  const digitVirtualKey = (digit: string) => `digit-${digit}` as BenchmarkVirtualKey
+  const virtualToken = virtualPress?.token ?? null
+  const effectiveDisabled = disabled || interactionLocked
 
   return (
     <motion.div
-      className={`${keypadClass} w-full max-w-xs`}
+      className={`${keypadClass} w-full max-w-xs${interactionLocked ? ' pointer-events-none select-none' : ''}`}
       aria-label="Teclado numérico"
       variants={keypadReveal.container}
       initial="hidden"
       animate="show"
+      aria-disabled={interactionLocked ? 'true' : undefined}
     >
       {DIGIT_ROWS.map((row) => (
         <div key={row.join('-')} className="game-numeric-keypad__row">
           {row.map((digit) => (
             <motion.button
-              key={digit}
+              key={isVirtualPressed(digitVirtualKey(digit)) && virtualToken !== null ? `${digit}-${virtualToken}` : digit}
               type="button"
-              disabled={disabled}
+              disabled={effectiveDisabled}
               variants={keypadReveal.key}
-              className="game-numeric-keypad__key"
+              whileTap={effectiveDisabled ? undefined : { scale: 0.97, y: 1 }}
+              animate={
+                isVirtualPressed(digitVirtualKey(digit))
+                  ? { scale: [1, 0.97, 1], y: [0, 1, 0] }
+                  : undefined
+              }
+              transition={
+                isVirtualPressed(digitVirtualKey(digit))
+                  ? { duration: 0.2, ease: 'easeOut' }
+                  : undefined
+              }
+              className={`game-numeric-keypad__key${
+                isVirtualPressed(digitVirtualKey(digit))
+                  ? ' game-numeric-keypad__key--virtual-press'
+                  : ''
+              }`}
               onClick={() => onDigit(digit)}
               aria-label={`Dígito ${digit}`}
             >
@@ -195,15 +230,24 @@ export const NumericKeypad = memo(function NumericKeypad({
 
       <div className="game-numeric-keypad__row">
         <AutoCheckButton
-          disabled={disabled}
+          disabled={effectiveDisabled}
+          interactionLocked={interactionLocked}
           charges={autoCheckCharges}
+          virtualPressed={isVirtualPressed('auto')}
+          virtualPressToken={virtualToken}
           onAutoCorrect={onAutoCorrect}
         />
         <motion.button
+          key={isVirtualPressed('digit-0') && virtualToken !== null ? `0-${virtualToken}` : 'digit-0'}
           type="button"
-          disabled={disabled}
+          disabled={effectiveDisabled}
           variants={keypadReveal.key}
-          className="game-numeric-keypad__key"
+          whileTap={effectiveDisabled ? undefined : { scale: 0.97, y: 1 }}
+          animate={isVirtualPressed('digit-0') ? { scale: [1, 0.97, 1], y: [0, 1, 0] } : undefined}
+          transition={isVirtualPressed('digit-0') ? { duration: 0.2, ease: 'easeOut' } : undefined}
+          className={`game-numeric-keypad__key${
+            isVirtualPressed('digit-0') ? ' game-numeric-keypad__key--virtual-press' : ''
+          }`}
           onClick={() => onDigit('0')}
           aria-label="Dígito 0"
         >
@@ -211,8 +255,9 @@ export const NumericKeypad = memo(function NumericKeypad({
         </motion.button>
         <motion.button
           type="button"
-          disabled={disabled || backspaceDisabled}
+          disabled={effectiveDisabled || backspaceDisabled}
           variants={keypadReveal.key}
+          whileTap={effectiveDisabled || backspaceDisabled ? undefined : { scale: 0.97, y: 1 }}
           className="game-numeric-keypad__key game-numeric-keypad__key--backspace"
           onClick={onBackspace}
           aria-label="Apagar dígito"
@@ -223,9 +268,15 @@ export const NumericKeypad = memo(function NumericKeypad({
 
       <motion.button
         type="button"
-        disabled={disabled}
+        key={isVirtualPressed('enter') && virtualToken !== null ? `enter-${virtualToken}` : 'enter'}
+        disabled={effectiveDisabled}
         variants={keypadReveal.key}
-        className="game-numeric-keypad__key game-numeric-keypad__key--enter game-numeric-keypad__key--enter-wide"
+        whileTap={effectiveDisabled ? undefined : { scale: 0.98, y: 1 }}
+        animate={isVirtualPressed('enter') ? { scale: [1, 0.98, 1], y: [0, 1, 0] } : undefined}
+        transition={isVirtualPressed('enter') ? { duration: 0.2, ease: 'easeOut' } : undefined}
+        className={`game-numeric-keypad__key game-numeric-keypad__key--enter game-numeric-keypad__key--enter-wide${
+          isVirtualPressed('enter') ? ' game-numeric-keypad__key--virtual-press' : ''
+        }`}
         onClick={onEnter}
         aria-label="Confirmar resposta"
       >

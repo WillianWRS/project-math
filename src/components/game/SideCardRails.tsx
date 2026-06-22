@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from '../../lib/motion'
+import { SideCardPulse } from '../motion/SideCardPulse'
 import { memo, useCallback, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import {
   RightSideCardCatalog,
@@ -202,12 +203,12 @@ function AutoCheckCycleTraveler({
       exit={{ x: 0, top: exitTop, opacity: 0 }}
       transition={sideCardTransition}
     >
-      <div className="game-side-card__content">
+      <SideCardPulse iconPulse="scale">
         <span className="game-side-card__label game-side-card__label--legendary">AUTO</span>
         <span className="game-side-card__icon game-side-card__icon--legendary">
           <IconCheckSmall />
         </span>
-      </div>
+      </SideCardPulse>
     </motion.div>
   )
 }
@@ -231,10 +232,10 @@ function FourSecondsPreCycleTraveler({
       exit={{ x: 0, top: exitTop, opacity: 0 }}
       transition={sideCardTransition}
     >
-      <div className="game-side-card__content">
+      <SideCardPulse iconPulse="scale">
         <RightCardIcon variant="timer" />
         <span className="game-side-card__label game-side-card__label--timer">4s</span>
-      </div>
+      </SideCardPulse>
     </motion.div>
   )
 }
@@ -258,9 +259,9 @@ function TimesDivPreCycleTraveler({
       exit={{ x: 0, top: exitTop, opacity: 0 }}
       transition={sideCardTransition}
     >
-      <div className="game-side-card__content">
+      <SideCardPulse iconPulse="glyph">
         <RightCardIcon variant="mult-div" />
-      </div>
+      </SideCardPulse>
     </motion.div>
   )
 }
@@ -284,10 +285,10 @@ function PlusPreCycleTraveler({
       exit={{ x: 0, top: exitTop, opacity: 0 }}
       transition={sideCardTransition}
     >
-      <div className="game-side-card__content">
+      <SideCardPulse iconPulse="up">
         <RightCardIcon variant="cap-up" />
         <span className="game-side-card__label game-side-card__label--cap-up">99</span>
-      </div>
+      </SideCardPulse>
     </motion.div>
   )
 }
@@ -311,10 +312,10 @@ function MinusPreCycleTraveler({
       exit={{ x: 0, top: exitTop, opacity: 0 }}
       transition={sideCardTransition}
     >
-      <div className="game-side-card__content">
+      <SideCardPulse iconPulse="down">
         <RightCardIcon variant="cap-down" />
         <span className="game-side-card__label game-side-card__label--cap-down">1</span>
-      </div>
+      </SideCardPulse>
     </motion.div>
   )
 }
