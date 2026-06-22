@@ -186,7 +186,7 @@ export function useBenchmark({
       totalDurationMs,
       totalAnswers,
       avgAnswerIntervalMs,
-      rhythmLevelReached: sessionRef.current.rhythmLevel,
+      rhythmLevelReached: session.rhythmLevel,
       phases: runtime.phaseTimings,
       frames,
       grades: computeBenchmarkGrades(frames, avgAnswerIntervalMs),
@@ -199,15 +199,10 @@ export function useBenchmark({
     runtimeRef.current = null
     frameSamplesRef.current = []
     setBenchmarkVirtualKeypadPress(null)
-  }, [])
-
-  const sessionRef = useRef(session)
-  useEffect(() => {
-    sessionRef.current = session
-  }, [session])
+  }, [session.rhythmLevel])
 
   const onStartBenchmark = useCallback(() => {
-    if (sessionRef.current.phase === 'playing') return
+    if (session.phase === 'playing') return
 
     benchmarkActiveRef.current = true
     setBenchmarkActive(true)
@@ -216,7 +211,7 @@ export function useBenchmark({
     frameSamplesRef.current = []
     keyPressTokenRef.current = 0
     setSession(startGame())
-  }, [setSession])
+  }, [session.phase, setSession])
 
   const onInterruptBenchmark = useCallback(() => {
     if (!benchmarkActiveRef.current) return
@@ -235,7 +230,7 @@ export function useBenchmark({
   }, [])
 
   const runBenchmarkAutoCheck = useCallback(async () => {
-    const current = sessionRef.current
+    const current = session
     const runtime = runtimeRef.current
     if (
       !runtime ||
@@ -297,13 +292,14 @@ export function useBenchmark({
     onBenchmarkCorrectAnswer,
     pushVirtualKeyPress,
     registerCorrectAnswer,
+    session,
     setSession,
     spendAutoCheck,
   ])
 
   const runBenchmarkAnswer = useCallback(async () => {
     const runtime = runtimeRef.current
-    let current = sessionRef.current
+    let current = session
     if (
       !runtime ||
       current.phase !== 'playing' ||
@@ -347,7 +343,9 @@ export function useBenchmark({
       await waitMs(BENCHMARK_SUBMIT_PRESS_DELAY_MS)
       if (!benchmarkActiveRef.current) return
       pushVirtualKeyPress('enter')
-      let { session: next, result, autoCheckGranted } = submitAnswer(filledSession)
+      const submitResult = submitAnswer(filledSession)
+      let next = submitResult.session
+      const { result, autoCheckGranted } = submitResult
       if (runtime.phase === 'ritmo-l5') {
         next = clearAllSideCycles(next)
       }
@@ -388,6 +386,7 @@ export function useBenchmark({
     onBenchmarkCorrectAnswer,
     pushVirtualKeyPress,
     registerCorrectAnswer,
+    session,
     setSession,
   ])
 
