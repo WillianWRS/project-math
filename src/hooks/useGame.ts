@@ -19,7 +19,15 @@ import { usePlayer } from './usePlayer'
 import { useBenchmark } from './useBenchmark'
 import { ensureDailyFresh } from '../platform/daily-reset'
 import { isAnyGameChangerActive } from '../engine/game-changer-cycles'
-import { loadSoundEnabled, loadTopScores, saveSoundEnabled, saveTopScore, type ScoreRecord } from '../platform/storage'
+import {
+  loadDevModeEnabled,
+  loadSoundEnabled,
+  loadTopScores,
+  saveDevModeEnabled,
+  saveSoundEnabled,
+  saveTopScore,
+  type ScoreRecord,
+} from '../platform/storage'
 import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, preloadSfx, syncAmbient } from '../platform/audio-service'
 import { gameTimerStore } from '../platform/game-timer-store'
 import type { BenchmarkVirtualKey } from '../engine/benchmark-types'
@@ -38,6 +46,7 @@ export function useGame() {
   const [session, setSession] = useState<GameSession>(createInitialSession)
   const [topScores, setTopScores] = useState<ScoreRecord[]>(() => loadTopScores())
   const [soundEnabled, setSoundEnabled] = useState(() => loadSoundEnabled())
+  const [devModeEnabled, setDevModeEnabled] = useState(() => loadDevModeEnabled())
   const [lastGameRewards, setLastGameRewards] = useState<PostGameRewards>({
     xpGained: 0,
     coinsGained: 0,
@@ -354,10 +363,16 @@ export function useGame() {
     saveSoundEnabled(enabled)
   }, [])
 
+  const toggleDevMode = useCallback((enabled: boolean) => {
+    setDevModeEnabled(enabled)
+    saveDevModeEnabled(enabled)
+  }, [])
+
   return {
     session,
     topScores,
     soundEnabled,
+    devModeEnabled,
     backgroundTheme: player.equippedThemeId,
     player,
     lastGameRewards,
@@ -374,6 +389,7 @@ export function useGame() {
     onDeclineAutoCheckAtTimeout,
     onInputChange,
     toggleSound,
+    toggleDevMode,
     setBackgroundTheme: setEquippedTheme,
     grantAutoCheck,
     spendAutoCheck,

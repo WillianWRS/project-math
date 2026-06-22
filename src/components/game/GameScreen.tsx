@@ -11,6 +11,7 @@ import { SLIDE_TRANSITION } from '../../lib/motion-presets'
 import { isFourSecondsGameChangerActive, isMinusGameChangerActive, isPlusGameChangerActive, isTimesDivGameChangerActive } from '../../engine/game-changer-cycles'
 import { OPERATOR_COLOR_CLASS } from '../../engine/operation-generator'
 import { SUBMIT_LOCK_MS } from '../../engine/game-state-machine'
+import { RightSideCardCatalog, type RightCardVariant } from './side-card-types'
 import type { Operation } from '../../engine/types'
 import type { GameSession } from '../../engine/types'
 import { PlayerModal } from '../modals/PlayerModal'
@@ -41,6 +42,7 @@ interface GameScreenProps {
   benchmarkMetrics: BenchmarkMetrics | null
   benchmarkVirtualKeypadPress: { key: BenchmarkVirtualKey; token: number } | null
   soundEnabled: boolean
+  devModeEnabled: boolean
   backgroundTheme: BackgroundTheme
   onStart: () => void
   onStartBenchmarkSession: () => void
@@ -51,6 +53,7 @@ interface GameScreenProps {
   onDeclineAutoCheckAtTimeout: () => void
   onInputChange: (value: string) => void
   onSoundChange: (enabled: boolean) => void
+  onDevModeChange: (enabled: boolean) => void
   onBackgroundThemeChange: (theme: BackgroundTheme) => void
   onSaveDisplayName: (name: string) => void
   onWatchRewardedAd: () => Promise<'completed' | 'dismissed' | 'limit'>
@@ -62,7 +65,7 @@ interface GameScreenProps {
   onPlayGoToMenu: () => void
 }
 
-type PresentationPhase = 'menu' | 'opening' | 'in-game' | 'closing'
+type PresentationPhase = 'menu' | 'opening' | 'in-game' | 'theme-test' | 'closing'
 
 const slideTransition = SLIDE_TRANSITION
 const sceneEnterTransition = { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const }
@@ -219,6 +222,170 @@ function IconBack() {
   )
 }
 
+function IconCheckSmall() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M6 12.5l3.5 3.5L18 8"
+        stroke="currentColor"
+        strokeWidth="2.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function IconArrowUp() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 5l6 7H6l6-7z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function IconArrowDown() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 19l6-7H6l6 7z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function IconClock() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M12 8v4.5l3 1.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function RightCardIcon({ variant }: { variant: RightCardVariant }) {
+  const iconClass = `game-side-card__icon game-side-card__icon--${variant}`
+
+  if (variant === 'cap-up') {
+    return (
+      <span className={iconClass}>
+        <IconArrowUp />
+      </span>
+    )
+  }
+  if (variant === 'cap-down') {
+    return (
+      <span className={iconClass}>
+        <IconArrowDown />
+      </span>
+    )
+  }
+  if (variant === 'timer') {
+    return (
+      <span className={iconClass}>
+        <IconClock />
+      </span>
+    )
+  }
+  return <span className={`${iconClass} game-side-card__icon--glyph`}>×÷</span>
+}
+
+function ThemeTestSideLayout({
+  activeChanger,
+  autoCheckEnabled,
+  onToggleAutoCheck,
+  onToggleChanger,
+  onPlayClick,
+  children,
+}: {
+  activeChanger: RightCardVariant | null
+  autoCheckEnabled: boolean
+  onToggleAutoCheck: () => void
+  onToggleChanger: (variant: RightCardVariant) => void
+  onPlayClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <div className="game-play-row">
+      <div className="game-side-cards game-side-cards--left !pointer-events-auto">
+        {Array.from({ length: RightSideCardCatalog.cardCount }, (_, index) => (
+          <div key={`left-slot-${index}`} className="game-side-card-slot">
+            {index === 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onPlayClick()
+                  onToggleAutoCheck()
+                }}
+                className={`game-side-card game-side-card--legendary game-side-card--auto-cycle transition-all duration-150 hover:scale-[1.03] active:scale-[0.97] ${
+                  autoCheckEnabled ? '' : 'opacity-55 saturate-50'
+                }`}
+                aria-pressed={autoCheckEnabled}
+                aria-label={`Auto-check ${autoCheckEnabled ? 'ativado' : 'desativado'}`}
+              >
+                <span className="game-side-card__content">
+                  <span className="game-side-card__label game-side-card__label--legendary">AUTO</span>
+                  <span className="game-side-card__icon game-side-card__icon--legendary">
+                    <IconCheckSmall />
+                  </span>
+                </span>
+              </button>
+            ) : null}
+          </div>
+        ))}
+      </div>
+
+      <div className="game-play-row__center">{children}</div>
+
+      <div className="game-side-cards game-side-cards--right !pointer-events-auto">
+        {RightSideCardCatalog.cards.map((card) => {
+          const active = activeChanger === card.variant
+
+          return (
+            <div key={card.id} className="game-side-card-slot">
+              <button
+                type="button"
+                onClick={() => {
+                  onPlayClick()
+                  onToggleChanger(card.variant)
+                }}
+                className={`game-side-card ${card.styleClass} transition-transform duration-150 hover:scale-[1.03] active:scale-[0.97] ${
+                  active ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-charcoal' : ''
+                }`}
+                aria-pressed={active}
+                aria-label={`Alternar preview do game changer ${card.id}`}
+              >
+                <span className="game-side-card__content">
+                  <RightCardIcon variant={card.variant} />
+                  {card.label ? (
+                    <span className={`game-side-card__label ${card.labelClass ?? ''}`}>{card.label}</span>
+                  ) : null}
+                </span>
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function IconShare() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -353,6 +520,19 @@ function MenuBenchmarkButton({ onClick }: { onClick: () => void }) {
       className="game-btn-push game-btn-push-secondary flex items-center gap-2 rounded-xl bg-charcoal-elevated px-5 py-2.5 text-sm font-semibold tracking-wide text-stone-200 ring-1 ring-stone-700/50"
     >
       <span>Benchmark</span>
+    </button>
+  )
+}
+
+function MenuThemeTestButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Abrir teste de tema"
+      className="game-btn-push game-btn-push-secondary flex items-center gap-2 rounded-xl bg-charcoal-elevated px-5 py-2.5 text-sm font-semibold tracking-wide text-stone-200 ring-1 ring-stone-700/50"
+    >
+      <span>Theme Test</span>
     </button>
   )
 }
@@ -531,6 +711,7 @@ export function GameScreen({
   benchmarkMetrics,
   benchmarkVirtualKeypadPress,
   soundEnabled,
+  devModeEnabled,
   onStart,
   onStartBenchmarkSession,
   onReturnToMenu,
@@ -540,6 +721,7 @@ export function GameScreen({
   onDeclineAutoCheckAtTimeout,
   onInputChange,
   onSoundChange,
+  onDevModeChange,
   backgroundTheme,
   onBackgroundThemeChange,
   onSaveDisplayName,
@@ -560,7 +742,12 @@ export function GameScreen({
   const prevScoreRef = useRef(0)
   const answerFieldRef = useRef<HTMLDivElement>(null)
   const [sharing, setSharing] = useState(false)
-  const [pendingStartMode, setPendingStartMode] = useState<'play' | 'benchmark' | null>(null)
+  const [pendingStartMode, setPendingStartMode] = useState<'play' | 'benchmark' | 'theme-test' | null>(null)
+  const [themeTestScore, setThemeTestScore] = useState(0)
+  const [themeTestBurstFlash, setThemeTestBurstFlash] = useState<number | null>(null)
+  const [themeTestBurstToken, setThemeTestBurstToken] = useState(0)
+  const [themeTestChanger, setThemeTestChanger] = useState<RightCardVariant | null>(null)
+  const [themeTestAutoCheckEnabled, setThemeTestAutoCheckEnabled] = useState(true)
   const onStartRef = useRef(onStart)
   const onStartBenchmarkSessionRef = useRef(onStartBenchmarkSession)
 
@@ -574,6 +761,7 @@ export function GameScreen({
 
   const isPlaying = session.phase === 'playing'
   const isGameOver = session.phase === 'game_over'
+  const isThemeTestScene = presentation === 'theme-test'
   const anyModalOpen =
     playerOpen ||
     shopOpen ||
@@ -582,11 +770,16 @@ export function GameScreen({
     (session.awaitingAutoCheckChoice && isPlaying && !benchmarkMode)
   const playerLevel = xpToLevel(player.xp)
   const gameOverElapsedText = formatDuration(session.elapsedMs)
-  const fourSecondsActive = isFourSecondsGameChangerActive(session)
+  const liveFourSecondsActive = isFourSecondsGameChangerActive(session)
   const topScore = topScores[0] ?? null
-  const timesDivActive = isTimesDivGameChangerActive(session)
-  const plusActive = isPlusGameChangerActive(session)
-  const minusActive = isMinusGameChangerActive(session)
+  const liveTimesDivActive = isTimesDivGameChangerActive(session)
+  const livePlusActive = isPlusGameChangerActive(session)
+  const liveMinusActive = isMinusGameChangerActive(session)
+  const fourSecondsActive = isThemeTestScene ? themeTestChanger === 'timer' : liveFourSecondsActive
+  const timesDivActive = isThemeTestScene ? themeTestChanger === 'mult-div' : liveTimesDivActive
+  const plusActive = isThemeTestScene ? themeTestChanger === 'cap-up' : livePlusActive
+  const minusActive = isThemeTestScene ? themeTestChanger === 'cap-down' : liveMinusActive
+  const currentScore = isThemeTestScene ? themeTestScore : session.score
   const inputDisabled = !isPlaying || session.isSubmitLocked || benchmarkMode
 
   const appendDigit = useCallback(
@@ -603,7 +796,7 @@ export function GameScreen({
     onPlayEraseKey()
     onInputChange(session.inputValue.slice(0, -1))
   }, [inputDisabled, onInputChange, onPlayEraseKey, session.inputValue])
-  const showGameContent = presentation === 'opening' || presentation === 'in-game'
+  const showGameContent = presentation === 'opening' || presentation === 'in-game' || presentation === 'theme-test'
   const showMenuChrome = presentation === 'menu'
   const isInGameScene = presentation !== 'menu'
   const useWaterBackground = isInGameScene && backgroundTheme === 'water'
@@ -629,7 +822,7 @@ export function GameScreen({
           : useWaterBackground
             ? 'text-sky-700/45'
             : 'text-charcoal-muted'
-  const showCurtain = presentation !== 'in-game'
+  const showCurtain = presentation !== 'in-game' && presentation !== 'theme-test'
   const curtainOpen = presentation === 'opening'
   const curtainInitialOpen = presentation === 'closing'
 
@@ -660,6 +853,19 @@ export function GameScreen({
     setPresentation('opening')
   }
 
+  const handleThemeTest = () => {
+    if (presentation !== 'menu') return
+    setPendingStartMode('theme-test')
+    setThemeTestScore(0)
+    setThemeTestBurstFlash(null)
+    setThemeTestBurstToken(0)
+    setThemeTestChanger(null)
+    setThemeTestAutoCheckEnabled(true)
+    onPlayGameStart()
+    setSharing(false)
+    setPresentation('opening')
+  }
+
   const handleReturnToMenu = () => {
     if (!isInGameScene) return
     onPlayGoToMenu()
@@ -674,6 +880,49 @@ export function GameScreen({
     prevScoreRef.current = 0
     setSharing(false)
     onStart()
+  }
+
+  const handleThemeTestFieldClick = () => {
+    if (!isThemeTestScene) return
+    onPlayClick()
+    setThemeTestScore((previous) => {
+      const next = previous + 100
+      if (next >= 200) {
+        setThemeTestBurstFlash(5)
+        setThemeTestBurstToken((token) => token + 1)
+      }
+      return next
+    })
+  }
+
+  const handleThemeTestChangerToggle = (variant: RightCardVariant) => {
+    setThemeTestChanger((current) => (current === variant ? null : variant))
+  }
+
+  const handleThemeTestAutoCheckToggle = () => {
+    setThemeTestAutoCheckEnabled((current) => !current)
+  }
+
+  const handleThemeTestKeypadDigit = () => {
+    if (!isThemeTestScene) return
+    onPlayWriteKey()
+    // Theme Test não altera o input principal; apenas feedback visual/sonoro.
+  }
+
+  const handleThemeTestKeypadBackspace = () => {
+    if (!isThemeTestScene) return
+    onPlayEraseKey()
+  }
+
+  const handleThemeTestKeypadEnter = () => {
+    if (!isThemeTestScene) return
+    onPlayClick()
+  }
+
+  const handleThemeTestKeypadAuto = () => {
+    if (!isThemeTestScene) return
+    onPlayClick()
+    handleThemeTestAutoCheckToggle()
   }
 
   useEffect(() => {
@@ -706,11 +955,14 @@ export function GameScreen({
     const timeout = window.setTimeout(() => {
       if (mode === 'benchmark') {
         onStartBenchmarkSessionRef.current()
+        setPresentation('in-game')
+      } else if (mode === 'theme-test') {
+        setPresentation('theme-test')
       } else {
         onStartRef.current()
+        setPresentation('in-game')
       }
       setPendingStartMode(null)
-      setPresentation('in-game')
     }, ENTER_DURATION_MS)
 
     return () => window.clearTimeout(timeout)
@@ -725,6 +977,14 @@ export function GameScreen({
 
     return () => window.clearTimeout(timeout)
   }, [presentation])
+
+  useEffect(() => {
+    if (themeTestBurstFlash === null) return
+    const timeout = window.setTimeout(() => {
+      setThemeTestBurstFlash(null)
+    }, 1200)
+    return () => window.clearTimeout(timeout)
+  }, [themeTestBurstFlash])
 
   useEffect(() => {
     if (!session.isSubmitLocked || session.phase !== 'playing') return
@@ -764,6 +1024,19 @@ export function GameScreen({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [benchmarkMode, session.phase, session.isSubmitLocked, appendDigit, backspaceDigit, onConfirm])
 
+  const themeTestOperation: Operation = { operator: '+', operand: 7, result: 31 }
+  const currentPlayStackClass = fourSecondsActive
+    ? 'game-play-stack--four-seconds'
+    : timesDivActive
+      ? 'game-play-stack--times-div'
+      : plusActive
+        ? 'game-play-stack--plus-cycle'
+        : minusActive
+          ? 'game-play-stack--minus-cycle'
+          : useWaterBackground
+            ? 'game-play-stack--water'
+            : 'bg-charcoal-field'
+
   return (
     <div
       className={`relative flex min-h-dvh flex-col overflow-hidden text-white transition-colors duration-500 ${
@@ -796,20 +1069,24 @@ export function GameScreen({
             <div className="relative left-1/2 h-12 w-screen -translate-x-1/2">
               <div className="relative mx-auto h-full max-w-md px-4">
                 <p className="pointer-events-none absolute inset-x-0 top-0 text-center text-xs text-charcoal-muted">
-                  {isPlaying ? <ElapsedTimeLabel fallbackMs={session.elapsedMs} /> : gameOverElapsedText}
+                  {isThemeTestScene
+                    ? '00:00'
+                    : isPlaying
+                      ? <ElapsedTimeLabel fallbackMs={session.elapsedMs} />
+                      : gameOverElapsedText}
                 </p>
                 <div className="flex h-full items-end">
                   <div className="relative h-12 min-w-0 flex-1 overflow-hidden">
                     <AnimatePresence mode="sync" initial={false}>
                       <motion.p
-                        key={session.score}
+                        key={currentScore}
                         className="absolute left-0 font-mono text-4xl font-bold tabular-nums text-white"
                         initial={{ y: '100%', opacity: 0.5 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: '-100%', opacity: 0 }}
                         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                       >
-                        {session.score}
+                        {currentScore}
                       </motion.p>
                     </AnimatePresence>
                   </div>
@@ -855,60 +1132,41 @@ export function GameScreen({
           </header>
 
           <main className="mt-5 flex flex-1 flex-col items-center gap-4">
-            <PlayFieldsSideLayout
-              autoCheckCycleStep={session.autoCheckCycleStep}
-              fourSecondsCycleStep={session.fourSecondsCycleStep}
-              fourSecondsGameChangerRemaining={session.fourSecondsGameChangerRemaining}
-              timesDivCycleStep={session.timesDivCycleStep}
-              timesDivGameChangerRemaining={session.timesDivGameChangerRemaining}
-              plusCycleStep={session.plusCycleStep}
-              plusGameChangerActive={session.plusGameChangerActive}
-              minusCycleStep={session.minusCycleStep}
-              minusGameChangerActive={session.minusGameChangerActive}
-              answerFieldRef={answerFieldRef}
-            >
-              <PlayFieldsFrame
-                level={session.rhythmLevel}
-                levelUpFlash={session.rhythmLevelUpFlash}
-                burstScore={session.score}
-                waterLight={useWaterBackground}
-                borderActive={isPlaying}
+            {isThemeTestScene ? (
+              <ThemeTestSideLayout
+                activeChanger={themeTestChanger}
+                autoCheckEnabled={themeTestAutoCheckEnabled}
+                onToggleAutoCheck={handleThemeTestAutoCheckToggle}
+                onToggleChanger={handleThemeTestChangerToggle}
+                onPlayClick={onPlayClick}
               >
-                <div
-                  className={`game-play-stack w-full rounded-3xl ${
-                    fourSecondsActive
-                      ? 'game-play-stack--four-seconds'
-                      : timesDivActive
-                        ? 'game-play-stack--times-div'
-                        : plusActive
-                          ? 'game-play-stack--plus-cycle'
-                          : minusActive
-                            ? 'game-play-stack--minus-cycle'
-                            : useWaterBackground
-                              ? 'game-play-stack--water'
-                              : 'bg-charcoal-field'
-                  }`}
+                <PlayFieldsFrame
+                  level={5}
+                  levelUpFlash={themeTestBurstFlash}
+                  burstScore={themeTestBurstToken}
+                  waterLight={useWaterBackground}
+                  borderActive
                 >
-                  <div className="game-play-stack__divider border-b px-3 py-4 text-center">
-                    {isPlaying || isGameOver ? (
+                  <div className={`game-play-stack w-full rounded-3xl ${currentPlayStackClass}`}>
+                    <button
+                      type="button"
+                      onClick={handleThemeTestFieldClick}
+                      className="game-play-stack__divider block w-full border-b px-3 py-4 text-center"
+                    >
                       <SlideValue
-                        value={session.baseNumber}
+                        value={24}
                         slotClassName="h-14"
                         className={`text-5xl font-bold ${baseFieldClass}`}
                       />
-                    ) : (
-                      <p
-                        className={`font-mono text-5xl font-bold tabular-nums ${mutedFieldClass}`}
-                      >
-                        —
-                      </p>
-                    )}
-                  </div>
+                    </button>
 
-                  <div className="game-play-stack__divider border-b px-3 py-3 text-center">
-                    {session.operation && (isPlaying || isGameOver) ? (
+                    <button
+                      type="button"
+                      onClick={handleThemeTestFieldClick}
+                      className="game-play-stack__divider block w-full border-b px-3 py-3 text-center"
+                    >
                       <OperationValue
-                        operation={session.operation}
+                        operation={themeTestOperation}
                         slotClassName="h-10"
                         waterLight={useWaterBackground}
                         fourSecondsLight={fourSecondsActive}
@@ -916,33 +1174,128 @@ export function GameScreen({
                         plusLight={plusActive}
                         minusLight={minusActive}
                       />
-                    ) : (
-                      <p
-                        className={`font-mono text-3xl font-medium tabular-nums tracking-wide ${mutedFieldClass}`}
-                      >
-                        —
-                      </p>
-                    )}
-                  </div>
+                    </button>
 
-                  <AnswerDisplay
-                    value={session.inputValue}
-                    disabled={inputDisabled}
-                    shake={session.isSubmitLocked}
-                    shakeKey={shakeKey}
-                    answerFlash={session.answerFlash}
-                    answerFlashAuto={session.answerFlashAuto}
-                    flashKey={session.score}
-                    waterLight={useWaterBackground}
-                    fourSecondsLight={fourSecondsActive}
-                    timesDivLight={timesDivActive}
-                    plusLight={plusActive}
-                    minusLight={minusActive}
-                    slotRef={answerFieldRef}
-                  />
+                    <button type="button" onClick={handleThemeTestFieldClick} className="block w-full text-left">
+                      <AnswerDisplay
+                        value="31"
+                        disabled={false}
+                        shake={false}
+                        shakeKey={0}
+                        answerFlash={null}
+                        answerFlashAuto={false}
+                        flashKey={themeTestScore}
+                        waterLight={useWaterBackground}
+                        fourSecondsLight={fourSecondsActive}
+                        timesDivLight={timesDivActive}
+                        plusLight={plusActive}
+                        minusLight={minusActive}
+                      />
+                    </button>
+                  </div>
+                </PlayFieldsFrame>
+              </ThemeTestSideLayout>
+            ) : (
+              <PlayFieldsSideLayout
+                autoCheckCycleStep={session.autoCheckCycleStep}
+                fourSecondsCycleStep={session.fourSecondsCycleStep}
+                fourSecondsGameChangerRemaining={session.fourSecondsGameChangerRemaining}
+                timesDivCycleStep={session.timesDivCycleStep}
+                timesDivGameChangerRemaining={session.timesDivGameChangerRemaining}
+                plusCycleStep={session.plusCycleStep}
+                plusGameChangerActive={session.plusGameChangerActive}
+                minusCycleStep={session.minusCycleStep}
+                minusGameChangerActive={session.minusGameChangerActive}
+                answerFieldRef={answerFieldRef}
+              >
+                <PlayFieldsFrame
+                  level={session.rhythmLevel}
+                  levelUpFlash={session.rhythmLevelUpFlash}
+                  burstScore={session.score}
+                  waterLight={useWaterBackground}
+                  borderActive={isPlaying}
+                >
+                  <div className={`game-play-stack w-full rounded-3xl ${currentPlayStackClass}`}>
+                    <div className="game-play-stack__divider border-b px-3 py-4 text-center">
+                      {isPlaying || isGameOver ? (
+                        <SlideValue
+                          value={session.baseNumber}
+                          slotClassName="h-14"
+                          className={`text-5xl font-bold ${baseFieldClass}`}
+                        />
+                      ) : (
+                        <p
+                          className={`font-mono text-5xl font-bold tabular-nums ${mutedFieldClass}`}
+                        >
+                          —
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="game-play-stack__divider border-b px-3 py-3 text-center">
+                      {session.operation && (isPlaying || isGameOver) ? (
+                        <OperationValue
+                          operation={session.operation}
+                          slotClassName="h-10"
+                          waterLight={useWaterBackground}
+                          fourSecondsLight={fourSecondsActive}
+                          timesDivLight={timesDivActive}
+                          plusLight={plusActive}
+                          minusLight={minusActive}
+                        />
+                      ) : (
+                        <p
+                          className={`font-mono text-3xl font-medium tabular-nums tracking-wide ${mutedFieldClass}`}
+                        >
+                          —
+                        </p>
+                      )}
+                    </div>
+
+                    <AnswerDisplay
+                      value={session.inputValue}
+                      disabled={inputDisabled}
+                      shake={session.isSubmitLocked}
+                      shakeKey={shakeKey}
+                      answerFlash={session.answerFlash}
+                      answerFlashAuto={session.answerFlashAuto}
+                      flashKey={session.score}
+                      waterLight={useWaterBackground}
+                      fourSecondsLight={fourSecondsActive}
+                      timesDivLight={timesDivActive}
+                      plusLight={plusActive}
+                      minusLight={minusActive}
+                      slotRef={answerFieldRef}
+                    />
+                  </div>
+                </PlayFieldsFrame>
+              </PlayFieldsSideLayout>
+            )}
+
+            {isThemeTestScene && (
+              <div className="w-full max-w-xs space-y-3">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-charcoal-elevated">
+                  <div className="timer-bar-fill relative h-full w-full rounded-full">
+                    <div className="h-full w-full rounded-full bg-gradient-to-r from-neutral-600 via-neutral-400 to-neutral-200" />
+                  </div>
                 </div>
-              </PlayFieldsFrame>
-            </PlayFieldsSideLayout>
+                <NumericKeypad
+                  disabled={false}
+                  interactionLocked={false}
+                  backspaceDisabled={false}
+                  waterLight={useWaterBackground}
+                  autoCheckCharges={themeTestAutoCheckEnabled ? 1 : 0}
+                  virtualPress={null}
+                  onDigit={() => handleThemeTestKeypadDigit()}
+                  onBackspace={handleThemeTestKeypadBackspace}
+                  onAutoCorrect={handleThemeTestKeypadAuto}
+                  onEnter={handleThemeTestKeypadEnter}
+                />
+                <p className="text-center text-xs uppercase tracking-[0.18em] text-amber-300/80">
+                  Theme test: teclado clica sem alterar input principal
+                </p>
+              </div>
+            )}
 
             {isPlaying && (
               <>
@@ -1124,7 +1477,12 @@ export function GameScreen({
           <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
             <div className="pointer-events-auto flex flex-col items-center gap-3">
               <MenuPlayButton onClick={handlePlay} />
-              <MenuBenchmarkButton onClick={handleBenchmark} />
+              {devModeEnabled && (
+                <>
+                  <MenuBenchmarkButton onClick={handleBenchmark} />
+                  <MenuThemeTestButton onClick={handleThemeTest} />
+                </>
+              )}
             </div>
           </div>
 
@@ -1169,6 +1527,8 @@ export function GameScreen({
         onClose={() => setSettingsOpen(false)}
         soundEnabled={soundEnabled}
         onSoundChange={onSoundChange}
+        devModeEnabled={devModeEnabled}
+        onDevModeChange={onDevModeChange}
         backgroundTheme={backgroundTheme}
         ownedThemeIds={player.ownedThemeIds}
         onBackgroundThemeChange={onBackgroundThemeChange}

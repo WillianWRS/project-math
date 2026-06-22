@@ -1,6 +1,7 @@
 const TOP_SCORES_KEY = 'project-math-top-scores'
 const LEGACY_HIGH_SCORE_KEY = 'project-math-high-score'
 const SOUND_KEY = 'project-math-sound'
+const DEV_MODE_KEY = 'project-math-dev-mode'
 const BACKGROUND_THEME_KEY = 'project-math-background-theme'
 const PLAYER_KEY = 'project-math-player'
 
@@ -191,6 +192,20 @@ export function loadSoundEnabled(): boolean {
 
 export function saveSoundEnabled(enabled: boolean): void {
   localStorage.setItem(SOUND_KEY, String(enabled))
+}
+
+export function loadDevModeEnabled(): boolean {
+  try {
+    const raw = localStorage.getItem(DEV_MODE_KEY)
+    if (raw === null) return false
+    return raw === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function saveDevModeEnabled(enabled: boolean): void {
+  localStorage.setItem(DEV_MODE_KEY, String(enabled))
 }
 
 function parsePlayerData(value: unknown): PlayerData | null {

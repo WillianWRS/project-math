@@ -20,7 +20,9 @@ export interface BenchmarkFrameStats {
   samples: number
   avgFrameMs: number
   maxFrameMs: number
+  rawMaxFrameMs: number
   p95FrameMs: number
+  p99FrameMs: number
   jankFrames: number
   estimatedFps: number
 }

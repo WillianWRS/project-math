@@ -14,6 +14,7 @@ function App() {
       benchmarkMetrics={game.benchmarkMetrics}
       benchmarkVirtualKeypadPress={game.benchmarkVirtualKeypadPress}
       soundEnabled={game.soundEnabled}
+      devModeEnabled={game.devModeEnabled}
       backgroundTheme={game.backgroundTheme}
       onStart={game.onStart}
       onStartBenchmarkSession={game.onStartBenchmarkSession}
@@ -24,6 +25,7 @@ function App() {
       onDeclineAutoCheckAtTimeout={game.onDeclineAutoCheckAtTimeout}
       onInputChange={game.onInputChange}
       onSoundChange={game.toggleSound}
+      onDevModeChange={game.toggleDevMode}
       onBackgroundThemeChange={game.setBackgroundTheme}
       onSaveDisplayName={game.updateDisplayName}
       onWatchRewardedAd={game.watchSimulatedAd}
