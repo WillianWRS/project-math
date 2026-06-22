@@ -18,6 +18,7 @@ export function ShareCardTemplate({ playerName, level, score, durationText }: Sh
         opacity: 0,
         visibility: 'hidden',
         pointerEvents: 'none',
+        contentVisibility: 'auto',
         zIndex: -1,
         backgroundColor: '#141210',
         background: 'linear-gradient(180deg, #1f1b18 0%, #141210 100%)',

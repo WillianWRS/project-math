@@ -1,25 +1,34 @@
-import { AnimatePresence, motion } from 'motion/react'
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
+import { AnimatePresence, motion } from '../../lib/motion'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { ForwardLinesBackground } from './ForwardLinesBackground'
 import { NumericKeypad } from './NumericKeypad'
 import { PlayFieldsSideLayout } from './SideCardRails'
+import { ElapsedTimeLabel, PlayingTimerBar } from './GameTimerDisplay'
 import { isFourSecondsGameChangerActive, isMinusGameChangerActive, isPlusGameChangerActive, isTimesDivGameChangerActive } from '../../engine/game-changer-cycles'
-import { useMobileLayout } from '../../hooks/useMobileLayout'
 import { OPERATOR_COLOR_CLASS } from '../../engine/operation-generator'
 import { SUBMIT_LOCK_MS } from '../../engine/game-state-machine'
 import type { Operation } from '../../engine/types'
 import type { GameSession } from '../../engine/types'
-import { SettingsModal } from '../modals/SettingsModal'
-import { PlayerModal } from '../modals/PlayerModal'
-import { ShopModal } from '../modals/ShopModal'
-import { RewardedAutoCheckModal } from '../modals/RewardedAutoCheckModal'
-import { AutoCheckTimeoutModal } from '../modals/AutoCheckTimeoutModal'
 import { ShareCardTemplate } from '../share/ShareCardTemplate'
 import { shareScoreCardFromElement } from '../../utils/share-score-card'
 import { xpToLevel } from '../../engine/player-level'
 import { formatDuration } from '../../engine/rewards'
 import type { BackgroundTheme, PlayerData, ScoreRecord } from '../../platform/storage'
 import type { PostGameRewards } from '../../hooks/useGame'
+
+const PlayerModal = lazy(() =>
+  import('../modals/PlayerModal').then((m) => ({ default: m.PlayerModal })),
+)
+const ShopModal = lazy(() => import('../modals/ShopModal').then((m) => ({ default: m.ShopModal })))
+const RewardedAutoCheckModal = lazy(() =>
+  import('../modals/RewardedAutoCheckModal').then((m) => ({ default: m.RewardedAutoCheckModal })),
+)
+const AutoCheckTimeoutModal = lazy(() =>
+  import('../modals/AutoCheckTimeoutModal').then((m) => ({ default: m.AutoCheckTimeoutModal })),
+)
+const SettingsModal = lazy(() =>
+  import('../modals/SettingsModal').then((m) => ({ default: m.SettingsModal })),
+)
 
 interface GameScreenProps {
   session: GameSession
@@ -50,10 +59,9 @@ interface GameScreenProps {
 type PresentationPhase = 'menu' | 'opening' | 'in-game' | 'closing'
 
 const slideTransition = { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const }
-const curtainTransition = { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const }
-const contentEnterTransition = { duration: 0.42, ease: [0.22, 1, 0.36, 1] as const }
-const curtainDurationMs = curtainTransition.duration * 1000
-const contentEnterDurationMs = contentEnterTransition.duration * 1000
+const sceneEnterTransition = { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const }
+const ENTER_DURATION_MS = 340
+const CLOSE_DURATION_MS = 420
 
 function SlideValue({
   value,
@@ -572,51 +580,6 @@ function PlayFieldsFrame({
   )
 }
 
-function TimerBar({
-  timerMs,
-  timerMaxMs,
-}: {
-  timerMs: number
-  timerMaxMs: number
-}) {
-  const ratio = timerMaxMs > 0 ? Math.max(0, timerMs / timerMaxMs) : 0
-  const urgent = ratio < 0.25
-  const showSpark = ratio > 0.015
-
-  return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-charcoal-elevated">
-      <div
-        className="timer-bar-fill relative h-full rounded-full transition-[width] duration-100 ease-linear"
-        style={{ width: `${ratio * 100}%` }}
-      >
-        <div
-          className={`h-full w-full rounded-full ${
-            urgent
-              ? 'bg-gradient-to-r from-rose-700 via-rose-500 to-rose-300'
-              : 'bg-gradient-to-r from-neutral-600 via-neutral-400 to-neutral-200'
-          }`}
-        />
-        {showSpark && (
-          <>
-            <span
-              className={`timer-spark-trail pointer-events-none absolute right-1 top-0 h-full w-5 bg-gradient-to-l to-transparent ${
-                urgent ? 'from-rose-200/70' : 'from-white/45'
-              }`}
-              aria-hidden
-            />
-            <span
-              className={`pointer-events-none absolute right-0 top-1/2 z-10 h-2 w-2 rounded-full ${
-                urgent ? 'timer-spark-urgent bg-rose-50' : 'timer-spark bg-white'
-              }`}
-              aria-hidden
-            />
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
 export function GameScreen({
   session,
   topScores,
@@ -648,9 +611,6 @@ export function GameScreen({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [shakeKey, setShakeKey] = useState(0)
   const [presentation, setPresentation] = useState<PresentationPhase>('menu')
-  const isMobile = useMobileLayout()
-  const enterDurationMs = isMobile ? 340 : contentEnterDurationMs
-  const closeDurationMs = isMobile ? 420 : curtainDurationMs
   const prevScoreRef = useRef(0)
   const answerFieldRef = useRef<HTMLDivElement>(null)
   const [sharing, setSharing] = useState(false)
@@ -658,7 +618,7 @@ export function GameScreen({
   const isPlaying = session.phase === 'playing'
   const isGameOver = session.phase === 'game_over'
   const playerLevel = xpToLevel(player.xp)
-  const elapsedText = formatDuration(session.elapsedMs)
+  const gameOverElapsedText = formatDuration(session.elapsedMs)
   const fourSecondsActive = isFourSecondsGameChangerActive(session)
   const topScore = topScores[0] ?? null
   const timesDivActive = isTimesDivGameChangerActive(session)
@@ -753,20 +713,20 @@ export function GameScreen({
         onStart()
         return 'in-game'
       })
-    }, enterDurationMs)
+    }, ENTER_DURATION_MS)
 
     return () => window.clearTimeout(timeout)
-  }, [presentation, onStart, enterDurationMs])
+  }, [presentation, onStart])
 
   useEffect(() => {
     if (presentation !== 'closing') return
 
     const timeout = window.setTimeout(() => {
       setPresentation((current) => (current === 'closing' ? 'menu' : current))
-    }, closeDurationMs)
+    }, CLOSE_DURATION_MS)
 
     return () => window.clearTimeout(timeout)
-  }, [presentation, closeDurationMs])
+  }, [presentation])
 
   useEffect(() => {
     if (!session.isSubmitLocked || session.phase !== 'playing') return
@@ -827,11 +787,7 @@ export function GameScreen({
           className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
           initial={{ x: '100%' }}
           animate={{ x: 0 }}
-          transition={
-            isMobile
-              ? { duration: 0.34, ease: [0.22, 1, 0.36, 1] }
-              : contentEnterTransition
-          }
+          transition={sceneEnterTransition}
           style={{ willChange: presentation === 'opening' ? 'transform' : 'auto' }}
         >
           <header className={useWaterBackground ? 'game-scene-header--water' : undefined}>
@@ -844,7 +800,7 @@ export function GameScreen({
             <div className="relative left-1/2 h-12 w-screen -translate-x-1/2">
               <div className="relative mx-auto h-full max-w-md px-4">
                 <p className="pointer-events-none absolute inset-x-0 top-0 text-center text-xs text-charcoal-muted">
-                  {elapsedText}
+                  {isPlaying ? <ElapsedTimeLabel fallbackMs={session.elapsedMs} /> : gameOverElapsedText}
                 </p>
                 <div className="flex h-full items-end">
                   <div className="relative h-12 min-w-0 flex-1 overflow-hidden">
@@ -995,7 +951,7 @@ export function GameScreen({
             {isPlaying && (
               <>
                 <div className="w-full max-w-xs">
-                  <TimerBar timerMs={session.timerMs} timerMaxMs={session.timerMaxMs} />
+                  <PlayingTimerBar timerMaxMs={session.timerMaxMs} />
                 </div>
                 <NumericKeypad
                   disabled={inputDisabled}
@@ -1036,7 +992,7 @@ export function GameScreen({
                     {session.score} pontos
                   </p>
                   <p className={`mt-1 text-xs ${useWaterBackground ? '' : 'text-charcoal-muted'}`}>
-                    Tempo: {elapsedText}
+                    Tempo: {gameOverElapsedText}
                   </p>
                   <p className="mt-1 text-xs">
                     <span className="game-over-reward-xp">+{lastGameRewards.xpGained} XP</span>
@@ -1138,47 +1094,49 @@ export function GameScreen({
         </>
       )}
 
-      <PlayerModal
-        open={playerOpen}
-        onClose={() => setPlayerOpen(false)}
-        player={player}
-        topScores={topScores}
-        onSaveName={onSaveDisplayName}
-        onOpenRewardedModal={() => {
-          setPlayerOpen(false)
-          setRewardedOpen(true)
-        }}
-      />
-      <ShopModal open={shopOpen} onClose={() => setShopOpen(false)} player={player} />
-      <RewardedAutoCheckModal
-        open={rewardedOpen}
-        onClose={() => setRewardedOpen(false)}
-        watchedToday={rewardedAdsWatched}
-        onWatchAd={onWatchRewardedAd}
-      />
-      <AutoCheckTimeoutModal
-        open={session.awaitingAutoCheckChoice && session.phase === 'playing'}
-        walletAutoChecks={player.walletAutoChecks}
-        onUse={onUseAutoCheckAtTimeout}
-        onDecline={onDeclineAutoCheckAtTimeout}
-      />
+      <Suspense fallback={null}>
+        <PlayerModal
+          open={playerOpen}
+          onClose={() => setPlayerOpen(false)}
+          player={player}
+          topScores={topScores}
+          onSaveName={onSaveDisplayName}
+          onOpenRewardedModal={() => {
+            setPlayerOpen(false)
+            setRewardedOpen(true)
+          }}
+        />
+        <ShopModal open={shopOpen} onClose={() => setShopOpen(false)} player={player} />
+        <RewardedAutoCheckModal
+          open={rewardedOpen}
+          onClose={() => setRewardedOpen(false)}
+          watchedToday={rewardedAdsWatched}
+          onWatchAd={onWatchRewardedAd}
+        />
+        <AutoCheckTimeoutModal
+          open={session.awaitingAutoCheckChoice && session.phase === 'playing'}
+          walletAutoChecks={player.walletAutoChecks}
+          onUse={onUseAutoCheckAtTimeout}
+          onDecline={onDeclineAutoCheckAtTimeout}
+        />
+        <SettingsModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          soundEnabled={soundEnabled}
+          onSoundChange={onSoundChange}
+          backgroundTheme={backgroundTheme}
+          ownedThemeIds={player.ownedThemeIds}
+          onBackgroundThemeChange={onBackgroundThemeChange}
+        />
+      </Suspense>
       {isGameOver && (
         <ShareCardTemplate
           playerName={player.displayName}
           level={playerLevel}
           score={session.score}
-          durationText={elapsedText}
+          durationText={gameOverElapsedText}
         />
       )}
-      <SettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        soundEnabled={soundEnabled}
-        onSoundChange={onSoundChange}
-        backgroundTheme={backgroundTheme}
-        ownedThemeIds={player.ownedThemeIds}
-        onBackgroundThemeChange={onBackgroundThemeChange}
-      />
     </div>
   )
 }

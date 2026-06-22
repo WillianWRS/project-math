@@ -1,7 +1,6 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { rhythmBackgroundScrollDuration } from '../../engine/level-system'
 import { FORWARD_LINES } from './forward-lines-config'
-import { useMobileLayout } from '../../hooks/useMobileLayout'
 
 interface ForwardLinesBackgroundProps {
   active: boolean
@@ -11,7 +10,6 @@ interface ForwardLinesBackgroundProps {
 }
 
 const LINE_SPEED_BOOST = 2.8
-const MOBILE_LINE_COUNT = 10
 
 export const ForwardLinesBackground = memo(function ForwardLinesBackground({
   active,
@@ -19,18 +17,13 @@ export const ForwardLinesBackground = memo(function ForwardLinesBackground({
   speedMultiplier = 1,
   theme = 'default',
 }: ForwardLinesBackgroundProps) {
-  const isMobile = useMobileLayout()
   const speedFactor =
     (48 / rhythmBackgroundScrollDuration(rhythmLevel)) * LINE_SPEED_BOOST * speedMultiplier
-  const lines = useMemo(
-    () => (isMobile ? FORWARD_LINES.slice(0, MOBILE_LINE_COUNT) : FORWARD_LINES),
-    [isMobile],
-  )
   const lineClass = theme === 'water' ? 'forward-line forward-line--water' : 'forward-line'
 
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
-      {lines.map((line) => (
+      {FORWARD_LINES.map((line) => (
         <span
           key={line.id}
           className={`absolute top-0 w-px rounded-full ${lineClass}`}

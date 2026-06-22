@@ -1,9 +1,8 @@
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion } from '../../lib/motion'
 import { memo, useCallback, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import {
   RightSideCardCatalog,
   type RightCardVariant,
-  type RightSideCardDefinition,
 } from './side-card-types'
 
 const SIDE_CARD_COUNT = RightSideCardCatalog.cardCount
@@ -155,7 +154,9 @@ function useSideSlotTops(sideCount: number) {
 
   const scheduleMeasure = useCallback(() => {
     cancelAnimationFrame(measureRafRef.current)
-    measureRafRef.current = requestAnimationFrame(measure)
+    measureRafRef.current = requestAnimationFrame(() => {
+      measureRafRef.current = requestAnimationFrame(measure)
+    })
   }, [measure])
 
   useLayoutEffect(() => {
@@ -451,19 +452,6 @@ function LeftAutoCheckColumn({
   )
 }
 
-function SideCard({ card, hidden = false }: { card: RightSideCardDefinition; hidden?: boolean }) {
-  return (
-    <div className={`game-side-card ${card.styleClass}${hidden ? ' game-side-card--slot-anchor' : ''}`}>
-      <div className="game-side-card__content">
-        <RightCardIcon variant={card.variant} />
-        {card.label && card.labelClass && (
-          <span className={`game-side-card__label ${card.labelClass}`}>{card.label}</span>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function RightSideCardColumn({
   fourSecondsCycleStep,
   timesDivCycleStep,
@@ -488,9 +476,7 @@ function RightSideCardColumn({
       aria-hidden
     >
       {RightSideCardCatalog.cards.map((card, index) => (
-        <div key={card.id} ref={setSlotRef(index)} className="game-side-card-slot">
-          <SideCard card={card} hidden />
-        </div>
+        <div key={card.id} ref={setSlotRef(index)} className="game-side-card-slot" />
       ))}
 
       <AnimatePresence initial={false}>

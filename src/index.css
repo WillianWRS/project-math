@@ -165,26 +165,15 @@ body {
   min-height: 0;
 }
 
-.game-side-card--slot-anchor {
-  visibility: hidden;
-}
-
-@media (max-width: 768px), (hover: none) and (pointer: coarse) {
-  .game-side-card--slot-anchor,
-  .game-side-card--slot-anchor * {
-    animation: none !important;
-  }
-
-  .timer-bar-fill {
-    will-change: width;
-  }
-}
-
 .game-side-card-slot {
   position: relative;
   display: flex;
   align-items: center;
   min-height: 0;
+}
+
+.timer-bar-fill {
+  will-change: width;
 }
 
 .game-side-cards--left .game-side-card-slot {
@@ -1832,6 +1821,7 @@ body {
 
 .curtain-panel-left .curtain-panel__seam {
   right: 0;
+  width: 4px;
   box-shadow:
     inset -1px 0 0 rgba(251, 191, 36, 0.12),
     4px 0 14px rgba(0, 0, 0, 0.5);
@@ -1839,6 +1829,7 @@ body {
 
 .curtain-panel-right .curtain-panel__seam {
   left: 0;
+  width: 4px;
   box-shadow:
     inset 1px 0 0 rgba(251, 191, 36, 0.12),
     -4px 0 14px rgba(0, 0, 0, 0.5);
@@ -1846,12 +1837,12 @@ body {
 
 .curtain-panel-left {
   left: 0;
-  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .curtain-panel-right {
   right: 0;
-  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .curtain-panel-left .curtain-panel__surface {
@@ -1882,13 +1873,33 @@ body {
   transform: translate3d(100%, 0, 0);
 }
 
-@media (max-width: 768px) {
-  .curtain-panel-left,
-  .curtain-panel-right {
-    transition-duration: 0.42s;
+@media (prefers-reduced-motion: reduce) {
+  .forward-line,
+  .game-water-layer::after,
+  .game-side-card--legendary,
+  .game-side-card--auto-cycle.game-side-card--legendary,
+  .game-side-card--auto-cycle.game-side-card--timer,
+  .game-side-card--cap-up,
+  .game-side-card--cap-down,
+  .game-side-card--timer,
+  .game-side-card--mult-div,
+  .game-side-card__icon--cap-up,
+  .game-side-card__icon--cap-down,
+  .game-side-card__icon--timer,
+  .game-side-card__icon--glyph,
+  .timer-spark,
+  .timer-spark-urgent,
+  .timer-spark-trail,
+  .settings-theme-card--selected-default,
+  .settings-theme-card--selected-water,
+  .game-play-stack-frame::before,
+  .game-play-stack-frame--level-up::before,
+  .game-play-stack-frame--level-up::after {
+    animation: none !important;
   }
 
-  .curtain-panel__seam {
-    width: 4px;
+  .curtain-panel-left,
+  .curtain-panel-right {
+    transition: none !important;
   }
 }

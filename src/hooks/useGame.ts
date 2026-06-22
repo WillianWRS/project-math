@@ -20,6 +20,7 @@ import { ensureDailyFresh } from '../platform/daily-reset'
 import { isAnyGameChangerActive } from '../engine/game-changer-cycles'
 import { loadSoundEnabled, loadTopScores, saveSoundEnabled, saveTopScore, type ScoreRecord } from '../platform/storage'
 import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, preloadSfx, syncAmbient } from '../platform/audio-service'
+import { gameTimerStore } from '../platform/game-timer-store'
 
 const TIMER_UI_PUBLISH_MS = 100
 const DAILY_GOAL_SCORE = 1000
@@ -74,6 +75,7 @@ export function useGame() {
   useEffect(() => {
     timerMsRef.current = session.timerMs
     elapsedMsRef.current = session.elapsedMs
+    gameTimerStore.sync(session.timerMs, session.elapsedMs)
   }, [session.phase, session.score, session.timerMs, session.elapsedMs, session.awaitingAutoCheckChoice])
 
   useEffect(() => {
@@ -105,18 +107,7 @@ export function useGame() {
 
       if (now - lastPublish >= TIMER_UI_PUBLISH_MS && !sessionRef.current.awaitingAutoCheckChoice) {
         lastPublish = now
-        const timerMs = timerMsRef.current
-        const elapsedMs = elapsedMsRef.current
-        setSession((current) => {
-          if (current.phase !== 'playing') return current
-          if (
-            Math.abs(current.timerMs - timerMs) < 1 &&
-            Math.abs(current.elapsedMs - elapsedMs) < 1
-          ) {
-            return current
-          }
-          return { ...current, timerMs, elapsedMs }
-        })
+        gameTimerStore.set(timerMsRef.current, elapsedMsRef.current)
       }
 
       frameId = requestAnimationFrame(loop)

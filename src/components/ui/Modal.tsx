@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion } from '../../lib/motion'
 import type { ReactNode } from 'react'
 
 interface ModalProps {

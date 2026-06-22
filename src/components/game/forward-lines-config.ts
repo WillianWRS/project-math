@@ -18,4 +18,4 @@ function createForwardLines(count: number): ForwardLine[] {
   }))
 }
 
-export const FORWARD_LINES = createForwardLines(40)
+export const FORWARD_LINES = createForwardLines(10)

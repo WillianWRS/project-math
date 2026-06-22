@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion } from '../../lib/motion'
 import { memo } from 'react'
 import { DEBUG_AUTO_CHECK_ALWAYS_ENABLED } from '../../engine/game-state-machine'
 
@@ -109,7 +109,6 @@ function AutoCheckButton({
     <motion.button
       type="button"
       disabled={disabled || !enabled}
-      layout
       variants={keypadReveal.key}
       className={`game-numeric-keypad__key game-numeric-keypad__key--auto${
         enabled ? ' game-numeric-keypad__key--debug' : ''
