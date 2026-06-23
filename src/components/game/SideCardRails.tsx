@@ -157,21 +157,17 @@ function useSideSlotTops(sideCount: number) {
 
   const scheduleMeasure = useCallback(() => {
     cancelAnimationFrame(measureRafRef.current)
-    measureRafRef.current = requestAnimationFrame(() => {
-      measureRafRef.current = requestAnimationFrame(measure)
-    })
+    measureRafRef.current = requestAnimationFrame(measure)
   }, [measure])
 
   useLayoutEffect(() => {
     scheduleMeasure()
-
-    const playRow = playRowRef.current
-    const observer = new ResizeObserver(scheduleMeasure)
-    if (playRow) observer.observe(playRow)
+    const onResize = () => scheduleMeasure()
+    window.addEventListener('resize', onResize, { passive: true })
 
     return () => {
       cancelAnimationFrame(measureRafRef.current)
-      observer.disconnect()
+      window.removeEventListener('resize', onResize)
     }
   }, [scheduleMeasure])
 
@@ -200,9 +196,9 @@ function AutoCheckCycleTraveler({
     <motion.div
       key="auto-check-cycle-traveler"
       className="game-side-card game-side-card--legendary game-side-card--auto-cycle game-side-auto-cycle-traveler"
-      initial={{ x: AUTO_CYCLE_ENTER_OFFSET_X, top: slotTops[0], opacity: 0 }}
-      animate={{ x: 0, top, opacity: 1 }}
-      exit={{ x: 0, top: exitTop, opacity: 0 }}
+      initial={{ x: AUTO_CYCLE_ENTER_OFFSET_X, y: slotTops[0], opacity: 0 }}
+      animate={{ x: 0, y: top, opacity: 1 }}
+      exit={{ x: 0, y: exitTop, opacity: 0 }}
       transition={sideCardTransition}
     >
       <SideCardPulse iconPulse="scale">
@@ -229,9 +225,9 @@ function FourSecondsPreCycleTraveler({
     <motion.div
       key="four-seconds-pre-cycle-traveler"
       className="game-side-card game-side-card--timer game-side-card--auto-cycle game-side-auto-cycle-traveler game-side-auto-cycle-traveler--right"
-      initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, top: slotTops[0], opacity: 0 }}
-      animate={{ x: 0, top, opacity: 1 }}
-      exit={{ x: 0, top: exitTop, opacity: 0 }}
+      initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, y: slotTops[0], opacity: 0 }}
+      animate={{ x: 0, y: top, opacity: 1 }}
+      exit={{ x: 0, y: exitTop, opacity: 0 }}
       transition={sideCardTransition}
     >
       <SideCardPulse iconPulse="scale">
@@ -256,9 +252,9 @@ function TimesDivPreCycleTraveler({
     <motion.div
       key="times-div-pre-cycle-traveler"
       className="game-side-card game-side-card--mult-div game-side-card--auto-cycle game-side-auto-cycle-traveler game-side-auto-cycle-traveler--right"
-      initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, top: slotTops[0], opacity: 0 }}
-      animate={{ x: 0, top, opacity: 1 }}
-      exit={{ x: 0, top: exitTop, opacity: 0 }}
+      initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, y: slotTops[0], opacity: 0 }}
+      animate={{ x: 0, y: top, opacity: 1 }}
+      exit={{ x: 0, y: exitTop, opacity: 0 }}
       transition={sideCardTransition}
     >
       <SideCardPulse iconPulse="glyph">
@@ -282,9 +278,9 @@ function PlusPreCycleTraveler({
     <motion.div
       key="plus-pre-cycle-traveler"
       className="game-side-card game-side-card--cap-up game-side-card--auto-cycle game-side-auto-cycle-traveler game-side-auto-cycle-traveler--right"
-      initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, top: slotTops[0], opacity: 0 }}
-      animate={{ x: 0, top, opacity: 1 }}
-      exit={{ x: 0, top: exitTop, opacity: 0 }}
+      initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, y: slotTops[0], opacity: 0 }}
+      animate={{ x: 0, y: top, opacity: 1 }}
+      exit={{ x: 0, y: exitTop, opacity: 0 }}
       transition={sideCardTransition}
     >
       <SideCardPulse iconPulse="up">
@@ -309,9 +305,9 @@ function MinusPreCycleTraveler({
     <motion.div
       key="minus-pre-cycle-traveler"
       className="game-side-card game-side-card--cap-down game-side-card--auto-cycle game-side-auto-cycle-traveler game-side-auto-cycle-traveler--right"
-      initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, top: slotTops[0], opacity: 0 }}
-      animate={{ x: 0, top, opacity: 1 }}
-      exit={{ x: 0, top: exitTop, opacity: 0 }}
+      initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, y: slotTops[0], opacity: 0 }}
+      animate={{ x: 0, y: top, opacity: 1 }}
+      exit={{ x: 0, y: exitTop, opacity: 0 }}
       transition={sideCardTransition}
     >
       <SideCardPulse iconPulse="down">
@@ -343,15 +339,16 @@ function RightCycleMergeTraveler({
   return (
     <motion.div
       className={`game-side-card ${styleClass} game-side-card--auto-cycle game-side-merge-traveler`}
+      style={{ left: keyframes.startLeft, top: keyframes.startTop }}
       initial={{
-        left: keyframes.startLeft,
-        top: keyframes.startTop,
+        x: 0,
+        y: 0,
         opacity: 1,
         scale: 1,
       }}
       animate={{
-        left: keyframes.targetLeft,
-        top: keyframes.targetTop,
+        x: keyframes.targetLeft - keyframes.startLeft,
+        y: keyframes.targetTop - keyframes.startTop,
         opacity: 0,
         scale: 0.72,
       }}
