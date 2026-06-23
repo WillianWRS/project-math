@@ -75,7 +75,6 @@ function PremiumKey({
   const buttonRef = useRef<HTMLButtonElement | null>(null)
   const rippleIdRef = useRef(0)
   const lastVirtualTokenRef = useRef<number | null>(null)
-  const [pointerPressed, setPointerPressed] = useState(false)
   const [ripples, setRipples] = useState<KeyRipple[]>([])
 
   const removeRipple = useCallback((id: number) => {
@@ -118,11 +117,12 @@ function PremiumKey({
       transition={virtualPressed ? { duration: 0.24, ease: [0.22, 1, 0.36, 1] } : undefined}
       className={`game-numeric-keypad__key${className ? ` ${className}` : ''}${
         virtualPressed ? ' game-numeric-keypad__key--virtual-press game-numeric-keypad__key--ghost-press' : ''
-      }${pointerPressed ? ' game-numeric-keypad__key--pointer-press' : ''}${
+      }${
         forceVisible ? ' game-numeric-keypad__key--force-visible' : ''
       }`}
       onPointerDown={(event) => {
         if (disabled) return
+        event.currentTarget.classList.add('game-numeric-keypad__key--pointer-press')
         const rect = event.currentTarget.getBoundingClientRect()
         spawnRipple(
           event.clientX - rect.left,
@@ -131,11 +131,10 @@ function PremiumKey({
           rect.height,
           false,
         )
-        setPointerPressed(true)
       }}
-      onPointerUp={() => setPointerPressed(false)}
-      onPointerLeave={() => setPointerPressed(false)}
-      onPointerCancel={() => setPointerPressed(false)}
+      onPointerUp={(event) => event.currentTarget.classList.remove('game-numeric-keypad__key--pointer-press')}
+      onPointerLeave={(event) => event.currentTarget.classList.remove('game-numeric-keypad__key--pointer-press')}
+      onPointerCancel={(event) => event.currentTarget.classList.remove('game-numeric-keypad__key--pointer-press')}
       onKeyDown={(event) => {
         if (disabled) return
         if (event.key === 'Enter' || event.key === ' ') {

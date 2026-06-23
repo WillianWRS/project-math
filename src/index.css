@@ -26,7 +26,12 @@ body {
 }
 
 .forward-line {
+  --forward-opacity: 0.1;
+  --forward-duration: 3s;
+  --forward-delay: 0s;
+
   transform: translateZ(0);
+  opacity: 0;
   background: rgba(214, 205, 190, 0.42);
   box-shadow: 0 0 5px rgba(214, 205, 190, 0.2);
 }
@@ -34,6 +39,19 @@ body {
 .forward-line--water {
   background: rgba(255, 255, 255, 0.42);
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
+}
+
+.forward-line--animated {
+  animation-name: forward-line-fall, forward-line-fade;
+  animation-duration: var(--forward-duration), var(--forward-duration);
+  animation-delay: var(--forward-delay), var(--forward-delay);
+  animation-timing-function: linear, linear;
+  animation-iteration-count: infinite, infinite;
+}
+
+.forward-line--idle {
+  transform: translate3d(0, -12px, 0);
+  opacity: 0;
 }
 
 .game-scene--water {
@@ -104,6 +122,10 @@ body {
     inset 0 0 0 1px rgba(255, 228, 230, 0.26),
     inset 0 0 34px rgba(251, 113, 133, 0.2),
     0 0 16px rgba(251, 113, 133, 0.3);
+}
+
+.game-scene-border-pulse--danger-animated {
+  animation: game-scene-danger-pulse 1.05s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
 .game-water-layer {
@@ -190,7 +212,12 @@ body {
 }
 
 .timer-bar-fill {
-  will-change: width;
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.timer-bar-shell--near-death {
+  animation: timer-bar-near-death 0.82s linear infinite;
 }
 
 .game-side-cards--left .game-side-card-slot {
@@ -610,7 +637,8 @@ body {
 }
 
 .timer-bar-fill {
-  will-change: width;
+  transform-origin: left center;
+  will-change: transform;
 }
 
 .game-btn-push {
@@ -1283,6 +1311,161 @@ body {
 .game-numeric-keypad__ripple--ghost {
   background:
     radial-gradient(circle, var(--key-ripple-ghost) 0%, rgba(255, 255, 255, 0.22) 48%, transparent 75%);
+}
+
+.timer-spark--urgent.timer-spark-trail {
+  animation: timer-spark-trail-urgent 0.45s ease-in-out infinite;
+}
+
+.timer-spark--urgent:not(.timer-spark-trail) {
+  animation: timer-spark-dot-urgent 0.45s ease-in-out infinite;
+}
+
+.timer-spark--near-death.timer-spark-trail {
+  animation: timer-spark-trail-near-death 0.82s linear infinite;
+}
+
+.timer-spark--near-death:not(.timer-spark-trail) {
+  animation: timer-spark-dot-near-death 0.82s linear infinite;
+}
+
+@keyframes forward-line-fall {
+  from {
+    transform: translate3d(0, -12px, 0);
+  }
+
+  to {
+    transform: translate3d(0, calc(100dvh + 24px), 0);
+  }
+}
+
+@keyframes forward-line-fade {
+  0% {
+    opacity: 0;
+  }
+
+  8% {
+    opacity: var(--forward-opacity);
+  }
+
+  92% {
+    opacity: var(--forward-opacity);
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes game-scene-danger-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes timer-bar-near-death {
+  0% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+
+  14% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+
+  26% {
+    transform: scale(0.992);
+    opacity: 0.95;
+  }
+
+  56% {
+    transform: scale(1.022);
+    opacity: 0.99;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+}
+
+@keyframes timer-spark-trail-urgent {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes timer-spark-dot-urgent {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: translate(50%, -50%) scale(0.85);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(50%, -50%) scale(1.2);
+  }
+}
+
+@keyframes timer-spark-trail-near-death {
+  0% {
+    opacity: 0.52;
+  }
+
+  14% {
+    opacity: 1;
+  }
+
+  26% {
+    opacity: 0.68;
+  }
+
+  56% {
+    opacity: 0.9;
+  }
+
+  100% {
+    opacity: 0.52;
+  }
+}
+
+@keyframes timer-spark-dot-near-death {
+  0% {
+    opacity: 0.75;
+    transform: translate(50%, -50%) scale(0.82);
+  }
+
+  14% {
+    opacity: 1;
+    transform: translate(50%, -50%) scale(1.34);
+  }
+
+  26% {
+    opacity: 0.84;
+    transform: translate(50%, -50%) scale(0.96);
+  }
+
+  56% {
+    opacity: 0.96;
+    transform: translate(50%, -50%) scale(1.2);
+  }
+
+  100% {
+    opacity: 0.75;
+    transform: translate(50%, -50%) scale(0.82);
+  }
 }
 
 .game-numeric-keypad__key:disabled:not(.game-numeric-keypad__key--placeholder) {

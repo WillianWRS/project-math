@@ -837,6 +837,15 @@ export function GameScreen({
   const [themeTestAutoCheckEnabled, setThemeTestAutoCheckEnabled] = useState(true)
   const onStartRef = useRef(onStart)
   const onStartBenchmarkSessionRef = useRef(onStartBenchmarkSession)
+  const onInputChangeRef = useRef(onInputChange)
+  const onConfirmRef = useRef(onConfirm)
+  const onPlayWriteKeyRef = useRef(onPlayWriteKey)
+  const onPlayEraseKeyRef = useRef(onPlayEraseKey)
+  const inputValueRef = useRef(session.inputValue)
+  const inputDisabledRef = useRef(false)
+  const benchmarkModeRef = useRef(benchmarkMode)
+  const phaseRef = useRef(session.phase)
+  const submitLockedRef = useRef(session.isSubmitLocked)
 
   useEffect(() => {
     onStartRef.current = onStart
@@ -845,6 +854,22 @@ export function GameScreen({
   useEffect(() => {
     onStartBenchmarkSessionRef.current = onStartBenchmarkSession
   }, [onStartBenchmarkSession])
+
+  useEffect(() => {
+    onInputChangeRef.current = onInputChange
+  }, [onInputChange])
+
+  useEffect(() => {
+    onConfirmRef.current = onConfirm
+  }, [onConfirm])
+
+  useEffect(() => {
+    onPlayWriteKeyRef.current = onPlayWriteKey
+  }, [onPlayWriteKey])
+
+  useEffect(() => {
+    onPlayEraseKeyRef.current = onPlayEraseKey
+  }, [onPlayEraseKey])
 
   const isPlaying = session.phase === 'playing'
   const isGameOver = session.phase === 'game_over'
@@ -869,20 +894,41 @@ export function GameScreen({
   const currentScore = isThemeTestScene ? themeTestScore : session.score
   const inputDisabled = !isPlaying || session.isSubmitLocked || benchmarkMode
 
+  useEffect(() => {
+    inputValueRef.current = session.inputValue
+  }, [session.inputValue])
+
+  useEffect(() => {
+    inputDisabledRef.current = inputDisabled
+  }, [inputDisabled])
+
+  useEffect(() => {
+    benchmarkModeRef.current = benchmarkMode
+  }, [benchmarkMode])
+
+  useEffect(() => {
+    phaseRef.current = session.phase
+    submitLockedRef.current = session.isSubmitLocked
+  }, [session.phase, session.isSubmitLocked])
+
   const appendDigit = useCallback(
     (digit: string) => {
       if (inputDisabled) return
       onPlayWriteKey()
-      onInputChange(`${session.inputValue}${digit}`)
+      const nextValue = `${inputValueRef.current}${digit}`
+      inputValueRef.current = nextValue
+      onInputChange(nextValue)
     },
-    [inputDisabled, onInputChange, onPlayWriteKey, session.inputValue],
+    [inputDisabled, onInputChange, onPlayWriteKey],
   )
 
   const backspaceDigit = useCallback(() => {
-    if (inputDisabled || session.inputValue.length === 0) return
+    if (inputDisabled || inputValueRef.current.length === 0) return
     onPlayEraseKey()
-    onInputChange(session.inputValue.slice(0, -1))
-  }, [inputDisabled, onInputChange, onPlayEraseKey, session.inputValue])
+    const nextValue = inputValueRef.current.slice(0, -1)
+    inputValueRef.current = nextValue
+    onInputChange(nextValue)
+  }, [inputDisabled, onInputChange, onPlayEraseKey])
   const showGameContent = presentation === 'opening' || presentation === 'in-game' || presentation === 'theme-test'
   const showMenuChrome = presentation === 'menu'
   const isInGameScene = presentation !== 'menu'
@@ -1092,26 +1138,34 @@ export function GameScreen({
   }, [session.phase, session.score])
 
   useEffect(() => {
-    if (benchmarkMode || session.phase !== 'playing' || session.isSubmitLocked) return
-
     const onKeyDown = (event: KeyboardEvent) => {
+      if (benchmarkModeRef.current || phaseRef.current !== 'playing' || submitLockedRef.current) return
+
       if (event.key >= '0' && event.key <= '9') {
+        if (inputDisabledRef.current) return
         event.preventDefault()
-        appendDigit(event.key)
+        const nextValue = `${inputValueRef.current}${event.key}`
+        inputValueRef.current = nextValue
+        onPlayWriteKeyRef.current()
+        onInputChangeRef.current(nextValue)
       }
       if (event.key === 'Enter') {
         event.preventDefault()
-        onConfirm()
+        onConfirmRef.current()
       }
       if (event.key === 'Backspace') {
+        if (inputDisabledRef.current || inputValueRef.current.length === 0) return
         event.preventDefault()
-        backspaceDigit()
+        const nextValue = inputValueRef.current.slice(0, -1)
+        inputValueRef.current = nextValue
+        onPlayEraseKeyRef.current()
+        onInputChangeRef.current(nextValue)
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [benchmarkMode, session.phase, session.isSubmitLocked, appendDigit, backspaceDigit, onConfirm])
+  }, [])
 
   const themeTestOperation: Operation = { operator: '+', operand: 7, result: 31 }
   const { timerMs: liveTimerMs } = useGameTimer()
@@ -1167,10 +1221,8 @@ export function GameScreen({
         )}
       </AnimatePresence>
       {timerDanger && (
-        <motion.div
-          className="game-scene-border-pulse game-scene-border-pulse--danger pointer-events-none absolute inset-0 z-[45]"
-          animate={{ opacity: [0.45, 1, 0.45] }}
-          transition={{ duration: 1.05, ease: [0.22, 1, 0.36, 1], repeat: Infinity }}
+        <div
+          className="game-scene-border-pulse game-scene-border-pulse--danger game-scene-border-pulse--danger-animated pointer-events-none absolute inset-0 z-[45]"
           aria-hidden
         />
       )}

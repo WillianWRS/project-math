@@ -5,7 +5,15 @@ import { MotionProvider } from './components/ui/MotionProvider'
 import './index.css'
 import App from './App.tsx'
 
-registerSW({ immediate: true })
+const registerPwaWorker = () => {
+  registerSW({ immediate: true })
+}
+
+if (typeof window.requestIdleCallback === 'function') {
+  window.requestIdleCallback(() => registerPwaWorker())
+} else {
+  window.addEventListener('load', registerPwaWorker, { once: true })
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
