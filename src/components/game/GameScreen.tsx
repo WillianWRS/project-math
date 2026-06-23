@@ -221,13 +221,12 @@ function IconPlay() {
 
 function IconBack() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="26" height="20" viewBox="0 0 28 24" fill="none" aria-hidden>
       <path
-        d="M15 6l-6 6 6 6"
+        d="M2 12L11 3v5h15v8h-15v5L2 12z"
         stroke="currentColor"
         strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        strokeLinejoin="miter"
       />
     </svg>
   )
@@ -592,7 +591,7 @@ function AnimatedGameMenuButton({
         className={`game-menu-hud-btn game-menu-hud-btn--inline${
           waterLight ? ' game-menu-hud-btn--water-light' : ''
         }`}
-        aria-label="Menu"
+        aria-label="Voltar ao menu"
       >
         <span className="game-menu-hud-btn__plate game-menu-hud-btn__plate--inline game-menu-hud-btn__plate--icon-only game-menu-hud-btn__plate--back-menu">
           <span className="game-menu-hud-btn__icon">
@@ -1438,76 +1437,80 @@ export function GameScreen({
               }
               transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="flex items-center justify-between">
-                <p className="text-xs uppercase tracking-widest text-charcoal-muted">Pontuação</p>
-                <span className="game-player-level-badge rounded-md bg-charcoal-elevated px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-200">
-                  Nível {playerLevel}
-                </span>
-              </div>
-              <div className="relative left-1/2 h-12 w-screen -translate-x-1/2">
-                <div className="relative mx-auto h-full max-w-md px-4">
-                  <p className="pointer-events-none absolute inset-x-0 top-0 text-center text-xs text-charcoal-muted">
-                    {isThemeTestScene
-                      ? '00:00'
-                      : isPlaying
-                        ? <ElapsedTimeLabel fallbackMs={session.elapsedMs} />
-                        : gameOverElapsedText}
-                  </p>
-                  <div className="flex h-full items-end">
-                    <div className="relative h-12 min-w-0 flex-1 overflow-hidden">
-                      <AnimatePresence mode="sync" initial={false}>
-                        <motion.p
-                          key={currentScore}
-                          className="absolute left-0 font-mono text-4xl font-bold tabular-nums text-white"
-                          initial={{ y: '100%', opacity: 0.5 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          exit={{ y: '-100%', opacity: 0 }}
-                          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                        >
-                          {currentScore}
-                        </motion.p>
-                      </AnimatePresence>
-                    </div>
+              <div className="game-scene-header-bar relative">
+                {isInGameScene ? (
+                  <div className="game-header-left-dock">
+                    <span className="game-player-level-badge rounded-md bg-charcoal-elevated px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-200">
+                      Nível {playerLevel}
+                    </span>
+                    <AnimatedGameMenuButton
+                      waterLight={useWaterBackground}
+                      onClick={handleReturnToMenu}
+                    />
                   </div>
+                ) : (
+                  <div aria-hidden />
+                )}
 
-                  {isInGameScene && (
-                    <div
-                      className={`game-header-menu-dock pointer-events-none absolute inset-y-0 right-4 flex${
-                        isGameOver ? ' game-header-menu-dock--game-over' : ' items-center'
-                      }`}
-                    >
-                      <AnimatedGameMenuButton
-                        waterLight={useWaterBackground}
-                        onClick={handleReturnToMenu}
-                      />
-                    </div>
-                  )}
-
-                  <AnimatePresence>
+                <div className="game-header-center-dock">
+                  <AnimatePresence mode="wait" initial={false}>
+                    {isPlaying && (
+                      <motion.p
+                        key="header-elapsed"
+                        className="game-header-center-dock__elapsed text-center font-mono text-sm font-medium tabular-nums text-charcoal-muted"
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                      >
+                        <ElapsedTimeLabel fallbackMs={session.elapsedMs} />
+                      </motion.p>
+                    )}
                     {isGameOver && !benchmarkMode && (
                       <motion.div
+                        key="header-play-again"
+                        className="game-header-center-dock__slot game-header-center-dock__slot--play"
                         initial={{ opacity: 0, scale: 0.92 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.92 }}
                         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                        className="game-over-actions game-over-actions--play pointer-events-none absolute inset-0 flex"
                       >
-                        <div className="game-over-actions__row game-over-actions__row--play">
-                          <MenuHudInlineButton
-                            label="Jogar novamente"
-                            variant="accent"
-                            onClick={handlePlayAgain}
-                            waterLight={useWaterBackground}
-                            fill
-                          >
-                            <span className="scale-75">
-                              <IconPlay />
-                            </span>
-                          </MenuHudInlineButton>
-                        </div>
+                        <MenuHudInlineButton
+                          label="Jogar novamente"
+                          variant="accent"
+                          onClick={handlePlayAgain}
+                          waterLight={useWaterBackground}
+                          fill
+                        >
+                          <span className="scale-75">
+                            <IconPlay />
+                          </span>
+                        </MenuHudInlineButton>
                       </motion.div>
                     )}
                   </AnimatePresence>
+                </div>
+
+                <div className="game-header-score-dock">
+                  {!isGameOver && (
+                    <>
+                      <p className="text-xs uppercase tracking-widest text-charcoal-muted">Pontuação</p>
+                      <div className="relative h-10 min-w-[4rem] overflow-hidden">
+                        <AnimatePresence mode="sync" initial={false}>
+                          <motion.p
+                            key={currentScore}
+                            className="absolute right-0 font-mono text-4xl font-bold tabular-nums text-white"
+                            initial={{ y: '100%', opacity: 0.5 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: '-100%', opacity: 0 }}
+                            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                          >
+                            {currentScore}
+                          </motion.p>
+                        </AnimatePresence>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -1955,7 +1958,7 @@ export function GameScreen({
             </footer>
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.4</span>
+              <span>v0.0.5</span>
             </div>
           </div>
         </>

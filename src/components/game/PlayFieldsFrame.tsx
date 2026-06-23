@@ -39,7 +39,7 @@ export function PlayFieldsFrame({
     <div className="game-play-stack-frame relative w-full max-w-[var(--game-main-column-width)]">
       {borderActive && (
         <div
-          className={`pointer-events-none absolute inset-0 z-[3] rounded-3xl border-2 ${ringMixClass}${
+          className={`game-play-frame-ring border-2 ${ringMixClass}${
             reduceMotion ? ' game-play-frame-ring--reduced' : ' game-play-frame-ring--animated'
           }${dangerGlow > 0 && !reduceMotion ? ' game-play-frame-ring--danger-animated' : ''}`}
           style={
@@ -59,7 +59,7 @@ export function PlayFieldsFrame({
         <>
           <motion.div
             key={`burst-ring-${burstScore}`}
-            className={`pointer-events-none absolute inset-0 z-[2] rounded-3xl border-2 ${ringMixClass}`}
+            className={`game-play-frame-ring game-play-frame-ring--burst border-2 ${ringMixClass}`}
             style={{ ['--danger-glow-intensity' as const]: String(dangerGlow) } as CSSProperties}
             initial={{ scale: 1, opacity: 0.95 }}
             animate={{ scale: playBurstScaleMax(burstLevel), opacity: 0 }}
@@ -68,7 +68,7 @@ export function PlayFieldsFrame({
           />
           <motion.div
             key={`burst-glow-${burstScore}`}
-            className="pointer-events-none absolute -inset-1 z-[1] rounded-[1.65rem] border-2 border-amber-400/60"
+            className="game-play-frame-ring game-play-frame-ring--burst-glow rounded-[1.65rem] border-2 border-amber-400/60"
             initial={{ scale: 0.96, opacity: 0.9 }}
             animate={{ scale: playRingScaleEnd(burstLevel), opacity: 0 }}
             transition={reduceMotion ? { duration: 0 } : LEVEL_UP_BURST_TRANSITION}

@@ -181,15 +181,16 @@ body {
   grid-template-columns: minmax(3.85rem, 1fr) var(--game-main-column-width) minmax(3.85rem, 1fr);
   align-items: stretch;
   column-gap: 0.65rem;
-  overflow: hidden;
+  overflow: visible;
   padding-bottom: 0.875rem;
 }
 
 .game-play-row__center {
   position: relative;
-  z-index: 2;
+  z-index: 8;
   width: 100%;
   min-width: 0;
+  overflow: visible;
 }
 
 .game-four-seconds-merge-traveler,
@@ -532,15 +533,78 @@ body {
 
 .game-header-menu-dock {
   z-index: 2;
+  pointer-events: auto;
 }
 
-.game-header-menu-dock--game-over {
-  align-items: flex-end;
+.game-scene-header-bar {
+  position: relative;
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) var(--game-main-column-width) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.65rem;
+  min-height: 4.75rem;
 }
 
-.game-over-actions--play {
-  align-items: flex-end;
+.game-header-left-dock {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  pointer-events: auto;
+  justify-self: start;
+  align-self: start;
+}
+
+.game-header-center-dock {
+  display: flex;
+  align-items: center;
   justify-content: center;
+  min-width: 0;
+  align-self: center;
+  pointer-events: auto;
+}
+
+.game-header-center-dock__elapsed {
+  width: 100%;
+  letter-spacing: 0.04em;
+}
+
+.game-header-center-dock__slot {
+  width: 100%;
+}
+
+.game-header-center-dock__slot--play .game-menu-hud-btn {
+  width: 100%;
+}
+
+.game-header-center-dock__slot--play .game-menu-hud-btn__plate--inline {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+}
+
+.game-scene-header--water .game-header-center-dock__elapsed {
+  color: #0c4a6e;
+}
+
+.game-header-center-dock .game-menu-hud-btn__inline-text {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  font-size: 0.52rem;
+}
+
+.game-header-score-dock {
+  display: flex;
+  min-height: 3.25rem;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-self: end;
+  align-self: start;
 }
 
 .game-over-actions__row .game-menu-hud-btn--fill .game-menu-hud-btn__inline-text {
@@ -1878,9 +1942,7 @@ body {
 
 .game-play-stack--timer-danger {
   --timer-danger-strength: 1;
-  box-shadow:
-    inset 0 2px 12px rgba(225, 29, 72, calc(0.16 * var(--timer-danger-strength))),
-    0 6px 16px rgba(225, 29, 72, calc(0.18 * var(--timer-danger-strength))) !important;
+  box-shadow: inset 0 2px 12px rgba(225, 29, 72, calc(0.16 * var(--timer-danger-strength)));
 }
 
 .game-play-stack--timer-danger .game-play-stack__divider {
@@ -1895,7 +1957,28 @@ body {
 /* Moldura pulsante dos 3 campos — animada via Motion (PlayFieldsFrame) */
 
 .game-play-stack-frame {
+  position: relative;
+  overflow: visible;
   min-height: calc(14.5rem + 3px);
+  border-radius: 1.5rem;
+}
+
+.game-play-frame-ring {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  border-radius: inherit;
+  box-sizing: border-box;
+}
+
+.game-play-frame-ring--burst {
+  z-index: 29;
+}
+
+.game-play-frame-ring--burst-glow {
+  z-index: 28;
+  inset: -0.3rem;
 }
 
 .game-play-controls {
@@ -1903,9 +1986,11 @@ body {
 }
 
 .game-play-stack {
+  position: relative;
+  z-index: 1;
   overflow: hidden;
   backface-visibility: hidden;
-  contain: layout paint;
+  border-radius: 1.5rem;
 }
 
 .game-play-frame-ring--reduced {
@@ -1916,6 +2001,7 @@ body {
 .game-play-frame-ring--animated {
   --play-frame-pulse-duration: 0.9s;
   --play-frame-pulse-scale: 1.01;
+  transform-origin: center;
   animation: game-play-frame-ring-pulse var(--play-frame-pulse-duration) ease-in-out infinite;
 }
 
@@ -1928,12 +2014,15 @@ body {
     var(--play-ring-base) calc((1 - var(--danger-glow-intensity)) * 100%),
     var(--play-ring-danger) calc(var(--danger-glow-intensity) * 100%)
   );
-  box-shadow: 0 0 16px
-    color-mix(
-      in srgb,
-      rgba(251, 191, 36, 0.28) calc((1 - var(--danger-glow-intensity)) * 100%),
-      rgba(251, 113, 133, 0.5) calc(var(--danger-glow-intensity) * 100%)
-    );
+  box-shadow:
+    0 0 16px
+      color-mix(
+        in srgb,
+        rgba(251, 191, 36, 0.28) calc((1 - var(--danger-glow-intensity)) * 100%),
+        rgba(251, 113, 133, 0.5) calc(var(--danger-glow-intensity) * 100%)
+      ),
+    0 6px 22px
+      rgba(225, 29, 72, calc(0.2 * var(--danger-glow-intensity)));
 }
 
 .game-play-frame-ring--danger-mix.game-play-frame-ring--water {
