@@ -12,6 +12,7 @@ const SIDE_CYCLE_BUTTON_SIZE = 40
 const AUTO_CYCLE_ENTER_OFFSET_X = -80
 const FOUR_SECONDS_ENTER_OFFSET_X = 80
 const SIDE_CYCLE_EXIT_OFFSET_Y = 20
+const ENABLE_SIDE_MERGE_TRAVELER = false
 
 interface SideCycleMergeKeyframes {
   startLeft: number
@@ -393,6 +394,8 @@ function useSideCycleMergeExit(
   const mergeFrameRef = useRef(0)
 
   useEffect(() => {
+    if (!ENABLE_SIDE_MERGE_TRAVELER) return
+
     const prevStep = prevStepRef.current
     prevStepRef.current = cycleStep
 
@@ -605,40 +608,42 @@ export const PlayFieldsSideLayout = memo(function PlayFieldsSideLayout({
         />
       </motion.div>
 
-      <AnimatePresence>
-        {fourSecondsMergeExit && (
-          <RightCycleMergeTraveler
-            key="four-seconds-merge-traveler"
-            variant="timer"
-            keyframes={fourSecondsMergeExit}
-            onComplete={clearFourSecondsMergeExit}
-          />
-        )}
-        {timesDivMergeExit && (
-          <RightCycleMergeTraveler
-            key="times-div-merge-traveler"
-            variant="mult-div"
-            keyframes={timesDivMergeExit}
-            onComplete={clearTimesDivMergeExit}
-          />
-        )}
-        {plusMergeExit && (
-          <RightCycleMergeTraveler
-            key="plus-merge-traveler"
-            variant="cap-up"
-            keyframes={plusMergeExit}
-            onComplete={clearPlusMergeExit}
-          />
-        )}
-        {minusMergeExit && (
-          <RightCycleMergeTraveler
-            key="minus-merge-traveler"
-            variant="cap-down"
-            keyframes={minusMergeExit}
-            onComplete={clearMinusMergeExit}
-          />
-        )}
-      </AnimatePresence>
+      {ENABLE_SIDE_MERGE_TRAVELER && (
+        <AnimatePresence>
+          {fourSecondsMergeExit && (
+            <RightCycleMergeTraveler
+              key="four-seconds-merge-traveler"
+              variant="timer"
+              keyframes={fourSecondsMergeExit}
+              onComplete={clearFourSecondsMergeExit}
+            />
+          )}
+          {timesDivMergeExit && (
+            <RightCycleMergeTraveler
+              key="times-div-merge-traveler"
+              variant="mult-div"
+              keyframes={timesDivMergeExit}
+              onComplete={clearTimesDivMergeExit}
+            />
+          )}
+          {plusMergeExit && (
+            <RightCycleMergeTraveler
+              key="plus-merge-traveler"
+              variant="cap-up"
+              keyframes={plusMergeExit}
+              onComplete={clearPlusMergeExit}
+            />
+          )}
+          {minusMergeExit && (
+            <RightCycleMergeTraveler
+              key="minus-merge-traveler"
+              variant="cap-down"
+              keyframes={minusMergeExit}
+              onComplete={clearMinusMergeExit}
+            />
+          )}
+        </AnimatePresence>
+      )}
     </div>
   )
 })

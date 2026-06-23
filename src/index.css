@@ -1152,8 +1152,8 @@ body {
     linear-gradient(155deg, rgba(255, 255, 255, 0.35) 0%, transparent 42%),
     linear-gradient(165deg, #ecfdf5 0%, #a7f3d0 42%, #6ee7b7 100%) !important;
   box-shadow:
-    inset 0 2px 12px rgba(5, 150, 105, 0.12),
-    0 8px 24px rgba(5, 150, 105, 0.18);
+    inset 0 2px 10px rgba(5, 150, 105, 0.1),
+    0 4px 12px rgba(5, 150, 105, 0.12);
 }
 
 .game-play-stack--plus-cycle .game-play-stack__divider {
@@ -1173,8 +1173,8 @@ body {
     linear-gradient(155deg, rgba(255, 255, 255, 0.28) 0%, transparent 42%),
     linear-gradient(165deg, #fff1f2 0%, #fecdd3 42%, #fda4af 100%) !important;
   box-shadow:
-    inset 0 2px 12px rgba(225, 29, 72, 0.12),
-    0 8px 24px rgba(225, 29, 72, 0.18);
+    inset 0 2px 10px rgba(225, 29, 72, 0.1),
+    0 4px 12px rgba(225, 29, 72, 0.12);
 }
 
 .game-play-stack--minus-cycle .game-play-stack__divider {
@@ -1191,8 +1191,8 @@ body {
 
 .game-play-stack--timer-danger {
   box-shadow:
-    inset 0 2px 14px rgba(225, 29, 72, 0.2),
-    0 10px 28px rgba(225, 29, 72, 0.28) !important;
+    inset 0 2px 12px rgba(225, 29, 72, 0.16),
+    0 6px 16px rgba(225, 29, 72, 0.18) !important;
 }
 
 .game-play-stack--timer-danger .game-play-stack__divider {
