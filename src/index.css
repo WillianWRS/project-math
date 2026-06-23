@@ -214,8 +214,20 @@ body {
 }
 
 .timer-bar-fill {
-  transform-origin: left center;
-  will-change: transform;
+  position: relative;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 9999px;
+  transition: width 0.1s linear;
+}
+
+.timer-bar-fill__gradient {
+  border-radius: inherit;
+}
+
+.timer-spark-dot {
+  transform: translate(50%, -50%);
 }
 
 .timer-bar-shell--near-death {
@@ -667,11 +679,6 @@ body {
     0 1px 0 0 var(--hud-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.75),
     inset 0 -5px 12px rgba(42, 122, 176, 0.12);
-}
-
-.timer-bar-fill {
-  transform-origin: left center;
-  will-change: transform;
 }
 
 .game-btn-push {

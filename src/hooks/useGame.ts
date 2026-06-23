@@ -13,7 +13,7 @@ import {
   tickTimer,
   unlockSubmit,
 } from '../engine/game-state-machine'
-import { scoreToCoins } from '../engine/rewards'
+import { PERFECT_ANSWER_COINS, scoreToCoins } from '../engine/rewards'
 import type { GameSession } from '../engine/types'
 import { usePlayer } from './usePlayer'
 import { useBenchmark } from './useBenchmark'
@@ -336,13 +336,17 @@ export function useGame() {
           liveTimerRatio >= PERFECT_ANSWER_RATIO
         ) {
           setPerfectAnswerToken((token) => token + 1)
+          commitPlayer((fresh) => ({
+            ...fresh,
+            coins: fresh.coins + PERFECT_ANSWER_COINS,
+          }))
         }
         playCorrectAnswerSfx(isAnyGameChangerActive(current), soundEnabledRef.current, fromAutoCheck)
       } else if (result === 'wrong') {
         playSfx('error', soundEnabledRef.current)
       }
     },
-    [grantAutoCheck, setSessionWithInputSync],
+    [commitPlayer, grantAutoCheck, setSessionWithInputSync],
   )
 
   const onConfirm = useCallback(() => {

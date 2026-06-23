@@ -1,3 +1,5 @@
+export const PERFECT_ANSWER_COINS = 30
+
 export function scoreToCoins(score: number): number {
   return Math.floor(Math.max(0, score) / 10)
 }

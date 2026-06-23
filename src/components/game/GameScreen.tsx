@@ -1709,7 +1709,7 @@ export function GameScreen({
             }}
             aria-hidden
           >
-            v0.0.2
+            v0.0.3
           </p>
           <div className="fixed inset-x-0 top-0 z-[60] flex items-start justify-between px-6 pt-[max(1rem,env(safe-area-inset-top))]">
             <motion.div {...menuStageItem(0.06, -14, -8)}>

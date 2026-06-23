@@ -32,7 +32,7 @@ function TimerSpark({ urgent, nearDeath }: { urgent: boolean; nearDeath: boolean
         aria-hidden
       />
       <span
-        className={`pointer-events-none absolute right-0 top-1/2 z-10 h-2 w-2 -translate-y-1/2 translate-x-1/2 rounded-full ${
+        className={`timer-spark-dot pointer-events-none absolute right-0 top-1/2 z-10 h-2 w-2 rounded-full ${
           urgent ? 'bg-rose-50' : 'bg-white'
         }${animationClass}`}
         style={{
@@ -73,11 +73,11 @@ export const PlayingTimerBar = memo(function PlayingTimerBar({
       }
     >
       <div
-        className="timer-bar-fill relative h-full rounded-full"
-        style={{ transform: `scaleX(${ratio})` }}
+        className="timer-bar-fill"
+        style={{ width: `${ratio * 100}%` }}
       >
         <div
-          className={`h-full w-full rounded-full ${
+          className={`timer-bar-fill__gradient h-full w-full ${
             urgent
               ? 'bg-gradient-to-r from-rose-700 via-rose-500 to-rose-300'
               : 'bg-gradient-to-r from-neutral-600 via-neutral-400 to-neutral-200'
