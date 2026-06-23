@@ -37,45 +37,59 @@ export function PlayStackWithChangerBg({
 
     if (prev === activeChangerTheme) return
 
-    if (reduceMotion) {
-      setOverlayTheme(activeChangerTheme)
-      setOverlayPhase(activeChangerTheme ? 'steady' : null)
-      return
-    }
-
     let enterTimeout = 0
     let exitTimeout = 0
+    let cancelled = false
 
-    if (!prev && activeChangerTheme) {
-      setOverlayTheme(activeChangerTheme)
-      setOverlayPhase('enter')
-      enterTimeout = window.setTimeout(() => setOverlayPhase('steady'), GAME_CHANGER_BURST_MS)
-      return () => window.clearTimeout(enterTimeout)
-    }
+    const frame = requestAnimationFrame(() => {
+      if (cancelled) return
 
-    if (prev && !activeChangerTheme) {
-      setOverlayPhase('exit')
-      exitTimeout = window.setTimeout(() => {
-        setOverlayTheme(null)
-        setOverlayPhase(null)
-      }, GAME_CHANGER_BURST_MS)
-      return () => window.clearTimeout(exitTimeout)
-    }
+      if (reduceMotion) {
+        setOverlayTheme(activeChangerTheme)
+        setOverlayPhase(activeChangerTheme ? 'steady' : null)
+        return
+      }
 
-    if (prev && activeChangerTheme) {
-      setOverlayPhase('exit')
-      exitTimeout = window.setTimeout(() => {
+      if (!prev && activeChangerTheme) {
         setOverlayTheme(activeChangerTheme)
         setOverlayPhase('enter')
-        enterTimeout = window.setTimeout(() => setOverlayPhase('steady'), GAME_CHANGER_BURST_MS)
-      }, GAME_CHANGER_BURST_MS)
-      return () => {
-        window.clearTimeout(exitTimeout)
-        window.clearTimeout(enterTimeout)
+        enterTimeout = window.setTimeout(() => {
+          if (!cancelled) setOverlayPhase('steady')
+        }, GAME_CHANGER_BURST_MS)
+        return
       }
-    }
 
-    return undefined
+      if (prev && !activeChangerTheme) {
+        setOverlayPhase('exit')
+        exitTimeout = window.setTimeout(() => {
+          if (!cancelled) {
+            setOverlayTheme(null)
+            setOverlayPhase(null)
+          }
+        }, GAME_CHANGER_BURST_MS)
+        return
+      }
+
+      if (prev && activeChangerTheme) {
+        setOverlayPhase('exit')
+        exitTimeout = window.setTimeout(() => {
+          if (!cancelled) {
+            setOverlayTheme(activeChangerTheme)
+            setOverlayPhase('enter')
+            enterTimeout = window.setTimeout(() => {
+              if (!cancelled) setOverlayPhase('steady')
+            }, GAME_CHANGER_BURST_MS)
+          }
+        }, GAME_CHANGER_BURST_MS)
+      }
+    })
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frame)
+      window.clearTimeout(enterTimeout)
+      window.clearTimeout(exitTimeout)
+    }
   }, [activeChangerTheme, reduceMotion])
 
   const stackChangerClass = activeChangerTheme ? CHANGER_STACK_CLASS[activeChangerTheme] : ''
