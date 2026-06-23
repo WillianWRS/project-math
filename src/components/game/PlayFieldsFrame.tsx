@@ -2,12 +2,9 @@ import { motion, useReducedMotion } from '../../lib/motion'
 import {
   LEVEL_UP_BURST_TRANSITION,
   playBurstScaleMax,
-  playPulseDuration,
-  playPulseScaleMax,
   playRingScaleEnd,
-  pulseRepeat,
 } from '../../lib/motion-presets'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
 interface PlayFieldsFrameProps {
   level: number
@@ -30,8 +27,9 @@ export function PlayFieldsFrame({
 }: PlayFieldsFrameProps) {
   const reduceMotion = useReducedMotion()
   const burstLevel = levelUpFlash ?? level
-  const pulseDuration = playPulseDuration(level)
-  const pulseScale = playPulseScaleMax(level)
+  const normalizedLevel = Math.min(Math.max(level, 1), 12)
+  const pulseDurationSeconds = Math.max(0.56, 1.08 - (normalizedLevel - 1) * 0.03)
+  const pulseScale = Math.min(1.0155, 1.006 + normalizedLevel * 0.0008)
   const ringClass = timerDanger
     ? 'border-rose-400/90 shadow-[0_0_22px_rgba(251,113,133,0.5)]'
     : waterLight
@@ -41,14 +39,18 @@ export function PlayFieldsFrame({
   return (
     <div className="game-play-stack-frame relative w-full max-w-[var(--game-main-column-width)]">
       {borderActive && (
-        <motion.div
-          className={`pointer-events-none absolute inset-0 z-[3] rounded-3xl border-2 ${ringClass}`}
-          animate={
+        <div
+          className={`pointer-events-none absolute inset-0 z-[3] rounded-3xl border-2 ${ringClass}${
+            reduceMotion ? ' game-play-frame-ring--reduced' : ' game-play-frame-ring--animated'
+          }`}
+          style={
             reduceMotion
-              ? { opacity: 0.75, scale: 1 }
-              : { opacity: [0.45, 0.95, 0.45], scale: [1, pulseScale, 1] }
+              ? undefined
+              : ({
+                  ['--play-frame-pulse-duration' as const]: `${pulseDurationSeconds}s`,
+                  ['--play-frame-pulse-scale' as const]: String(pulseScale),
+                } as CSSProperties)
           }
-          transition={reduceMotion ? undefined : pulseRepeat(pulseDuration)}
           aria-hidden
         />
       )}

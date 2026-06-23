@@ -40,6 +40,7 @@ const AutoCheckTimeoutModal = lazy(() =>
 
 interface GameScreenProps {
   session: GameSession
+  inputValue: string
   topScores: ScoreRecord[]
   player: PlayerData
   lastGameRewards: PostGameRewards
@@ -789,6 +790,7 @@ function AnswerDisplay({
 
 export function GameScreen({
   session,
+  inputValue,
   topScores,
   player,
   lastGameRewards,
@@ -841,7 +843,7 @@ export function GameScreen({
   const onConfirmRef = useRef(onConfirm)
   const onPlayWriteKeyRef = useRef(onPlayWriteKey)
   const onPlayEraseKeyRef = useRef(onPlayEraseKey)
-  const inputValueRef = useRef(session.inputValue)
+  const inputValueRef = useRef(inputValue)
   const inputDisabledRef = useRef(false)
   const benchmarkModeRef = useRef(benchmarkMode)
   const phaseRef = useRef(session.phase)
@@ -895,8 +897,8 @@ export function GameScreen({
   const inputDisabled = !isPlaying || session.isSubmitLocked || benchmarkMode
 
   useEffect(() => {
-    inputValueRef.current = session.inputValue
-  }, [session.inputValue])
+    inputValueRef.current = inputValue
+  }, [inputValue])
 
   useEffect(() => {
     inputDisabledRef.current = inputDisabled
@@ -1499,7 +1501,7 @@ export function GameScreen({
                     </div>
 
                     <AnswerDisplay
-                      value={session.inputValue}
+                      value={inputValue}
                       disabled={inputDisabled}
                       shake={session.isSubmitLocked}
                       shakeKey={shakeKey}
@@ -1552,7 +1554,7 @@ export function GameScreen({
                 <NumericKeypad
                   disabled={inputDisabled}
                   interactionLocked={benchmarkMode}
-                  backspaceDisabled={session.inputValue.length === 0}
+                  backspaceDisabled={inputValue.length === 0}
                   waterLight={useWaterBackground}
                   autoCheckCharges={player.walletAutoChecks}
                   virtualPress={benchmarkMode ? benchmarkVirtualKeypadPress : null}

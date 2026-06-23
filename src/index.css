@@ -1177,6 +1177,17 @@ body {
   overflow: hidden;
 }
 
+.game-play-frame-ring--reduced {
+  opacity: 0.75;
+  transform: scale(1);
+}
+
+.game-play-frame-ring--animated {
+  --play-frame-pulse-duration: 0.9s;
+  --play-frame-pulse-scale: 1.01;
+  animation: game-play-frame-ring-pulse var(--play-frame-pulse-duration) ease-in-out infinite;
+}
+
 .game-scene-danger-vignette {
   background: radial-gradient(circle at 50% 46%, transparent 44%, rgba(190, 18, 60, 0.16) 100%);
   box-shadow:
@@ -1365,6 +1376,19 @@ body {
 
   50% {
     opacity: 1;
+  }
+}
+
+@keyframes game-play-frame-ring-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.95;
+    transform: scale(var(--play-frame-pulse-scale));
   }
 }
 

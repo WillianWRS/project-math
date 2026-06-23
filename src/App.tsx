@@ -7,6 +7,7 @@ function App() {
   return (
     <GameScreen
       session={game.session}
+      inputValue={game.inputValue}
       topScores={game.topScores}
       player={game.player}
       lastGameRewards={game.lastGameRewards}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type SetStateAction } from 'react'
 import {
   clearLevelUpFlash,
   clearAnswerFlash,
@@ -45,6 +45,7 @@ export interface PostGameRewards {
 
 export function useGame() {
   const [session, setSession] = useState<GameSession>(createInitialSession)
+  const [inputValue, setInputValueState] = useState(session.inputValue)
   const [topScores, setTopScores] = useState<ScoreRecord[]>(() => loadTopScores())
   const [soundEnabled, setSoundEnabled] = useState(() => loadSoundEnabled())
   const [devModeEnabled, setDevModeEnabled] = useState(() => loadDevModeEnabled())
@@ -67,6 +68,18 @@ export function useGame() {
   const cycleTimerMaxRef = useRef(session.timerMaxMs)
   const cycleScoreRef = useRef(session.score)
   const prevPhaseRef = useRef(session.phase)
+  const inputValueRef = useRef(inputValue)
+  const setSessionWithInputSync = useCallback((action: SetStateAction<GameSession>) => {
+    setSession((current) => {
+      const next =
+        typeof action === 'function' ? (action as (current: GameSession) => GameSession)(current) : action
+      if (next.inputValue !== inputValueRef.current) {
+        inputValueRef.current = next.inputValue
+        setInputValueState(next.inputValue)
+      }
+      return next
+    })
+  }, [])
 
   const benchmarkSessionRef = useRef(false)
   const [benchmarkMode, setBenchmarkMode] = useState(false)
@@ -104,7 +117,7 @@ export function useGame() {
     resetBenchmark,
   } = useBenchmark({
     session,
-    setSession,
+    setSession: setSessionWithInputSync,
     grantAutoCheck,
     spendAutoCheck,
     onVirtualKeyPress: onBenchmarkVirtualKeyPress,
@@ -123,6 +136,10 @@ export function useGame() {
   useEffect(() => {
     soundEnabledRef.current = soundEnabled
   }, [soundEnabled])
+
+  useEffect(() => {
+    inputValueRef.current = inputValue
+  }, [inputValue])
 
   useEffect(() => {
     preloadSfx()
@@ -172,7 +189,7 @@ export function useGame() {
       }
 
       if (timerMsRef.current <= 0 && !sessionRef.current.awaitingAutoCheckChoice) {
-        setSession((current) => {
+        setSessionWithInputSync((current) => {
           if (current.phase !== 'playing') return current
           if (current.awaitingAutoCheckChoice) return current
           if (playerRef.current.walletAutoChecks > 0) {
@@ -192,7 +209,7 @@ export function useGame() {
 
     frameId = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(frameId)
-  }, [session.phase, benchmarkActive])
+  }, [session.phase, benchmarkActive, setSessionWithInputSync])
 
   useEffect(() => {
     if (session.phase !== 'game_over') return
@@ -231,37 +248,37 @@ export function useGame() {
 
     const result = saveTopScore(session.score, session.elapsedMs)
     setTopScores(result.scores)
-    setSession((current) =>
+    setSessionWithInputSync((current) =>
       current.phase === 'game_over' && current.beatRecord === result.isTop1
         ? current
         : markBeatRecord(current, result.isTop1),
     )
     playSfx(result.isTop1 ? 'record' : 'gameOver', soundEnabledRef.current)
-  }, [session.phase, session.score, session.elapsedMs, commitPlayer])
+  }, [session.phase, session.score, session.elapsedMs, commitPlayer, setSessionWithInputSync])
 
   useEffect(() => {
     if (!session.isSubmitLocked) return
     const timeout = window.setTimeout(() => {
-      setSession((current) => unlockSubmit(current))
+      setSessionWithInputSync((current) => unlockSubmit(current))
     }, SUBMIT_LOCK_MS)
     return () => window.clearTimeout(timeout)
-  }, [session.isSubmitLocked])
+  }, [session.isSubmitLocked, setSessionWithInputSync])
 
   useEffect(() => {
     if (session.answerFlash === null) return
     const timeout = window.setTimeout(() => {
-      setSession((current) => clearAnswerFlash(current))
+      setSessionWithInputSync((current) => clearAnswerFlash(current))
     }, 560)
     return () => window.clearTimeout(timeout)
-  }, [session.answerFlash])
+  }, [session.answerFlash, setSessionWithInputSync])
 
   useEffect(() => {
     if (session.rhythmLevelUpFlash === null) return
     const timeout = window.setTimeout(() => {
-      setSession((current) => clearLevelUpFlash(current))
+      setSessionWithInputSync((current) => clearLevelUpFlash(current))
     }, 1200)
     return () => window.clearTimeout(timeout)
-  }, [session.rhythmLevelUpFlash])
+  }, [session.rhythmLevelUpFlash, setSessionWithInputSync])
 
   const onStart = useCallback(() => {
     if (sessionRef.current.phase === 'playing') return
@@ -271,8 +288,9 @@ export function useGame() {
     gameOverFxHandledRef.current = false
     lastPersistedScoreRef.current = null
     setLastGameRewards({ xpGained: 0, coinsGained: 0, goalCompleted: false })
-    setSession(startGame())
-  }, [resetBenchmark])
+    setInputValueState('')
+    setSessionWithInputSync(startGame())
+  }, [resetBenchmark, setSessionWithInputSync])
 
   const onStartBenchmarkSession = useCallback(() => {
     if (sessionRef.current.phase === 'playing') return
@@ -281,6 +299,7 @@ export function useGame() {
     gameOverFxHandledRef.current = false
     lastPersistedScoreRef.current = null
     setLastGameRewards({ xpGained: 0, coinsGained: 0, goalCompleted: false })
+    setInputValueState('')
     onStartBenchmark()
   }, [onStartBenchmark])
 
@@ -291,15 +310,17 @@ export function useGame() {
     resetBenchmark()
     gameOverFxHandledRef.current = false
     lastPersistedScoreRef.current = null
-    setSession(returnToMenu())
-  }, [onInterruptBenchmark, resetBenchmark])
+    setInputValueState('')
+    setSessionWithInputSync(returnToMenu())
+  }, [onInterruptBenchmark, resetBenchmark, setSessionWithInputSync])
 
   const applyAnswerResult = useCallback(
     (current: GameSession, fromAutoCheck = false) => {
-      const { session: next, result, autoCheckGranted } = submitAnswer(current, {
+      const sessionWithInput = setInputValue(current, inputValueRef.current)
+      const { session: next, result, autoCheckGranted } = submitAnswer(sessionWithInput, {
         autoCheck: fromAutoCheck,
       })
-      setSession(next)
+      setSessionWithInputSync(next)
 
       if (autoCheckGranted) {
         grantAutoCheck(1)
@@ -321,7 +342,7 @@ export function useGame() {
         playSfx('error', soundEnabledRef.current)
       }
     },
-    [grantAutoCheck],
+    [grantAutoCheck, setSessionWithInputSync],
   )
 
   const onConfirm = useCallback(() => {
@@ -340,7 +361,7 @@ export function useGame() {
 
     const forcedAnswer = setInputValue(current, String(current.operation.result))
     const { session: next, result, autoCheckGranted } = submitAnswer(forcedAnswer, { autoCheck: true })
-    setSession(next)
+    setSessionWithInputSync(next)
 
     if (result === 'locked' && spent && consumeWallet) {
       grantAutoCheck(1)
@@ -354,7 +375,7 @@ export function useGame() {
     } else if (result === 'wrong') {
       playSfx('error', soundEnabledRef.current)
     }
-  }, [grantAutoCheck, spendAutoCheck])
+  }, [grantAutoCheck, spendAutoCheck, setSessionWithInputSync])
 
   const onAutoCorrect = useCallback(() => {
     runAutoCorrect(true)
@@ -367,7 +388,7 @@ export function useGame() {
   }, [runAutoCorrect])
 
   const onDeclineAutoCheckAtTimeout = useCallback(() => {
-    setSession((current) => {
+    setSessionWithInputSync((current) => {
       if (current.phase !== 'playing') return current
       return {
         ...current,
@@ -376,10 +397,11 @@ export function useGame() {
         awaitingAutoCheckChoice: false,
       }
     })
-  }, [])
+  }, [setSessionWithInputSync])
 
   const onInputChange = useCallback((value: string) => {
-    setSession((current) => setInputValue(current, value))
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 2)
+    setInputValueState(digitsOnly)
   }, [])
 
   const playClick = useCallback(() => {
@@ -410,6 +432,7 @@ export function useGame() {
 
   return {
     session,
+    inputValue,
     topScores,
     soundEnabled,
     devModeEnabled,
