@@ -7,6 +7,7 @@ import {
 import type {
   BenchmarkCycle,
   BenchmarkFrameStats,
+  BenchmarkGrade,
   BenchmarkMetricGrade,
   BenchmarkPhaseId,
 } from './benchmark-types'
@@ -200,11 +201,32 @@ function gradeAtMost(value: number, thresholds: number[]): BenchmarkMetricGrade[
   return 'F'
 }
 
+const GRADE_SCORE: Record<BenchmarkGrade, number> = {
+  S: 6,
+  A: 5,
+  B: 4,
+  C: 3,
+  D: 2,
+  E: 1,
+  F: 0,
+}
+
+const GRADE_BY_SCORE: BenchmarkGrade[] = ['F', 'E', 'D', 'C', 'B', 'A', 'S']
+
+export function computeOverallBenchmarkGrade(grades: BenchmarkMetricGrade[]): BenchmarkGrade {
+  if (grades.length === 0) return 'F'
+
+  const average =
+    grades.reduce((sum, metric) => sum + GRADE_SCORE[metric.grade], 0) / grades.length
+  const index = Math.min(GRADE_BY_SCORE.length - 1, Math.max(0, Math.round(average)))
+  return GRADE_BY_SCORE[index]
+}
+
 export function computeBenchmarkGrades(
   frames: BenchmarkFrameStats,
   avgAnswerIntervalMs: number,
 ): BenchmarkMetricGrade[] {
-  const jankRate = frames.samples > 0 ? (frames.jankFrames / frames.samples) * 100 : 100
+  const stutterRate = frames.samples > 0 ? (frames.jankFrames / frames.samples) * 100 : 100
 
   return [
     {
@@ -229,18 +251,25 @@ export function computeBenchmarkGrades(
       grade: gradeAtMost(frames.p95FrameMs, [20, 24, 28, 32, 40, 50]),
     },
     {
-      id: 'maxFrameMs',
-      label: 'Frame máximo estável',
-      value: `${frames.maxFrameMs} ms (raw ${frames.rawMaxFrameMs} ms)`,
-      target: '<= 33 ms (p99)',
-      grade: gradeAtMost(frames.maxFrameMs, [33, 40, 50, 66, 90, 120]),
+      id: 'p99FrameMs',
+      label: 'Frame p99',
+      value: `${frames.p99FrameMs} ms`,
+      target: '<= 33 ms',
+      grade: gradeAtMost(frames.p99FrameMs, [33, 40, 50, 66, 90, 120]),
     },
     {
-      id: 'jankRate',
-      label: 'Taxa de jank',
-      value: `${jankRate.toFixed(1)}%`,
+      id: 'rawMaxFrameMs',
+      label: 'Frame máximo',
+      value: `${frames.rawMaxFrameMs} ms`,
+      target: '<= 50 ms',
+      grade: gradeAtMost(frames.rawMaxFrameMs, [50, 66, 80, 100, 120, 150]),
+    },
+    {
+      id: 'stutterRate',
+      label: 'Taxa de engasgos',
+      value: `${stutterRate.toFixed(1)}%`,
       target: '<= 0.5%',
-      grade: gradeAtMost(jankRate, [0.5, 1, 2, 4, 7, 12]),
+      grade: gradeAtMost(stutterRate, [0.5, 1, 2, 4, 7, 12]),
     },
     {
       id: 'answerIntervalMs',

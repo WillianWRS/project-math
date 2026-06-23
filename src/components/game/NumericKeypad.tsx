@@ -289,6 +289,50 @@ function AutoCheckButton({
   )
 }
 
+function BackspaceKey({
+  disabled,
+  variants,
+  forceVisible,
+  onBackspace,
+}: {
+  disabled: boolean
+  variants: (typeof keypadReveal)['key']
+  forceVisible: boolean
+  onBackspace: () => void
+}) {
+  const [shakeKey, setShakeKey] = useState(0)
+  const backspaceShakeTransition = { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const }
+  const backspaceShakeX = [0, -7, 0, -5, 0]
+
+  const handleClick = () => {
+    if (disabled) return
+    setShakeKey((key) => key + 1)
+    onBackspace()
+  }
+
+  return (
+    <PremiumKey
+      disabled={disabled}
+      variants={variants}
+      className="game-numeric-keypad__key--backspace"
+      forceVisible={forceVisible}
+      onClick={handleClick}
+      ariaLabel="Apagar dígito"
+    >
+      <motion.span
+        key={`backspace-icon-shake-${shakeKey}`}
+        className="game-numeric-keypad__backspace-icon"
+        initial={{ x: 0 }}
+        animate={shakeKey > 0 ? { x: backspaceShakeX } : { x: 0 }}
+        transition={backspaceShakeTransition}
+        aria-hidden
+      >
+        <IconBackspace />
+      </motion.span>
+    </PremiumKey>
+  )
+}
+
 export const NumericKeypad = memo(function NumericKeypad({
   disabled = false,
   interactionLocked = false,
@@ -357,17 +401,12 @@ export const NumericKeypad = memo(function NumericKeypad({
         >
           0
         </PremiumKey>
-        <PremiumKey
+        <BackspaceKey
           disabled={effectiveDisabled || backspaceDisabled}
           variants={keypadReveal.key}
-          whileTap={effectiveDisabled || backspaceDisabled ? undefined : { scale: 0.97, y: 1 }}
-          className="game-numeric-keypad__key--backspace"
           forceVisible={interactionLocked}
-          onClick={onBackspace}
-          ariaLabel="Apagar dígito"
-        >
-          <IconBackspace />
-        </PremiumKey>
+          onBackspace={onBackspace}
+        />
       </div>
 
       <PremiumKey

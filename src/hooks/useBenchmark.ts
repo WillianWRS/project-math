@@ -4,6 +4,7 @@ import {
   clearAllSideCycles,
   computeBenchmarkGrades,
   computeFrameStats,
+  computeOverallBenchmarkGrade,
   isBenchmarkPhaseComplete,
   nextBenchmarkPhase,
   shouldInjectBenchmarkCycle,
@@ -183,6 +184,7 @@ export function useBenchmark({
         : 0
 
     const frames = computeFrameStats(frameSamplesRef.current)
+    const grades = computeBenchmarkGrades(frames, avgAnswerIntervalMs)
 
     setBenchmarkMetrics({
       totalDurationMs,
@@ -191,7 +193,8 @@ export function useBenchmark({
       rhythmLevelReached: session.rhythmLevel,
       phases: runtime.phaseTimings,
       frames,
-      grades: computeBenchmarkGrades(frames, avgAnswerIntervalMs),
+      grades,
+      overallGrade: computeOverallBenchmarkGrade(grades),
       completed,
       interrupted: !completed,
     })

@@ -1,0 +1,103 @@
+{
+  "mode": "files",
+  "sprite": "/audio/sfx-sprite.mp3",
+  "ambient": {
+    "src": "/audio/ambient.mp3",
+    "tier": "idle",
+    "volume": 0.32
+  },
+  "clips": {
+    "click": {
+      "src": "/audio/click.mp3",
+      "tier": "critical",
+      "volume": 1
+    },
+    "erase": {
+      "src": "/audio/erase.mp3",
+      "tier": "critical",
+      "volume": 0.28
+    },
+    "error": {
+      "src": "/audio/error.mp3",
+      "tier": "critical",
+      "volume": 1
+    },
+    "success": {
+      "src": "/audio/success.mp3",
+      "tier": "critical",
+      "volume": 1
+    },
+    "write1": {
+      "src": "/audio/write-1.mp3",
+      "tier": "critical",
+      "volume": 1,
+      "pool": "write"
+    },
+    "write2": {
+      "src": "/audio/write-2.mp3",
+      "tier": "critical",
+      "volume": 1,
+      "pool": "write"
+    },
+    "write3": {
+      "src": "/audio/write-3.mp3",
+      "tier": "critical",
+      "volume": 1,
+      "pool": "write"
+    },
+    "write4": {
+      "src": "/audio/write-4.mp3",
+      "tier": "critical",
+      "volume": 1,
+      "pool": "write"
+    },
+    "write5": {
+      "src": "/audio/write-5.mp3",
+      "tier": "critical",
+      "volume": 1,
+      "pool": "write"
+    },
+    "write6": {
+      "src": "/audio/write-6.mp3",
+      "tier": "critical",
+      "volume": 1,
+      "pool": "write"
+    },
+    "write7": {
+      "src": "/audio/write-7.mp3",
+      "tier": "critical",
+      "volume": 1,
+      "pool": "write"
+    },
+    "gameStart": {
+      "src": "/audio/game-start.mp3",
+      "tier": "gameplay",
+      "volume": 1
+    },
+    "autoCheck": {
+      "src": "/audio/auto-check.mp3",
+      "tier": "gameplay",
+      "volume": 1
+    },
+    "gameChanger": {
+      "src": "/audio/game-changer.mp3",
+      "tier": "gameplay",
+      "volume": 1
+    },
+    "gameOver": {
+      "src": "/audio/game-over.mp3",
+      "tier": "idle",
+      "volume": 1
+    },
+    "record": {
+      "src": "/audio/record.mp3",
+      "tier": "idle",
+      "volume": 1
+    },
+    "goToMenu": {
+      "src": "/audio/go-to-menu.mp3",
+      "tier": "idle",
+      "volume": 1
+    }
+  }
+}

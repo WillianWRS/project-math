@@ -33,8 +33,9 @@ export type BenchmarkMetricGradeId =
   | 'fps'
   | 'avgFrameMs'
   | 'p95FrameMs'
-  | 'maxFrameMs'
-  | 'jankRate'
+  | 'p99FrameMs'
+  | 'rawMaxFrameMs'
+  | 'stutterRate'
   | 'answerIntervalMs'
 
 export interface BenchmarkMetricGrade {
@@ -55,6 +56,7 @@ export interface BenchmarkMetrics {
   phases: BenchmarkPhaseTiming[]
   frames: BenchmarkFrameStats
   grades: BenchmarkMetricGrade[]
+  overallGrade: BenchmarkGrade
   completed: boolean
   interrupted: boolean
 }

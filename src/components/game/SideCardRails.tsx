@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from '../../lib/motion'
+import { SideCardActivateBurst } from '../motion/SideCardActivateBurst'
 import { SideCardPulse } from '../motion/SideCardPulse'
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import {
@@ -11,7 +12,6 @@ const SIDE_CARD_COUNT = RightSideCardCatalog.cardCount
 const SIDE_CYCLE_BUTTON_SIZE = 40
 const AUTO_CYCLE_ENTER_OFFSET_X = -80
 const FOUR_SECONDS_ENTER_OFFSET_X = 80
-const SIDE_CYCLE_EXIT_OFFSET_Y = 20
 const ENABLE_SIDE_MERGE_TRAVELER = false
 
 interface SideCycleMergeKeyframes {
@@ -183,6 +183,24 @@ function useSideSlotTops(sideCount: number) {
   return { playRowRef, leftColumnRef, rightColumnRef, setRightSlotRef, slotTops }
 }
 
+function useSideCycleActivateBurst(cycleStep: number | null, slotTops: number[] | null) {
+  const prevStepRef = useRef(cycleStep)
+  const [burstTop, setBurstTop] = useState<number | null>(null)
+
+  useEffect(() => {
+    const prevStep = prevStepRef.current
+    prevStepRef.current = cycleStep
+
+    if (prevStep === 4 && cycleStep === null && slotTops) {
+      setBurstTop(slotTops[3] ?? slotTops[0] ?? 0)
+    }
+  }, [cycleStep, slotTops])
+
+  const clearBurst = useCallback(() => setBurstTop(null), [])
+
+  return { burstTop, clearBurst }
+}
+
 function AutoCheckCycleTraveler({
   step,
   slotTops,
@@ -191,7 +209,6 @@ function AutoCheckCycleTraveler({
   slotTops: number[]
 }) {
   const top = slotTops[step - 1] ?? slotTops[0]
-  const exitTop = (slotTops[3] ?? top) + SIDE_CYCLE_EXIT_OFFSET_Y
 
   return (
     <motion.div
@@ -199,7 +216,7 @@ function AutoCheckCycleTraveler({
       className="game-side-card game-side-card--legendary game-side-card--auto-cycle game-side-auto-cycle-traveler"
       initial={{ x: AUTO_CYCLE_ENTER_OFFSET_X, y: slotTops[0], opacity: 0 }}
       animate={{ x: 0, y: top, opacity: 1 }}
-      exit={{ x: 0, y: exitTop, opacity: 0 }}
+      exit={{ x: 0, y: top, opacity: 0 }}
       transition={sideCardTransition}
     >
       <SideCardPulse iconPulse="scale">
@@ -220,7 +237,6 @@ function FourSecondsPreCycleTraveler({
   slotTops: number[]
 }) {
   const top = slotTops[step - 1] ?? slotTops[0]
-  const exitTop = (slotTops[3] ?? top) + SIDE_CYCLE_EXIT_OFFSET_Y
 
   return (
     <motion.div
@@ -228,7 +244,7 @@ function FourSecondsPreCycleTraveler({
       className="game-side-card game-side-card--timer game-side-card--auto-cycle game-side-auto-cycle-traveler game-side-auto-cycle-traveler--right"
       initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, y: slotTops[0], opacity: 0 }}
       animate={{ x: 0, y: top, opacity: 1 }}
-      exit={{ x: 0, y: exitTop, opacity: 0 }}
+      exit={{ x: 0, y: top, opacity: 0 }}
       transition={sideCardTransition}
     >
       <SideCardPulse iconPulse="scale">
@@ -247,7 +263,6 @@ function TimesDivPreCycleTraveler({
   slotTops: number[]
 }) {
   const top = slotTops[step - 1] ?? slotTops[0]
-  const exitTop = (slotTops[3] ?? top) + SIDE_CYCLE_EXIT_OFFSET_Y
 
   return (
     <motion.div
@@ -255,7 +270,7 @@ function TimesDivPreCycleTraveler({
       className="game-side-card game-side-card--mult-div game-side-card--auto-cycle game-side-auto-cycle-traveler game-side-auto-cycle-traveler--right"
       initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, y: slotTops[0], opacity: 0 }}
       animate={{ x: 0, y: top, opacity: 1 }}
-      exit={{ x: 0, y: exitTop, opacity: 0 }}
+      exit={{ x: 0, y: top, opacity: 0 }}
       transition={sideCardTransition}
     >
       <SideCardPulse iconPulse="glyph">
@@ -273,7 +288,6 @@ function PlusPreCycleTraveler({
   slotTops: number[]
 }) {
   const top = slotTops[step - 1] ?? slotTops[0]
-  const exitTop = (slotTops[3] ?? top) + SIDE_CYCLE_EXIT_OFFSET_Y
 
   return (
     <motion.div
@@ -281,7 +295,7 @@ function PlusPreCycleTraveler({
       className="game-side-card game-side-card--cap-up game-side-card--auto-cycle game-side-auto-cycle-traveler game-side-auto-cycle-traveler--right"
       initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, y: slotTops[0], opacity: 0 }}
       animate={{ x: 0, y: top, opacity: 1 }}
-      exit={{ x: 0, y: exitTop, opacity: 0 }}
+      exit={{ x: 0, y: top, opacity: 0 }}
       transition={sideCardTransition}
     >
       <SideCardPulse iconPulse="up">
@@ -300,7 +314,6 @@ function MinusPreCycleTraveler({
   slotTops: number[]
 }) {
   const top = slotTops[step - 1] ?? slotTops[0]
-  const exitTop = (slotTops[3] ?? top) + SIDE_CYCLE_EXIT_OFFSET_Y
 
   return (
     <motion.div
@@ -308,7 +321,7 @@ function MinusPreCycleTraveler({
       className="game-side-card game-side-card--cap-down game-side-card--auto-cycle game-side-auto-cycle-traveler game-side-auto-cycle-traveler--right"
       initial={{ x: FOUR_SECONDS_ENTER_OFFSET_X, y: slotTops[0], opacity: 0 }}
       animate={{ x: 0, y: top, opacity: 1 }}
-      exit={{ x: 0, y: exitTop, opacity: 0 }}
+      exit={{ x: 0, y: top, opacity: 0 }}
       transition={sideCardTransition}
     >
       <SideCardPulse iconPulse="down">
@@ -444,10 +457,14 @@ function useSideCycleMergeExit(
 
 function LeftAutoCheckColumn({
   autoCheckCycleStep,
+  autoCheckBurstTop,
+  onAutoCheckBurstComplete,
   slotTops,
   columnRef,
 }: {
   autoCheckCycleStep: number | null
+  autoCheckBurstTop: number | null
+  onAutoCheckBurstComplete: () => void
   slotTops: number[] | null
   columnRef: RefObject<HTMLDivElement | null>
 }) {
@@ -456,6 +473,20 @@ function LeftAutoCheckColumn({
       <AnimatePresence initial={false}>
         {autoCheckCycleStep !== null && slotTops && (
           <AutoCheckCycleTraveler step={autoCheckCycleStep} slotTops={slotTops} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence initial={false}>
+        {autoCheckBurstTop !== null && (
+          <motion.div
+            key="auto-check-activate-burst"
+            className="game-side-activate-burst-traveler"
+            initial={{ x: 0, y: autoCheckBurstTop, opacity: 1 }}
+            animate={{ x: 0, y: autoCheckBurstTop, opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={sideCardTransition}
+          >
+            <SideCardActivateBurst variant="legendary" onComplete={onAutoCheckBurstComplete} />
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
@@ -467,6 +498,14 @@ function RightSideCardColumn({
   timesDivCycleStep,
   plusCycleStep,
   minusCycleStep,
+  fourSecondsBurstTop,
+  timesDivBurstTop,
+  plusBurstTop,
+  minusBurstTop,
+  onFourSecondsBurstComplete,
+  onTimesDivBurstComplete,
+  onPlusBurstComplete,
+  onMinusBurstComplete,
   slotTops,
   columnRef,
   setSlotRef,
@@ -475,6 +514,14 @@ function RightSideCardColumn({
   timesDivCycleStep: number | null
   plusCycleStep: number | null
   minusCycleStep: number | null
+  fourSecondsBurstTop: number | null
+  timesDivBurstTop: number | null
+  plusBurstTop: number | null
+  minusBurstTop: number | null
+  onFourSecondsBurstComplete: () => void
+  onTimesDivBurstComplete: () => void
+  onPlusBurstComplete: () => void
+  onMinusBurstComplete: () => void
   slotTops: number[] | null
   columnRef: RefObject<HTMLDivElement | null>
   setSlotRef: (index: number) => (element: HTMLDivElement | null) => void
@@ -501,6 +548,57 @@ function RightSideCardColumn({
         )}
         {minusCycleStep !== null && slotTops && (
           <MinusPreCycleTraveler step={minusCycleStep} slotTops={slotTops} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence initial={false}>
+        {fourSecondsBurstTop !== null && (
+          <motion.div
+            key="four-seconds-activate-burst"
+            className="game-side-activate-burst-traveler game-side-activate-burst-traveler--right"
+            initial={{ x: 0, y: fourSecondsBurstTop, opacity: 1 }}
+            animate={{ x: 0, y: fourSecondsBurstTop, opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={sideCardTransition}
+          >
+            <SideCardActivateBurst variant="timer" onComplete={onFourSecondsBurstComplete} />
+          </motion.div>
+        )}
+        {timesDivBurstTop !== null && (
+          <motion.div
+            key="times-div-activate-burst"
+            className="game-side-activate-burst-traveler game-side-activate-burst-traveler--right"
+            initial={{ x: 0, y: timesDivBurstTop, opacity: 1 }}
+            animate={{ x: 0, y: timesDivBurstTop, opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={sideCardTransition}
+          >
+            <SideCardActivateBurst variant="mult-div" onComplete={onTimesDivBurstComplete} />
+          </motion.div>
+        )}
+        {plusBurstTop !== null && (
+          <motion.div
+            key="plus-activate-burst"
+            className="game-side-activate-burst-traveler game-side-activate-burst-traveler--right"
+            initial={{ x: 0, y: plusBurstTop, opacity: 1 }}
+            animate={{ x: 0, y: plusBurstTop, opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={sideCardTransition}
+          >
+            <SideCardActivateBurst variant="cap-up" onComplete={onPlusBurstComplete} />
+          </motion.div>
+        )}
+        {minusBurstTop !== null && (
+          <motion.div
+            key="minus-activate-burst"
+            className="game-side-activate-burst-traveler game-side-activate-burst-traveler--right"
+            initial={{ x: 0, y: minusBurstTop, opacity: 1 }}
+            animate={{ x: 0, y: minusBurstTop, opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={sideCardTransition}
+          >
+            <SideCardActivateBurst variant="cap-down" onComplete={onMinusBurstComplete} />
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
@@ -569,6 +667,27 @@ export const PlayFieldsSideLayout = memo(function PlayFieldsSideLayout({
     resolvedAnswerRef,
   )
 
+  const { burstTop: autoCheckBurstTop, clearBurst: clearAutoCheckBurst } = useSideCycleActivateBurst(
+    autoCheckCycleStep,
+    slotTops,
+  )
+  const { burstTop: fourSecondsBurstTop, clearBurst: clearFourSecondsBurst } = useSideCycleActivateBurst(
+    fourSecondsCycleStep,
+    slotTops,
+  )
+  const { burstTop: timesDivBurstTop, clearBurst: clearTimesDivBurst } = useSideCycleActivateBurst(
+    timesDivCycleStep,
+    slotTops,
+  )
+  const { burstTop: plusBurstTop, clearBurst: clearPlusBurst } = useSideCycleActivateBurst(
+    plusCycleStep,
+    slotTops,
+  )
+  const { burstTop: minusBurstTop, clearBurst: clearMinusBurst } = useSideCycleActivateBurst(
+    minusCycleStep,
+    slotTops,
+  )
+
   return (
     <div ref={playRowRef} className="game-play-row">
       <motion.div
@@ -579,6 +698,8 @@ export const PlayFieldsSideLayout = memo(function PlayFieldsSideLayout({
       >
         <LeftAutoCheckColumn
           autoCheckCycleStep={autoCheckCycleStep}
+          autoCheckBurstTop={autoCheckBurstTop}
+          onAutoCheckBurstComplete={clearAutoCheckBurst}
           slotTops={slotTops}
           columnRef={leftColumnRef}
         />
@@ -602,6 +723,14 @@ export const PlayFieldsSideLayout = memo(function PlayFieldsSideLayout({
           timesDivCycleStep={timesDivCycleStep}
           plusCycleStep={plusCycleStep}
           minusCycleStep={minusCycleStep}
+          fourSecondsBurstTop={fourSecondsBurstTop}
+          timesDivBurstTop={timesDivBurstTop}
+          plusBurstTop={plusBurstTop}
+          minusBurstTop={minusBurstTop}
+          onFourSecondsBurstComplete={clearFourSecondsBurst}
+          onTimesDivBurstComplete={clearTimesDivBurst}
+          onPlusBurstComplete={clearPlusBurst}
+          onMinusBurstComplete={clearMinusBurst}
           slotTops={slotTops}
           columnRef={rightColumnRef}
           setSlotRef={setRightSlotRef}

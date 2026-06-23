@@ -11,6 +11,8 @@ import { timerDangerGlowIntensity } from '../../lib/timer-danger-glow'
 import { useGameTimer } from '../../hooks/useGameTimer'
 import { CurtainOverlay } from './CurtainOverlay'
 import { PlayFieldsFrame } from './PlayFieldsFrame'
+import { PlayStackWithChangerBg, type PlayStackChangerTheme } from './PlayStackWithChangerBg'
+import { SideCardActivateBurst } from '../motion/SideCardActivateBurst'
 import { WaterSceneLayer } from './WaterSceneLayer'
 import { SLIDE_TRANSITION } from '../../lib/motion-presets'
 import { isFourSecondsGameChangerActive, isMinusGameChangerActive, isPlusGameChangerActive, isTimesDivGameChangerActive } from '../../engine/game-changer-cycles'
@@ -401,16 +403,22 @@ function RightCardIcon({ variant }: { variant: RightCardVariant }) {
 
 function ThemeTestSideLayout({
   activeChanger,
+  changerBurst,
+  changerBurstToken,
   autoCheckEnabled,
   onToggleAutoCheck,
   onToggleChanger,
+  onChangerBurstComplete,
   parallaxActive,
   children,
 }: {
   activeChanger: RightCardVariant | null
+  changerBurst: RightCardVariant | null
+  changerBurstToken: number
   autoCheckEnabled: boolean
   onToggleAutoCheck: () => void
   onToggleChanger: (variant: RightCardVariant) => void
+  onChangerBurstComplete: () => void
   parallaxActive: boolean
   children: ReactNode
 }) {
@@ -468,7 +476,7 @@ function ThemeTestSideLayout({
             const active = activeChanger === card.variant
 
             return (
-              <div key={card.id} className="game-side-card-slot">
+              <div key={card.id} className="game-side-card-slot game-side-card-slot--burst-host">
                 <button
                   type="button"
                   onClick={() => onToggleChanger(card.variant)}
@@ -485,6 +493,20 @@ function ThemeTestSideLayout({
                     ) : null}
                   </span>
                 </button>
+                <AnimatePresence initial={false}>
+                  {changerBurst === card.variant && (
+                    <div
+                      key={`theme-test-changer-burst-${changerBurstToken}`}
+                      className="game-side-activate-burst-slot-overlay"
+                      aria-hidden
+                    >
+                      <SideCardActivateBurst
+                        variant={card.variant}
+                        onComplete={onChangerBurstComplete}
+                      />
+                    </div>
+                  )}
+                </AnimatePresence>
               </div>
             )
           })}
@@ -722,11 +744,6 @@ function IconThemeTest() {
   )
 }
 
-function formatBenchmarkMs(ms: number): string {
-  if (ms < 1000) return `${ms} ms`
-  return `${(ms / 1000).toFixed(1)} s`
-}
-
 function benchmarkGradeTone(grade: string): string {
   switch (grade) {
     case 'S':
@@ -745,6 +762,16 @@ function benchmarkGradeTone(grade: string): string {
       return 'text-rose-400'
   }
 }
+
+const BENCHMARK_METRIC_ORDER = [
+  'fps',
+  'avgFrameMs',
+  'p95FrameMs',
+  'p99FrameMs',
+  'rawMaxFrameMs',
+  'stutterRate',
+  'answerIntervalMs',
+] as const satisfies BenchmarkMetricGradeId[]
 
 function gradeForMetric(metrics: BenchmarkMetrics, id: BenchmarkMetricGradeId) {
   return metrics.grades.find((grade) => grade.id === id)
@@ -987,6 +1014,8 @@ export function GameScreen({
   const [themeTestBurstFlash, setThemeTestBurstFlash] = useState<number | null>(null)
   const [themeTestBurstToken, setThemeTestBurstToken] = useState(0)
   const [themeTestChanger, setThemeTestChanger] = useState<RightCardVariant | null>(null)
+  const [themeTestChangerBurst, setThemeTestChangerBurst] = useState<RightCardVariant | null>(null)
+  const [themeTestChangerBurstToken, setThemeTestChangerBurstToken] = useState(0)
   const [themeTestAutoCheckEnabled, setThemeTestAutoCheckEnabled] = useState(true)
   const onStartRef = useRef(onStart)
   const onStartBenchmarkSessionRef = useRef(onStartBenchmarkSession)
@@ -1027,6 +1056,7 @@ export function GameScreen({
   const isPlaying = session.phase === 'playing'
   const isGameOver = session.phase === 'game_over'
   const isThemeTestScene = presentation === 'theme-test'
+  const showBenchmarkResults = benchmarkMode && isGameOver && benchmarkMetrics !== null
   const anyModalOpen =
     playerOpen ||
     shopOpen ||
@@ -1144,10 +1174,12 @@ export function GameScreen({
   const handleThemeTest = () => {
     if (presentation !== 'menu') return
     setPendingStartMode('theme-test')
-    setThemeTestScore(0)
+    setThemeTestScore(99999)
     setThemeTestBurstFlash(null)
     setThemeTestBurstToken(0)
     setThemeTestChanger(null)
+    setThemeTestChangerBurst(null)
+    setThemeTestChangerBurstToken(0)
     setThemeTestAutoCheckEnabled(true)
     onPlayGameStart()
     setSharing(false)
@@ -1185,8 +1217,17 @@ export function GameScreen({
 
   const handleThemeTestChangerToggle = (variant: RightCardVariant) => {
     playSfx('gameChanger', soundEnabled)
-    setThemeTestChanger((current) => (current === variant ? null : variant))
+    const activating = themeTestChanger !== variant
+    setThemeTestChanger(themeTestChanger === variant ? null : variant)
+    if (activating) {
+      setThemeTestChangerBurst(variant)
+      setThemeTestChangerBurstToken((token) => token + 1)
+    }
   }
+
+  const handleThemeTestChangerBurstComplete = useCallback(() => {
+    setThemeTestChangerBurst(null)
+  }, [])
 
   const handleThemeTestAutoCheckToggle = () => {
     playSfx('autoCheck', soundEnabled)
@@ -1327,17 +1368,16 @@ export function GameScreen({
   const timerRatio = session.timerMaxMs > 0 ? Math.max(0, timerNowMs / session.timerMaxMs) : 0
   const timerDangerGlow = isPlaying ? timerDangerGlowIntensity(timerRatio) : 0
   const timerDangerActive = timerDangerGlow > 0
-  const currentPlayStackClass = fourSecondsActive
-    ? 'game-play-stack--four-seconds'
+  const activeChangerTheme: PlayStackChangerTheme | null = fourSecondsActive
+    ? 'four-seconds'
     : timesDivActive
-      ? 'game-play-stack--times-div'
+      ? 'times-div'
       : plusActive
-        ? 'game-play-stack--plus-cycle'
+        ? 'plus-cycle'
         : minusActive
-          ? 'game-play-stack--minus-cycle'
-          : useWaterBackground
-            ? 'game-play-stack--water'
-            : 'bg-charcoal-field'
+          ? 'minus-cycle'
+          : null
+  const basePlayStackClass = useWaterBackground ? 'game-play-stack--water' : 'bg-charcoal-field'
   const showGoodSceneBorder = isInGameScene && !timerDangerActive && currentScore >= 500
 
   useEffect(() => {
@@ -1495,11 +1535,11 @@ export function GameScreen({
                   {!isGameOver && (
                     <>
                       <p className="text-xs uppercase tracking-widest text-charcoal-muted">Pontuação</p>
-                      <div className="relative h-10 min-w-[4rem] overflow-hidden">
+                      <div className="game-header-score-dock__value">
                         <AnimatePresence mode="sync" initial={false}>
                           <motion.p
                             key={currentScore}
-                            className="absolute right-0 font-mono text-4xl font-bold tabular-nums text-white"
+                            className="game-header-score-dock__number"
                             initial={{ y: '100%', opacity: 0.5 }}
                             animate={{ y: 0, opacity: 1 }}
                             exit={{ y: '-100%', opacity: 0 }}
@@ -1525,9 +1565,12 @@ export function GameScreen({
             {isThemeTestScene ? (
               <ThemeTestSideLayout
                 activeChanger={themeTestChanger}
+                changerBurst={themeTestChangerBurst}
+                changerBurstToken={themeTestChangerBurstToken}
                 autoCheckEnabled={themeTestAutoCheckEnabled}
                 onToggleAutoCheck={handleThemeTestAutoCheckToggle}
                 onToggleChanger={handleThemeTestChangerToggle}
+                onChangerBurstComplete={handleThemeTestChangerBurstComplete}
                 parallaxActive={parallaxLayerActive}
               >
                 <PlayFieldsFrame
@@ -1538,11 +1581,11 @@ export function GameScreen({
                   borderActive
                   timerDangerGlow={timerDangerGlow}
                 >
-                  <div
-                    className={`game-play-stack w-full rounded-3xl ${currentPlayStackClass}${
-                      timerDangerGlow > 0 ? ' game-play-stack--timer-danger' : ''
-                    }`}
-                    style={
+                  <PlayStackWithChangerBg
+                    baseClassName={basePlayStackClass}
+                    activeChangerTheme={activeChangerTheme}
+                    timerDanger={timerDangerGlow > 0}
+                    timerDangerStyle={
                       timerDangerGlow > 0
                         ? ({ ['--timer-danger-strength' as string]: String(timerDangerGlow) } as CSSProperties)
                         : undefined
@@ -1592,10 +1635,10 @@ export function GameScreen({
                         minusLight={minusActive}
                       />
                     </button>
-                  </div>
+                  </PlayStackWithChangerBg>
                 </PlayFieldsFrame>
               </ThemeTestSideLayout>
-            ) : (
+            ) : !showBenchmarkResults ? (
               <PlayFieldsSideLayout
                 autoCheckCycleStep={session.autoCheckCycleStep}
                 fourSecondsCycleStep={session.fourSecondsCycleStep}
@@ -1617,11 +1660,11 @@ export function GameScreen({
                   borderActive={isPlaying}
                   timerDangerGlow={timerDangerGlow}
                 >
-                  <div
-                    className={`game-play-stack w-full rounded-3xl ${currentPlayStackClass}${
-                      timerDangerGlow > 0 ? ' game-play-stack--timer-danger' : ''
-                    }`}
-                    style={
+                  <PlayStackWithChangerBg
+                    baseClassName={basePlayStackClass}
+                    activeChangerTheme={activeChangerTheme}
+                    timerDanger={timerDangerGlow > 0}
+                    timerDangerStyle={
                       timerDangerGlow > 0
                         ? ({ ['--timer-danger-strength' as string]: String(timerDangerGlow) } as CSSProperties)
                         : undefined
@@ -1682,10 +1725,10 @@ export function GameScreen({
                         slotRef={answerFieldRef}
                       />
                     </PlayFieldsShake>
-                  </div>
+                  </PlayStackWithChangerBg>
                 </PlayFieldsFrame>
               </PlayFieldsSideLayout>
-            )}
+            ) : null}
 
             {isThemeTestScene && (
               <div className="w-full max-w-xs space-y-3">
@@ -1706,8 +1749,8 @@ export function GameScreen({
                   onAutoCorrect={handleThemeTestKeypadAuto}
                   onEnter={handleThemeTestKeypadEnter}
                 />
-                <p className="text-center text-xs uppercase tracking-[0.18em] text-amber-300/80">
-                  Theme test: teclado clica sem alterar input principal
+                <p className="text-center text-xs text-amber-300/80">
+                  Teste do tema.
                 </p>
               </div>
             )}
@@ -1761,21 +1804,22 @@ export function GameScreen({
                   >
                     {session.score} pontos
                   </p>
-                  <p
-                    className={`game-over-card__duration mt-1 text-xs ${
-                      useWaterBackground ? '' : 'text-charcoal-muted'
-                    }`}
-                  >
-                    Tempo: {gameOverElapsedText}
-                  </p>
+                  {!(benchmarkMode && benchmarkMetrics) && (
+                    <p
+                      className={`game-over-card__duration mt-1 text-xs ${
+                        useWaterBackground ? '' : 'text-charcoal-muted'
+                      }`}
+                    >
+                      Tempo: {gameOverElapsedText}
+                    </p>
+                  )}
 
                   {benchmarkMode && benchmarkMetrics ? (
                     <div className="mt-3 space-y-2 text-left text-xs">
                       <div className="game-modal-card px-3 py-2">
                         <p className="font-semibold text-stone-200">Performance</p>
                         <ul className="mt-1 space-y-1 text-charcoal-muted">
-                          {(['fps', 'avgFrameMs', 'p95FrameMs', 'maxFrameMs', 'jankRate', 'answerIntervalMs'] as const)
-                            .map((gradeId) => gradeForMetric(benchmarkMetrics, gradeId))
+                          {BENCHMARK_METRIC_ORDER.map((gradeId) => gradeForMetric(benchmarkMetrics, gradeId))
                             .filter((grade): grade is NonNullable<typeof grade> => Boolean(grade))
                             .map((grade) => (
                               <li key={grade.id} className="flex items-center justify-between gap-3">
@@ -1789,31 +1833,20 @@ export function GameScreen({
                               </li>
                             ))}
                         </ul>
-                        <p className="mt-1 text-[0.68rem] uppercase tracking-[0.14em] text-charcoal-muted">
-                          Referência: 60 FPS / 10 ms de ping
-                        </p>
-                        <p className="text-[0.68rem] uppercase tracking-[0.14em] text-charcoal-muted">
-                          {benchmarkMetrics.totalAnswers} respostas • intervalo alvo de 0.5s
-                        </p>
-                      </div>
-
-                      <div className="game-modal-card px-3 py-2">
-                        <p className="font-semibold text-stone-200">Fases</p>
-                        <ul className="mt-1 space-y-1 text-charcoal-muted">
-                          {benchmarkMetrics.phases.map((phase) => (
-                            <li key={phase.id} className="flex items-center justify-between gap-3">
-                              <span>{phase.label}</span>
-                              <span className="font-mono tabular-nums text-stone-300">
-                                {formatBenchmarkMs(phase.durationMs)} · {phase.answers} acertos
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
                       </div>
 
                       <p className="text-center text-[0.68rem] uppercase tracking-[0.16em] text-emerald-400">
                         {benchmarkMetrics.completed ? 'Benchmark concluído' : 'Benchmark interrompido'}
                       </p>
+
+                      <div className="benchmark-overall-result">
+                        <p className="benchmark-overall-result__label">Resultado geral</p>
+                        <p
+                          className={`benchmark-overall-result__grade ${benchmarkGradeTone(benchmarkMetrics.overallGrade)}`}
+                        >
+                          {benchmarkMetrics.overallGrade}
+                        </p>
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -1958,7 +1991,7 @@ export function GameScreen({
             </footer>
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.5</span>
+              <span>v0.0.6</span>
             </div>
           </div>
         </>

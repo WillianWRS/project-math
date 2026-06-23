@@ -1,11 +1,12 @@
 {
   "name": "project-math",
   "private": true,
-  "version": "0.0.5",
+  "version": "0.0.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build:audio": "node scripts/build-audio-sprite.mjs",
+    "build": "npm run build:audio && tsc -b && vite build",
     "ci": "npm run lint && npm run test && npm run build",
     "deploy": "npm run ci && firebase deploy --only hosting",
     "generate:pwa-icons": "node scripts/generate-pwa-icons.mjs",

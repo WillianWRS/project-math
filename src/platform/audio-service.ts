@@ -1,79 +1,40 @@
-const AUDIO_PATHS = {
-  success: '/audio/success.mp3',
-  autoCheck: '/audio/auto-check.mp3',
-  gameChanger: '/audio/game-changer.mp3',
-  error: '/audio/error.mp3',
-  click: '/audio/click.mp3',
-  gameOver: '/audio/game-over.mp3',
-  gameStart: '/audio/game-start.mp3',
-  record: '/audio/record.mp3',
-  erase: '/audio/erase.mp3',
-  goToMenu: '/audio/go-to-menu.mp3',
-} as const
+import {
+  playClip,
+  playRandomWriteClip,
+  preloadAudioTier,
+  preloadAudioTierIdle,
+  syncAmbientPlayback,
+  unlockAudioContext,
+} from './audio-engine'
+import type { SfxId } from './audio-types'
 
-export type SfxId = keyof typeof AUDIO_PATHS
+export type { SfxId } from './audio-types'
 
-const AMBIENT_PATH = '/audio/ambient.mp3'
-const AMBIENT_VOLUME = 0.32
-const WRITE_SFX_COUNT = 7
-
-const SFX_VOLUMES: Partial<Record<SfxId, number>> = {
-  erase: 0.28,
+export function unlockAudio(): Promise<void> {
+  return unlockAudioContext()
 }
 
-const cache = new Map<SfxId, HTMLAudioElement>()
-const writeCache = new Map<number, HTMLAudioElement>()
-let ambientAudio: HTMLAudioElement | null = null
-
-function getAmbientAudio(): HTMLAudioElement {
-  if (!ambientAudio) {
-    ambientAudio = new Audio(AMBIENT_PATH)
-    ambientAudio.loop = true
-    ambientAudio.preload = 'auto'
-    ambientAudio.volume = AMBIENT_VOLUME
-  }
-  return ambientAudio
-}
-
-function getAudio(id: SfxId): HTMLAudioElement {
-  let audio = cache.get(id)
-  if (!audio) {
-    audio = new Audio(AUDIO_PATHS[id])
-    audio.preload = 'auto'
-    audio.volume = SFX_VOLUMES[id] ?? 1
-    cache.set(id, audio)
-  }
-  return audio
-}
-
-function getWriteAudio(index: number): HTMLAudioElement {
-  let audio = writeCache.get(index)
-  if (!audio) {
-    audio = new Audio(`/audio/write-${index}.mp3`)
-    audio.preload = 'auto'
-    writeCache.set(index, audio)
-  }
-  return audio
-}
-
-function playAudio(audio: HTMLAudioElement): void {
-  audio.currentTime = 0
-  void audio.play().catch(() => {})
-}
-
+/** @deprecated Prefer tiered preload helpers below. */
 export function preloadSfx(): void {
-  ;(Object.keys(AUDIO_PATHS) as SfxId[]).forEach((id) => {
-    getAudio(id).load()
-  })
-  for (let index = 1; index <= WRITE_SFX_COUNT; index += 1) {
-    getWriteAudio(index).load()
-  }
-  getAmbientAudio().load()
+  void preloadAudioTier('critical')
+  preloadAudioTierIdle('gameplay')
+  preloadAudioTierIdle('idle')
+}
+
+export function preloadAudioCritical(): Promise<void> {
+  return preloadAudioTier('critical')
+}
+
+export function preloadAudioGameplay(): Promise<void> {
+  return preloadAudioTier('gameplay')
+}
+
+export function preloadAudioIdle(): void {
+  preloadAudioTierIdle('idle')
 }
 
 export function playSfx(id: SfxId, enabled: boolean): void {
-  if (!enabled) return
-  playAudio(getAudio(id))
+  playClip(id, enabled)
 }
 
 export function playCorrectAnswerSfx(
@@ -94,20 +55,9 @@ export function playCorrectAnswerSfx(
 }
 
 export function playRandomWriteSfx(enabled: boolean): void {
-  if (!enabled) return
-
-  const index = Math.floor(Math.random() * WRITE_SFX_COUNT) + 1
-  playAudio(getWriteAudio(index))
+  playRandomWriteClip(enabled)
 }
 
 export function syncAmbient(shouldPlay: boolean): void {
-  const audio = getAmbientAudio()
-
-  if (!shouldPlay) {
-    if (!audio.paused) audio.pause()
-    return
-  }
-
-  if (!audio.paused) return
-  void audio.play().catch(() => {})
+  syncAmbientPlayback(shouldPlay)
 }

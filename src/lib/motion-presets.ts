@@ -6,6 +6,8 @@ export const SLIDE_TRANSITION = { duration: 0.28, ease: APP_EASE } as const
 
 export const LEVEL_UP_BURST_TRANSITION = { duration: 0.9, ease: APP_EASE } as const
 
+export const GAME_CHANGER_BURST_MS = LEVEL_UP_BURST_TRANSITION.duration * 1000
+
 export function pulseRepeat(duration: number) {
   return { duration, repeat: Infinity, ease: 'easeInOut' as const }
 }

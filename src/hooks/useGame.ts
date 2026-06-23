@@ -28,7 +28,7 @@ import {
   saveTopScore,
   type ScoreRecord,
 } from '../platform/storage'
-import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, preloadSfx, syncAmbient } from '../platform/audio-service'
+import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, preloadAudioCritical, preloadAudioGameplay, preloadAudioIdle, syncAmbient, unlockAudio } from '../platform/audio-service'
 import { gameTimerStore } from '../platform/game-timer-store'
 import type { BenchmarkVirtualKey } from '../engine/benchmark-types'
 
@@ -142,7 +142,18 @@ export function useGame() {
   }, [inputValue])
 
   useEffect(() => {
-    preloadSfx()
+    const bootstrap = () => {
+      void unlockAudio().then(() => preloadAudioCritical())
+    }
+
+    window.addEventListener('pointerdown', bootstrap, { once: true, passive: true })
+    window.addEventListener('keydown', bootstrap, { once: true })
+    preloadAudioIdle()
+
+    return () => {
+      window.removeEventListener('pointerdown', bootstrap)
+      window.removeEventListener('keydown', bootstrap)
+    }
   }, [])
 
   useEffect(() => {
@@ -295,6 +306,7 @@ export function useGame() {
 
   const onStart = useCallback(() => {
     if (sessionRef.current.phase === 'playing') return
+    void preloadAudioGameplay()
     benchmarkSessionRef.current = false
     setBenchmarkMode(false)
     resetBenchmark()
@@ -308,6 +320,7 @@ export function useGame() {
 
   const onStartBenchmarkSession = useCallback(() => {
     if (sessionRef.current.phase === 'playing') return
+    void preloadAudioGameplay()
     benchmarkSessionRef.current = true
     setBenchmarkMode(true)
     gameOverFxHandledRef.current = false
@@ -426,9 +439,11 @@ export function useGame() {
   }, [])
 
   const playClick = useCallback(() => {
+    void preloadAudioCritical()
     playSfx('click', soundEnabledRef.current)
   }, [])
   const playGameStart = useCallback(() => {
+    void preloadAudioGameplay()
     playSfx('gameStart', soundEnabledRef.current)
   }, [])
   const playWriteKey = useCallback(() => {

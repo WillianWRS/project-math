@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   clearAllSideCycles,
+  computeBenchmarkGrades,
   computeFrameStats,
+  computeOverallBenchmarkGrade,
   isBenchmarkPhaseComplete,
   nextBenchmarkPhase,
   shouldInjectBenchmarkCycle,
@@ -53,5 +55,15 @@ describe('benchmark-driver', () => {
     expect(stats.samples).toBe(5)
     expect(stats.jankFrames).toBe(1)
     expect(stats.estimatedFps).toBeGreaterThan(0)
+    expect(stats.p99FrameMs).toBeGreaterThan(0)
+  })
+
+  it('computes benchmark grades and overall average', () => {
+    const frames = computeFrameStats([16, 17, 18, 19, 20])
+    const grades = computeBenchmarkGrades(frames, 650)
+    expect(grades.some((grade) => grade.id === 'p99FrameMs')).toBe(true)
+    expect(grades.some((grade) => grade.id === 'rawMaxFrameMs')).toBe(true)
+    expect(grades.some((grade) => grade.label === 'Taxa de engasgos')).toBe(true)
+    expect(computeOverallBenchmarkGrade(grades)).toMatch(/^[SABCDEF]$/)
   })
 })
