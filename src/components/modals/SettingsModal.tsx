@@ -16,6 +16,21 @@ interface SettingsModalProps {
   onBackgroundThemeChange: (theme: BackgroundTheme) => void
 }
 
+const stageTransition = { duration: 0.42, ease: [0.22, 1, 0.36, 1] as const }
+
+function stageItem(delay: number, x: number, y: number) {
+  return {
+    initial: { opacity: 0, x, y, scale: 0.985 },
+    animate: {
+      opacity: 1,
+      x: 0,
+      y: 0,
+      scale: 1,
+      transition: { ...stageTransition, delay },
+    },
+  } as const
+}
+
 function ThemeSelectionRing({ water }: { water: boolean }) {
   const reduceMotion = useReducedMotion()
 
@@ -51,20 +66,21 @@ export function SettingsModal({
   return (
     <Modal open={open} title="Configurações" onClose={onClose}>
       <div className="space-y-4">
-        <div>
+        <motion.div {...stageItem(0.04, 0, 14)}>
           <p className="mb-2 text-sm font-medium text-stone-200">Fundo do jogo</p>
           <div className="grid grid-cols-2 gap-3">
-            {ownedThemes.map((option) => {
+            {ownedThemes.map((option, index) => {
               const themeId = option.equippableThemeId as BackgroundTheme
               const selected = backgroundTheme === themeId
               return (
-                <button
+                <motion.button
                   key={option.id}
                   type="button"
                   onClick={() => onBackgroundThemeChange(themeId)}
                   className={`game-modal-card settings-theme-card relative flex flex-col overflow-hidden text-left ${
                     selected ? '' : 'hover:border-stone-600/50'
                   }`}
+                  {...stageItem(0.12 + index * 0.06, index % 2 === 0 ? -8 : 8, 10)}
                 >
                   {selected && <ThemeSelectionRing water={themeId === 'water'} />}
                   <div className={`settings-bg-preview ${option.previewClass}`} aria-hidden />
@@ -72,13 +88,16 @@ export function SettingsModal({
                     <p className="text-sm font-medium text-stone-200">{option.name}</p>
                     <p className="text-xs text-charcoal-muted">Tema desbloqueado</p>
                   </div>
-                </button>
+                </motion.button>
               )
             })}
           </div>
-        </div>
+        </motion.div>
 
-        <label className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
+        <motion.label
+          className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3"
+          {...stageItem(0.2, -10, 8)}
+        >
           <div>
             <p className="font-medium text-stone-200">Som</p>
             <p className="text-xs text-charcoal-muted">Efeitos de acerto, erro e level up</p>
@@ -99,9 +118,12 @@ export function SettingsModal({
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             />
           </motion.button>
-        </label>
+        </motion.label>
 
-        <label className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
+        <motion.label
+          className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3"
+          {...stageItem(0.27, 10, 10)}
+        >
           <div>
             <p className="font-medium text-stone-200">Dev Mode</p>
             <p className="text-xs text-charcoal-muted">Exibe botões Benchmark e Theme Test no menu</p>
@@ -122,7 +144,7 @@ export function SettingsModal({
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             />
           </motion.button>
-        </label>
+        </motion.label>
       </div>
     </Modal>
   )

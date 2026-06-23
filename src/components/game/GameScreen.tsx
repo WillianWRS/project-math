@@ -3,7 +3,12 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNod
 import { ForwardLinesBackground } from './ForwardLinesBackground'
 import { NumericKeypad } from './NumericKeypad'
 import { PlayFieldsSideLayout } from './SideCardRails'
-import { ElapsedTimeLabel, PlayingTimerBar } from './GameTimerDisplay'
+import {
+  ElapsedTimeLabel,
+  PlayingTimerBar,
+  TIMER_URGENT_RATIO,
+} from './GameTimerDisplay'
+import { useGameTimer } from '../../hooks/useGameTimer'
 import { CurtainOverlay } from './CurtainOverlay'
 import { PlayFieldsFrame } from './PlayFieldsFrame'
 import { WaterSceneLayer } from './WaterSceneLayer'
@@ -39,6 +44,7 @@ interface GameScreenProps {
   player: PlayerData
   lastGameRewards: PostGameRewards
   benchmarkMode: boolean
+  perfectAnswerToken: number
   benchmarkMetrics: BenchmarkMetrics | null
   benchmarkVirtualKeypadPress: { key: BenchmarkVirtualKey; token: number } | null
   soundEnabled: boolean
@@ -71,6 +77,28 @@ const slideTransition = SLIDE_TRANSITION
 const sceneEnterTransition = { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const }
 const ENTER_DURATION_MS = 340
 const CLOSE_DURATION_MS = 420
+const menuStageTransition = { duration: 0.44, ease: [0.22, 1, 0.36, 1] as const }
+const layerParallaxTransition = { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
+
+function menuStageItem(
+  delay: number,
+  offsetX: number,
+  offsetY: number,
+): {
+  initial: { opacity: number; x: number; y: number; scale: number }
+  animate: { opacity: number; x: number; y: number; scale: number; transition: typeof menuStageTransition & { delay: number } }
+} {
+  return {
+    initial: { opacity: 0, x: offsetX, y: offsetY, scale: 0.97 },
+    animate: {
+      opacity: 1,
+      x: 0,
+      y: 0,
+      scale: 1,
+      transition: { ...menuStageTransition, delay },
+    },
+  }
+}
 
 function SlideValue({
   value,
@@ -312,6 +340,7 @@ function ThemeTestSideLayout({
   onToggleAutoCheck,
   onToggleChanger,
   onPlayClick,
+  parallaxActive,
   children,
 }: {
   activeChanger: RightCardVariant | null
@@ -319,69 +348,91 @@ function ThemeTestSideLayout({
   onToggleAutoCheck: () => void
   onToggleChanger: (variant: RightCardVariant) => void
   onPlayClick: () => void
+  parallaxActive: boolean
   children: ReactNode
 }) {
   return (
     <div className="game-play-row">
-      <div className="game-side-cards game-side-cards--left !pointer-events-auto">
-        {Array.from({ length: RightSideCardCatalog.cardCount }, (_, index) => (
-          <div key={`left-slot-${index}`} className="game-side-card-slot">
-            {index === 0 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  onPlayClick()
-                  onToggleAutoCheck()
-                }}
-                className={`game-side-card game-side-card--legendary game-side-card--auto-cycle transition-all duration-150 hover:scale-[1.03] active:scale-[0.97] ${
-                  autoCheckEnabled ? '' : 'opacity-55 saturate-50'
-                }`}
-                aria-pressed={autoCheckEnabled}
-                aria-label={`Auto-check ${autoCheckEnabled ? 'ativado' : 'desativado'}`}
-              >
-                <span className="game-side-card__content">
-                  <span className="game-side-card__label game-side-card__label--legendary">AUTO</span>
-                  <span className="game-side-card__icon game-side-card__icon--legendary">
-                    <IconCheckSmall />
+      <motion.div
+        className="relative z-[1]"
+        initial={{ x: -16, y: 10, opacity: 0 }}
+        animate={parallaxActive ? { x: 0, y: 0, opacity: 1 } : { x: -16, y: 10, opacity: 0.95 }}
+        transition={layerParallaxTransition}
+      >
+        <div className="game-side-cards game-side-cards--left !pointer-events-auto">
+          {Array.from({ length: RightSideCardCatalog.cardCount }, (_, index) => (
+            <div key={`left-slot-${index}`} className="game-side-card-slot">
+              {index === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPlayClick()
+                    onToggleAutoCheck()
+                  }}
+                  className={`game-side-card game-side-card--legendary game-side-card--auto-cycle transition-all duration-150 hover:scale-[1.03] active:scale-[0.97] ${
+                    autoCheckEnabled ? '' : 'opacity-55 saturate-50'
+                  }`}
+                  aria-pressed={autoCheckEnabled}
+                  aria-label={`Auto-check ${autoCheckEnabled ? 'ativado' : 'desativado'}`}
+                >
+                  <span className="game-side-card__content">
+                    <span className="game-side-card__label game-side-card__label--legendary">AUTO</span>
+                    <span className="game-side-card__icon game-side-card__icon--legendary">
+                      <IconCheckSmall />
+                    </span>
                   </span>
-                </span>
-              </button>
-            ) : null}
-          </div>
-        ))}
-      </div>
-
-      <div className="game-play-row__center">{children}</div>
-
-      <div className="game-side-cards game-side-cards--right !pointer-events-auto">
-        {RightSideCardCatalog.cards.map((card) => {
-          const active = activeChanger === card.variant
-
-          return (
-            <div key={card.id} className="game-side-card-slot">
-              <button
-                type="button"
-                onClick={() => {
-                  onPlayClick()
-                  onToggleChanger(card.variant)
-                }}
-                className={`game-side-card ${card.styleClass} transition-transform duration-150 hover:scale-[1.03] active:scale-[0.97] ${
-                  active ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-charcoal' : ''
-                }`}
-                aria-pressed={active}
-                aria-label={`Alternar preview do game changer ${card.id}`}
-              >
-                <span className="game-side-card__content">
-                  <RightCardIcon variant={card.variant} />
-                  {card.label ? (
-                    <span className={`game-side-card__label ${card.labelClass ?? ''}`}>{card.label}</span>
-                  ) : null}
-                </span>
-              </button>
+                </button>
+              ) : null}
             </div>
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      </motion.div>
+
+      <motion.div
+        className="game-play-row__center"
+        initial={{ x: 0, y: 14, opacity: 0 }}
+        animate={parallaxActive ? { x: 0, y: 0, opacity: 1 } : { x: 0, y: 14, opacity: 0.96 }}
+        transition={layerParallaxTransition}
+      >
+        {children}
+      </motion.div>
+
+      <motion.div
+        className="relative z-[1]"
+        initial={{ x: 16, y: 10, opacity: 0 }}
+        animate={parallaxActive ? { x: 0, y: 0, opacity: 1 } : { x: 16, y: 10, opacity: 0.95 }}
+        transition={layerParallaxTransition}
+      >
+        <div className="game-side-cards game-side-cards--right !pointer-events-auto">
+          {RightSideCardCatalog.cards.map((card) => {
+            const active = activeChanger === card.variant
+
+            return (
+              <div key={card.id} className="game-side-card-slot">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPlayClick()
+                    onToggleChanger(card.variant)
+                  }}
+                  className={`game-side-card ${card.styleClass} transition-transform duration-150 hover:scale-[1.03] active:scale-[0.97] ${
+                    active ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-charcoal' : ''
+                  }`}
+                  aria-pressed={active}
+                  aria-label={`Alternar preview do game changer ${card.id}`}
+                >
+                  <span className="game-side-card__content">
+                    <RightCardIcon variant={card.variant} />
+                    {card.label ? (
+                      <span className={`game-side-card__label ${card.labelClass ?? ''}`}>{card.label}</span>
+                    ) : null}
+                  </span>
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      </motion.div>
     </div>
   )
 }
@@ -606,6 +657,37 @@ function AnswerDigitPulse({ value, autoCheck = false }: { value: string; autoChe
   )
 }
 
+function PerfectAnswerBadge({ token }: { token: number }) {
+  return (
+    <motion.div
+      key={`perfect-${token}`}
+      className="pointer-events-none absolute left-1/2 top-1 z-[5] -translate-x-1/2"
+      initial={{ opacity: 0, y: 16, scale: 0.84 }}
+      animate={{
+        opacity: [0, 1, 0],
+        y: [16, -4, -30],
+        scale: [0.84, 1, 0.95],
+      }}
+      transition={{ duration: 1, times: [0, 0.28, 1], ease: [0.22, 1, 0.36, 1] }}
+      aria-hidden
+    >
+      <motion.span
+        className="game-perfect-badge__trail game-perfect-badge__trail--inner"
+        initial={{ opacity: 0.82, scaleX: 0.72 }}
+        animate={{ opacity: [0.82, 0], scaleX: [0.72, 1.34] }}
+        transition={{ duration: 1, times: [0, 1], ease: [0.22, 1, 0.36, 1] }}
+      />
+      <motion.span
+        className="game-perfect-badge__trail game-perfect-badge__trail--outer"
+        initial={{ opacity: 0.58, scaleX: 0.66 }}
+        animate={{ opacity: [0.58, 0], scaleX: [0.66, 1.52] }}
+        transition={{ duration: 1, times: [0, 1], ease: [0.22, 1, 0.36, 1] }}
+      />
+      <span className="game-perfect-badge">PERFEITO</span>
+    </motion.div>
+  )
+}
+
 function AnswerDisplay({
   value,
   disabled,
@@ -614,6 +696,7 @@ function AnswerDisplay({
   answerFlash,
   answerFlashAuto,
   flashKey,
+  perfectAnswerToken,
   waterLight = false,
   fourSecondsLight = false,
   timesDivLight = false,
@@ -628,6 +711,7 @@ function AnswerDisplay({
   answerFlash: string | null
   answerFlashAuto: boolean
   flashKey: number
+  perfectAnswerToken: number
   waterLight?: boolean
   fourSecondsLight?: boolean
   timesDivLight?: boolean
@@ -643,6 +727,7 @@ function AnswerDisplay({
     <div
       className={`relative overflow-visible px-3 py-3${useWaterAnswerRow ? ' game-answer-row--water' : ''}`}
     >
+      {perfectAnswerToken > 0 && <PerfectAnswerBadge token={perfectAnswerToken} />}
       <AnimatePresence>
         {answerFlash && (
           <AnswerDigitPulse
@@ -708,6 +793,7 @@ export function GameScreen({
   player,
   lastGameRewards,
   benchmarkMode,
+  perfectAnswerToken,
   benchmarkMetrics,
   benchmarkVirtualKeypadPress,
   soundEnabled,
@@ -742,6 +828,7 @@ export function GameScreen({
   const prevScoreRef = useRef(0)
   const answerFieldRef = useRef<HTMLDivElement>(null)
   const [sharing, setSharing] = useState(false)
+  const [victoryBorderPulseToken, setVictoryBorderPulseToken] = useState(0)
   const [pendingStartMode, setPendingStartMode] = useState<'play' | 'benchmark' | 'theme-test' | null>(null)
   const [themeTestScore, setThemeTestScore] = useState(0)
   const [themeTestBurstFlash, setThemeTestBurstFlash] = useState<number | null>(null)
@@ -799,6 +886,8 @@ export function GameScreen({
   const showGameContent = presentation === 'opening' || presentation === 'in-game' || presentation === 'theme-test'
   const showMenuChrome = presentation === 'menu'
   const isInGameScene = presentation !== 'menu'
+  const parallaxLayerActive =
+    presentation === 'opening' || presentation === 'in-game' || presentation === 'theme-test'
   const useWaterBackground = isInGameScene && backgroundTheme === 'water'
   const baseFieldClass = fourSecondsActive
     ? 'text-orange-950'
@@ -1025,6 +1114,10 @@ export function GameScreen({
   }, [benchmarkMode, session.phase, session.isSubmitLocked, appendDigit, backspaceDigit, onConfirm])
 
   const themeTestOperation: Operation = { operator: '+', operand: 7, result: 31 }
+  const { timerMs: liveTimerMs } = useGameTimer()
+  const timerNowMs = isPlaying ? liveTimerMs : session.timerMs
+  const timerRatio = session.timerMaxMs > 0 ? Math.max(0, timerNowMs / session.timerMaxMs) : 0
+  const timerDanger = isPlaying && timerRatio < TIMER_URGENT_RATIO
   const currentPlayStackClass = fourSecondsActive
     ? 'game-play-stack--four-seconds'
     : timesDivActive
@@ -1036,6 +1129,23 @@ export function GameScreen({
           : useWaterBackground
             ? 'game-play-stack--water'
             : 'bg-charcoal-field'
+  const showGoodSceneBorder = isInGameScene && !timerDanger && currentScore >= 500
+
+  useEffect(() => {
+    if (!isInGameScene || timerDanger) {
+      prevScoreRef.current = currentScore
+      return
+    }
+
+    const previousScore = prevScoreRef.current
+    const previousMilestone = previousScore >= 500 ? Math.floor(previousScore / 100) : 4
+    const currentMilestone = currentScore >= 500 ? Math.floor(currentScore / 100) : 4
+    if (currentScore >= 500 && currentMilestone > previousMilestone) {
+      setVictoryBorderPulseToken((token) => token + 1)
+    }
+
+    prevScoreRef.current = currentScore
+  }, [currentScore, isInGameScene, timerDanger])
 
   return (
     <div
@@ -1043,13 +1153,64 @@ export function GameScreen({
         useWaterBackground ? 'game-scene--water' : 'bg-charcoal'
       }`}
     >
-      {useWaterBackground && <WaterSceneLayer />}
-      <ForwardLinesBackground
-        active={presentation !== 'menu' && !anyModalOpen}
-        rhythmLevel={session.rhythmLevel}
-        speedMultiplier={isGameOver ? 0.1 : 1}
-        theme={useWaterBackground ? 'water' : 'default'}
-      />
+      <AnimatePresence>
+        {timerDanger && (
+          <motion.div
+            key="danger-vignette"
+            className="game-scene-danger-vignette pointer-events-none absolute inset-0 z-[40]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.9 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            aria-hidden
+          />
+        )}
+      </AnimatePresence>
+      {timerDanger && (
+        <motion.div
+          className="game-scene-border-pulse game-scene-border-pulse--danger pointer-events-none absolute inset-0 z-[45]"
+          animate={{ opacity: [0.45, 1, 0.45] }}
+          transition={{ duration: 1.05, ease: [0.22, 1, 0.36, 1], repeat: Infinity }}
+          aria-hidden
+        />
+      )}
+      {showGoodSceneBorder && (
+        <div
+          className="game-scene-border-static pointer-events-none absolute inset-0 z-[44]"
+          aria-hidden
+        />
+      )}
+      <AnimatePresence>
+        {showGoodSceneBorder && victoryBorderPulseToken > 0 && (
+          <motion.div
+            key={`victory-border-${victoryBorderPulseToken}`}
+            className="game-scene-border-burst pointer-events-none absolute inset-0 z-[45]"
+            initial={{ opacity: 0.25, scale: 1 }}
+            animate={{ opacity: [0.25, 0.9, 0], scale: [1, 1.01, 1.02] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            aria-hidden
+          />
+        )}
+      </AnimatePresence>
+      <motion.div
+        className="pointer-events-none absolute inset-0 z-0"
+        initial={false}
+        animate={
+          isInGameScene
+            ? { x: 0, y: 0, scale: 1, opacity: 1 }
+            : { x: 22, y: -12, scale: 1.04, opacity: 0.9 }
+        }
+        transition={layerParallaxTransition}
+      >
+        {useWaterBackground && <WaterSceneLayer />}
+        <ForwardLinesBackground
+          active={presentation !== 'menu' && !anyModalOpen}
+          rhythmLevel={session.rhythmLevel}
+          speedMultiplier={isGameOver ? 0.1 : 1}
+          theme={useWaterBackground ? 'water' : 'default'}
+        />
+      </motion.div>
 
       {showGameContent && (
         <motion.div
@@ -1059,79 +1220,99 @@ export function GameScreen({
           transition={sceneEnterTransition}
           style={{ willChange: presentation === 'opening' ? 'transform' : 'auto' }}
         >
-          <header className={useWaterBackground ? 'game-scene-header--water' : undefined}>
-            <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-widest text-charcoal-muted">Pontuação</p>
-              <span className="game-player-level-badge rounded-md bg-charcoal-elevated px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-200">
-                Nível {playerLevel}
-              </span>
-            </div>
-            <div className="relative left-1/2 h-12 w-screen -translate-x-1/2">
-              <div className="relative mx-auto h-full max-w-md px-4">
-                <p className="pointer-events-none absolute inset-x-0 top-0 text-center text-xs text-charcoal-muted">
-                  {isThemeTestScene
-                    ? '00:00'
-                    : isPlaying
-                      ? <ElapsedTimeLabel fallbackMs={session.elapsedMs} />
-                      : gameOverElapsedText}
-                </p>
-                <div className="flex h-full items-end">
-                  <div className="relative h-12 min-w-0 flex-1 overflow-hidden">
-                    <AnimatePresence mode="sync" initial={false}>
-                      <motion.p
-                        key={currentScore}
-                        className="absolute left-0 font-mono text-4xl font-bold tabular-nums text-white"
-                        initial={{ y: '100%', opacity: 0.5 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: '-100%', opacity: 0 }}
-                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                      >
-                        {currentScore}
-                      </motion.p>
-                    </AnimatePresence>
-                  </div>
-                </div>
-
-                {isInGameScene && (
-                  <div className="game-header-menu-dock pointer-events-none absolute inset-y-0 right-4 flex items-center">
-                    <AnimatedGameMenuButton
-                      compact={!isGameOver}
-                      waterLight={useWaterBackground}
-                      onClick={handleReturnToMenu}
-                    />
-                  </div>
-                )}
-
-                <AnimatePresence>
-                  {isGameOver && !benchmarkMode && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.92 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.92 }}
-                      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                      className="game-over-actions pointer-events-none absolute inset-0 flex items-center justify-center"
-                    >
-                      <div className="game-over-actions__row game-over-actions__row--play">
-                        <MenuHudInlineButton
-                          label="Jogar novamente"
-                          variant="accent"
-                          onClick={handlePlayAgain}
-                          waterLight={useWaterBackground}
-                          fill
-                        >
-                          <span className="scale-75">
-                            <IconPlay />
-                          </span>
-                        </MenuHudInlineButton>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+          <motion.header
+            className={useWaterBackground ? 'game-scene-header--water' : undefined}
+            initial={{ opacity: 0, x: 10, y: -12 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            transition={{ ...layerParallaxTransition, delay: 0.04 }}
+          >
+            <motion.div
+              key={`hud-shake-${shakeKey}`}
+              animate={
+                shakeKey > 0
+                  ? { x: [0, -7, 6, -4, 3, 0], y: [0, -1, 1, -1, 0], rotate: [0, -0.3, 0.25, -0.12, 0] }
+                  : { x: 0, y: 0, rotate: 0 }
+              }
+              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-widest text-charcoal-muted">Pontuação</p>
+                <span className="game-player-level-badge rounded-md bg-charcoal-elevated px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-200">
+                  Nível {playerLevel}
+                </span>
               </div>
-            </div>
-          </header>
+              <div className="relative left-1/2 h-12 w-screen -translate-x-1/2">
+                <div className="relative mx-auto h-full max-w-md px-4">
+                  <p className="pointer-events-none absolute inset-x-0 top-0 text-center text-xs text-charcoal-muted">
+                    {isThemeTestScene
+                      ? '00:00'
+                      : isPlaying
+                        ? <ElapsedTimeLabel fallbackMs={session.elapsedMs} />
+                        : gameOverElapsedText}
+                  </p>
+                  <div className="flex h-full items-end">
+                    <div className="relative h-12 min-w-0 flex-1 overflow-hidden">
+                      <AnimatePresence mode="sync" initial={false}>
+                        <motion.p
+                          key={currentScore}
+                          className="absolute left-0 font-mono text-4xl font-bold tabular-nums text-white"
+                          initial={{ y: '100%', opacity: 0.5 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: '-100%', opacity: 0 }}
+                          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        >
+                          {currentScore}
+                        </motion.p>
+                      </AnimatePresence>
+                    </div>
+                  </div>
 
-          <main className="mt-5 flex flex-1 flex-col items-center gap-4">
+                  {isInGameScene && (
+                    <div className="game-header-menu-dock pointer-events-none absolute inset-y-0 right-4 flex items-center">
+                      <AnimatedGameMenuButton
+                        compact={!isGameOver}
+                        waterLight={useWaterBackground}
+                        onClick={handleReturnToMenu}
+                      />
+                    </div>
+                  )}
+
+                  <AnimatePresence>
+                    {isGameOver && !benchmarkMode && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.92 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.92 }}
+                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                        className="game-over-actions pointer-events-none absolute inset-0 flex items-center justify-center"
+                      >
+                        <div className="game-over-actions__row game-over-actions__row--play">
+                          <MenuHudInlineButton
+                            label="Jogar novamente"
+                            variant="accent"
+                            onClick={handlePlayAgain}
+                            waterLight={useWaterBackground}
+                            fill
+                          >
+                            <span className="scale-75">
+                              <IconPlay />
+                            </span>
+                          </MenuHudInlineButton>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </motion.div>
+          </motion.header>
+
+          <motion.main
+            className="mt-5 flex flex-1 flex-col items-center gap-4"
+            initial={{ opacity: 0, x: -8, y: 14 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            transition={{ ...layerParallaxTransition, delay: 0.08 }}
+          >
             {isThemeTestScene ? (
               <ThemeTestSideLayout
                 activeChanger={themeTestChanger}
@@ -1139,6 +1320,7 @@ export function GameScreen({
                 onToggleAutoCheck={handleThemeTestAutoCheckToggle}
                 onToggleChanger={handleThemeTestChangerToggle}
                 onPlayClick={onPlayClick}
+                parallaxActive={parallaxLayerActive}
               >
                 <PlayFieldsFrame
                   level={5}
@@ -1146,8 +1328,13 @@ export function GameScreen({
                   burstScore={themeTestBurstToken}
                   waterLight={useWaterBackground}
                   borderActive
+                  timerDanger={timerDanger}
                 >
-                  <div className={`game-play-stack w-full rounded-3xl ${currentPlayStackClass}`}>
+                  <div
+                    className={`game-play-stack w-full rounded-3xl ${currentPlayStackClass}${
+                      timerDanger ? ' game-play-stack--timer-danger' : ''
+                    }`}
+                  >
                     <button
                       type="button"
                       onClick={handleThemeTestFieldClick}
@@ -1185,6 +1372,7 @@ export function GameScreen({
                         answerFlash={null}
                         answerFlashAuto={false}
                         flashKey={themeTestScore}
+                        perfectAnswerToken={0}
                         waterLight={useWaterBackground}
                         fourSecondsLight={fourSecondsActive}
                         timesDivLight={timesDivActive}
@@ -1207,6 +1395,7 @@ export function GameScreen({
                 minusCycleStep={session.minusCycleStep}
                 minusGameChangerActive={session.minusGameChangerActive}
                 answerFieldRef={answerFieldRef}
+                parallaxActive={parallaxLayerActive}
               >
                 <PlayFieldsFrame
                   level={session.rhythmLevel}
@@ -1214,8 +1403,13 @@ export function GameScreen({
                   burstScore={session.score}
                   waterLight={useWaterBackground}
                   borderActive={isPlaying}
+                  timerDanger={timerDanger}
                 >
-                  <div className={`game-play-stack w-full rounded-3xl ${currentPlayStackClass}`}>
+                  <div
+                    className={`game-play-stack w-full rounded-3xl ${currentPlayStackClass}${
+                      timerDanger ? ' game-play-stack--timer-danger' : ''
+                    }`}
+                  >
                     <div className="game-play-stack__divider border-b px-3 py-4 text-center">
                       {isPlaying || isGameOver ? (
                         <SlideValue
@@ -1260,6 +1454,7 @@ export function GameScreen({
                       answerFlash={session.answerFlash}
                       answerFlashAuto={session.answerFlashAuto}
                       flashKey={session.score}
+                      perfectAnswerToken={perfectAnswerToken}
                       waterLight={useWaterBackground}
                       fourSecondsLight={fourSecondsActive}
                       timesDivLight={timesDivActive}
@@ -1438,7 +1633,7 @@ export function GameScreen({
                 </div>
               </motion.div>
             )}
-          </main>
+          </motion.main>
         </motion.div>
       )}
 
@@ -1453,59 +1648,73 @@ export function GameScreen({
       {showMenuChrome && (
         <>
           <div className="fixed inset-x-0 top-0 z-[60] flex items-start justify-between px-6 pt-[max(1rem,env(safe-area-inset-top))]">
-            <MenuHudInlineButton
-              label="Loja"
-              onClick={() => {
-                onPlayClick()
-                setShopOpen(true)
-              }}
-            >
-              <IconTrophy />
-            </MenuHudInlineButton>
-            <button
-              type="button"
-              disabled
-              aria-disabled="true"
-              className="game-menu-hud-btn game-menu-hud-btn--inline opacity-50"
-            >
-              <span className="game-menu-hud-btn__plate game-menu-hud-btn__plate--inline">
-                <span className="game-menu-hud-btn__inline-text">Como jogar</span>
-              </span>
-            </button>
+            <motion.div {...menuStageItem(0.06, -14, -8)}>
+              <MenuHudInlineButton
+                label="Loja"
+                onClick={() => {
+                  onPlayClick()
+                  setShopOpen(true)
+                }}
+              >
+                <IconTrophy />
+              </MenuHudInlineButton>
+            </motion.div>
+            <motion.div {...menuStageItem(0.12, 14, -10)}>
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                className="game-menu-hud-btn game-menu-hud-btn--inline opacity-50"
+              >
+                <span className="game-menu-hud-btn__plate game-menu-hud-btn__plate--inline">
+                  <span className="game-menu-hud-btn__inline-text">Como jogar</span>
+                </span>
+              </button>
+            </motion.div>
           </div>
 
           <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
             <div className="pointer-events-auto flex flex-col items-center gap-3">
-              <MenuPlayButton onClick={handlePlay} />
+              <motion.div {...menuStageItem(0.18, 0, 20)}>
+                <MenuPlayButton onClick={handlePlay} />
+              </motion.div>
               {devModeEnabled && (
                 <>
-                  <MenuBenchmarkButton onClick={handleBenchmark} />
-                  <MenuThemeTestButton onClick={handleThemeTest} />
+                  <motion.div {...menuStageItem(0.26, -8, 16)}>
+                    <MenuBenchmarkButton onClick={handleBenchmark} />
+                  </motion.div>
+                  <motion.div {...menuStageItem(0.32, 9, 18)}>
+                    <MenuThemeTestButton onClick={handleThemeTest} />
+                  </motion.div>
                 </>
               )}
             </div>
           </div>
 
           <footer className="fixed inset-x-0 bottom-0 z-[60] flex items-end justify-between px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-            <MenuHudButton
-              label="Jogador"
-              onClick={() => {
-                onPlayClick()
-                setPlayerOpen(true)
-              }}
-            >
-              <IconTrophy />
-            </MenuHudButton>
+            <motion.div {...menuStageItem(0.22, -16, 12)}>
+              <MenuHudButton
+                label="Jogador"
+                onClick={() => {
+                  onPlayClick()
+                  setPlayerOpen(true)
+                }}
+              >
+                <IconTrophy />
+              </MenuHudButton>
+            </motion.div>
 
-            <MenuHudButton
-              label="Config"
-              onClick={() => {
-                onPlayClick()
-                setSettingsOpen(true)
-              }}
-            >
-              <IconGear />
-            </MenuHudButton>
+            <motion.div {...menuStageItem(0.28, 16, 12)}>
+              <MenuHudButton
+                label="Config"
+                onClick={() => {
+                  onPlayClick()
+                  setSettingsOpen(true)
+                }}
+              >
+                <IconGear />
+              </MenuHudButton>
+            </motion.div>
           </footer>
         </>
       )}

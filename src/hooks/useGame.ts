@@ -35,6 +35,7 @@ import type { BenchmarkVirtualKey } from '../engine/benchmark-types'
 const TIMER_UI_PUBLISH_MS = 100
 const DAILY_GOAL_SCORE = 1000
 const DAILY_GOAL_XP_REWARD = 1000
+const PERFECT_ANSWER_RATIO = 0.9
 
 export interface PostGameRewards {
   xpGained: number
@@ -52,6 +53,7 @@ export function useGame() {
     coinsGained: 0,
     goalCompleted: false,
   })
+  const [perfectAnswerToken, setPerfectAnswerToken] = useState(0)
   const { player, commitPlayer, grantAutoCheck, spendAutoCheck, setEquippedTheme, ...playerActions } =
     usePlayer()
   const sessionRef = useRef(session)
@@ -61,6 +63,10 @@ export function useGame() {
   const lastPersistedScoreRef = useRef<number | null>(null)
   const timerMsRef = useRef(session.timerMs)
   const elapsedMsRef = useRef(session.elapsedMs)
+  const cycleStartedAtRef = useRef(0)
+  const cycleTimerMaxRef = useRef(session.timerMaxMs)
+  const cycleScoreRef = useRef(session.score)
+  const prevPhaseRef = useRef(session.phase)
 
   const benchmarkSessionRef = useRef(false)
   const [benchmarkMode, setBenchmarkMode] = useState(false)
@@ -82,6 +88,13 @@ export function useGame() {
     },
     [],
   )
+  const onBenchmarkPerfectAnswer = useCallback((timerMaxMs: number) => {
+    if (timerMaxMs <= 0) return
+    const liveTimerRatio = Math.max(0, timerMsRef.current) / timerMaxMs
+    if (liveTimerRatio >= PERFECT_ANSWER_RATIO) {
+      setPerfectAnswerToken((token) => token + 1)
+    }
+  }, [])
   const {
     benchmarkActive,
     benchmarkMetrics,
@@ -95,6 +108,7 @@ export function useGame() {
     grantAutoCheck,
     spendAutoCheck,
     onVirtualKeyPress: onBenchmarkVirtualKeyPress,
+    onBenchmarkPerfectAnswer,
     onBenchmarkCorrectAnswer,
   })
 
@@ -123,6 +137,22 @@ export function useGame() {
     elapsedMsRef.current = session.elapsedMs
     gameTimerStore.sync(session.timerMs, session.elapsedMs)
   }, [session.phase, session.score, session.timerMs, session.elapsedMs, session.awaitingAutoCheckChoice])
+
+  useEffect(() => {
+    const phaseChanged = prevPhaseRef.current !== session.phase
+    if (session.phase === 'playing' && (phaseChanged || session.score !== cycleScoreRef.current)) {
+      cycleStartedAtRef.current = performance.now()
+      cycleTimerMaxRef.current = session.timerMaxMs
+      cycleScoreRef.current = session.score
+    }
+
+    if (session.phase !== 'playing') {
+      cycleScoreRef.current = session.score
+      cycleTimerMaxRef.current = session.timerMaxMs
+    }
+
+    prevPhaseRef.current = session.phase
+  }, [session.phase, session.score, session.timerMaxMs])
 
   useEffect(() => {
     if (session.phase !== 'playing') return
@@ -276,6 +306,16 @@ export function useGame() {
       }
 
       if (result === 'correct') {
+        const elapsedInCycleMs = Math.max(0, performance.now() - cycleStartedAtRef.current)
+        const cycleTimerMaxMs = Math.max(1, cycleTimerMaxRef.current)
+        const liveTimerRatio = Math.max(0, 1 - elapsedInCycleMs / cycleTimerMaxMs)
+        if (
+          !fromAutoCheck &&
+          !benchmarkSessionRef.current &&
+          liveTimerRatio >= PERFECT_ANSWER_RATIO
+        ) {
+          setPerfectAnswerToken((token) => token + 1)
+        }
         playCorrectAnswerSfx(isAnyGameChangerActive(current), soundEnabledRef.current, fromAutoCheck)
       } else if (result === 'wrong') {
         playSfx('error', soundEnabledRef.current)
@@ -380,6 +420,7 @@ export function useGame() {
     benchmarkMetrics,
     benchmarkVirtualKeypadPress,
     benchmarkMode,
+    perfectAnswerToken,
     onStart,
     onStartBenchmarkSession,
     onReturnToMenu,

@@ -11,6 +11,7 @@ function App() {
       player={game.player}
       lastGameRewards={game.lastGameRewards}
       benchmarkMode={game.benchmarkMode}
+      perfectAnswerToken={game.perfectAnswerToken}
       benchmarkMetrics={game.benchmarkMetrics}
       benchmarkVirtualKeypadPress={game.benchmarkVirtualKeypadPress}
       soundEnabled={game.soundEnabled}

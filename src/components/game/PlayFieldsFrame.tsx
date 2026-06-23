@@ -15,6 +15,7 @@ interface PlayFieldsFrameProps {
   burstScore: number
   waterLight: boolean
   borderActive: boolean
+  timerDanger?: boolean
   children: ReactNode
 }
 
@@ -24,15 +25,18 @@ export function PlayFieldsFrame({
   burstScore,
   waterLight,
   borderActive,
+  timerDanger = false,
   children,
 }: PlayFieldsFrameProps) {
   const reduceMotion = useReducedMotion()
   const burstLevel = levelUpFlash ?? level
   const pulseDuration = playPulseDuration(level)
   const pulseScale = playPulseScaleMax(level)
-  const ringClass = waterLight
-    ? 'border-amber-500/80 shadow-[0_0_18px_rgba(251,191,36,0.35)]'
-    : 'border-amber-400/75 shadow-[0_0_16px_rgba(251,191,36,0.28)]'
+  const ringClass = timerDanger
+    ? 'border-rose-400/90 shadow-[0_0_22px_rgba(251,113,133,0.5)]'
+    : waterLight
+      ? 'border-amber-500/80 shadow-[0_0_18px_rgba(251,191,36,0.35)]'
+      : 'border-amber-400/75 shadow-[0_0_16px_rgba(251,191,36,0.28)]'
 
   return (
     <div className="game-play-stack-frame relative w-full max-w-[var(--game-main-column-width)]">

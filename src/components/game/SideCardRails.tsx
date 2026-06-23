@@ -23,6 +23,7 @@ interface SideCycleMergeKeyframes {
 type RightCycleVariant = 'timer' | 'mult-div' | 'cap-up' | 'cap-down'
 
 const sideCardTransition = { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }
+const layerParallaxTransition = { duration: 0.46, ease: [0.22, 1, 0.36, 1] as const }
 
 interface PlayFieldsSideLayoutProps {
   autoCheckCycleStep?: number | null
@@ -35,6 +36,7 @@ interface PlayFieldsSideLayoutProps {
   minusCycleStep?: number | null
   minusGameChangerActive?: boolean
   answerFieldRef?: RefObject<HTMLDivElement | null>
+  parallaxActive?: boolean
   children: ReactNode
 }
 
@@ -509,6 +511,7 @@ export const PlayFieldsSideLayout = memo(function PlayFieldsSideLayout({
   minusCycleStep = null,
   minusGameChangerActive = false,
   answerFieldRef,
+  parallaxActive = true,
   children,
 }: PlayFieldsSideLayoutProps) {
   const { playRowRef, leftColumnRef, rightColumnRef, setRightSlotRef, slotTops } =
@@ -561,21 +564,42 @@ export const PlayFieldsSideLayout = memo(function PlayFieldsSideLayout({
 
   return (
     <div ref={playRowRef} className="game-play-row">
-      <LeftAutoCheckColumn
-        autoCheckCycleStep={autoCheckCycleStep}
-        slotTops={slotTops}
-        columnRef={leftColumnRef}
-      />
-      <div className="game-play-row__center">{children}</div>
-      <RightSideCardColumn
-        fourSecondsCycleStep={fourSecondsCycleStep}
-        timesDivCycleStep={timesDivCycleStep}
-        plusCycleStep={plusCycleStep}
-        minusCycleStep={minusCycleStep}
-        slotTops={slotTops}
-        columnRef={rightColumnRef}
-        setSlotRef={setRightSlotRef}
-      />
+      <motion.div
+        className="relative z-[1]"
+        initial={{ x: -16, y: 10, opacity: 0 }}
+        animate={parallaxActive ? { x: 0, y: 0, opacity: 1 } : { x: -14, y: 10, opacity: 0.96 }}
+        transition={layerParallaxTransition}
+      >
+        <LeftAutoCheckColumn
+          autoCheckCycleStep={autoCheckCycleStep}
+          slotTops={slotTops}
+          columnRef={leftColumnRef}
+        />
+      </motion.div>
+      <motion.div
+        className="game-play-row__center"
+        initial={{ x: 0, y: 14, opacity: 0 }}
+        animate={parallaxActive ? { x: 0, y: 0, opacity: 1 } : { x: 0, y: 12, opacity: 0.96 }}
+        transition={layerParallaxTransition}
+      >
+        {children}
+      </motion.div>
+      <motion.div
+        className="relative z-[1]"
+        initial={{ x: 16, y: 10, opacity: 0 }}
+        animate={parallaxActive ? { x: 0, y: 0, opacity: 1 } : { x: 14, y: 10, opacity: 0.96 }}
+        transition={layerParallaxTransition}
+      >
+        <RightSideCardColumn
+          fourSecondsCycleStep={fourSecondsCycleStep}
+          timesDivCycleStep={timesDivCycleStep}
+          plusCycleStep={plusCycleStep}
+          minusCycleStep={minusCycleStep}
+          slotTops={slotTops}
+          columnRef={rightColumnRef}
+          setSlotRef={setRightSlotRef}
+        />
+      </motion.div>
 
       <AnimatePresence>
         {fourSecondsMergeExit && (

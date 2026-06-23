@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from '../../lib/motion'
-import { memo } from 'react'
+import { memo, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { DEBUG_AUTO_CHECK_ALWAYS_ENABLED } from '../../engine/game-state-machine'
 import type { BenchmarkVirtualKey } from '../../engine/benchmark-types'
 
@@ -38,6 +38,133 @@ const keypadReveal = {
     show: { opacity: 1, transition: { duration: 0.14, ease: keypadRevealEase } },
   },
 } as const
+
+interface PremiumKeyProps {
+  disabled: boolean
+  variants: (typeof keypadReveal)['key']
+  className?: string
+  ariaLabel: string
+  virtualPressed?: boolean
+  virtualPressToken?: number | null
+  forceVisible?: boolean
+  whileTap?: { scale: number; y: number }
+  onClick: () => void
+  children: ReactNode
+}
+
+interface KeyRipple {
+  id: number
+  x: number
+  y: number
+  scale: number
+  ghost: boolean
+}
+
+function PremiumKey({
+  disabled,
+  variants,
+  className = '',
+  ariaLabel,
+  virtualPressed = false,
+  virtualPressToken = null,
+  forceVisible = false,
+  whileTap,
+  onClick,
+  children,
+}: PremiumKeyProps) {
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
+  const rippleIdRef = useRef(0)
+  const lastVirtualTokenRef = useRef<number | null>(null)
+  const [pointerPressed, setPointerPressed] = useState(false)
+  const [ripples, setRipples] = useState<KeyRipple[]>([])
+
+  const removeRipple = useCallback((id: number) => {
+    setRipples((current) => current.filter((ripple) => ripple.id !== id))
+  }, [])
+
+  const spawnRipple = useCallback((x: number, y: number, width: number, height: number, ghost: boolean) => {
+    const dx = Math.max(x, Math.max(0, width - x))
+    const dy = Math.max(y, Math.max(0, height - y))
+    const radius = Math.hypot(dx, dy)
+    const scale = Math.max(2.8, (radius * 2.3) / 12)
+    rippleIdRef.current += 1
+    const nextRipple: KeyRipple = { id: rippleIdRef.current, x, y, scale, ghost }
+    setRipples((current) => [...current.slice(-2), nextRipple])
+  }, [])
+
+  useEffect(() => {
+    if (!virtualPressed || virtualPressToken === null || virtualPressToken === lastVirtualTokenRef.current) return
+    lastVirtualTokenRef.current = virtualPressToken
+    const rect = buttonRef.current?.getBoundingClientRect()
+    if (!rect) return
+    spawnRipple(rect.width / 2, rect.height / 2, rect.width, rect.height, true)
+  }, [spawnRipple, virtualPressed, virtualPressToken])
+
+  return (
+    <motion.button
+      ref={buttonRef}
+      type="button"
+      disabled={disabled}
+      variants={forceVisible ? undefined : variants}
+      initial={forceVisible ? { opacity: 1 } : undefined}
+      whileTap={disabled ? undefined : whileTap}
+      animate={
+        virtualPressed
+          ? { scale: [1, 0.972, 1], y: [0, 1, 0], opacity: 1 }
+          : forceVisible
+            ? { opacity: 1, scale: 1, y: 0 }
+            : undefined
+      }
+      transition={virtualPressed ? { duration: 0.24, ease: [0.22, 1, 0.36, 1] } : undefined}
+      className={`game-numeric-keypad__key${className ? ` ${className}` : ''}${
+        virtualPressed ? ' game-numeric-keypad__key--virtual-press game-numeric-keypad__key--ghost-press' : ''
+      }${pointerPressed ? ' game-numeric-keypad__key--pointer-press' : ''}${
+        forceVisible ? ' game-numeric-keypad__key--force-visible' : ''
+      }`}
+      onPointerDown={(event) => {
+        if (disabled) return
+        const rect = event.currentTarget.getBoundingClientRect()
+        spawnRipple(
+          event.clientX - rect.left,
+          event.clientY - rect.top,
+          rect.width,
+          rect.height,
+          false,
+        )
+        setPointerPressed(true)
+      }}
+      onPointerUp={() => setPointerPressed(false)}
+      onPointerLeave={() => setPointerPressed(false)}
+      onPointerCancel={() => setPointerPressed(false)}
+      onKeyDown={(event) => {
+        if (disabled) return
+        if (event.key === 'Enter' || event.key === ' ') {
+          const rect = event.currentTarget.getBoundingClientRect()
+          spawnRipple(rect.width / 2, rect.height / 2, rect.width, rect.height, false)
+        }
+      }}
+      onClick={onClick}
+      aria-label={ariaLabel}
+    >
+      <span className="game-numeric-keypad__press-surface" aria-hidden>
+        <AnimatePresence initial={false}>
+          {ripples.map((ripple) => (
+            <motion.span
+              key={ripple.id}
+              className={`game-numeric-keypad__ripple${ripple.ghost ? ' game-numeric-keypad__ripple--ghost' : ''}`}
+              style={{ left: ripple.x, top: ripple.y }}
+              initial={{ scale: 0, opacity: ripple.ghost ? 0.4 : 0.56 }}
+              animate={{ scale: ripple.scale, opacity: 0 }}
+              transition={{ duration: ripple.ghost ? 0.7 : 0.54, ease: [0.16, 1, 0.3, 1] }}
+              onAnimationComplete={() => removeRipple(ripple.id)}
+            />
+          ))}
+        </AnimatePresence>
+      </span>
+      <span className="game-numeric-keypad__key-content">{children}</span>
+    </motion.button>
+  )
+}
 
 function IconCheckSmall() {
   return (
@@ -97,14 +224,12 @@ function IconProhibited() {
 
 function AutoCheckButton({
   disabled,
-  interactionLocked,
   charges,
   virtualPressed,
   virtualPressToken,
   onAutoCorrect,
 }: {
   disabled: boolean
-  interactionLocked: boolean
   charges: number
   virtualPressed: boolean
   virtualPressToken: number | null
@@ -115,19 +240,16 @@ function AutoCheckButton({
   const stateKey = enabled ? 'enabled' : 'disabled'
 
   return (
-    <motion.button
-      key={virtualPressed && virtualPressToken !== null ? `auto-${virtualPressToken}` : 'auto'}
-      type="button"
+    <PremiumKey
       disabled={disabled || !enabled}
       variants={keypadReveal.key}
       whileTap={disabled || !enabled ? undefined : { scale: 0.97, y: 1 }}
-      animate={virtualPressed ? { scale: [1, 0.97, 1], y: [0, 1, 0] } : undefined}
-      transition={virtualPressed ? { duration: 0.2, ease: 'easeOut' } : autoCheckTransition}
-      className={`game-numeric-keypad__key game-numeric-keypad__key--auto${
+      className={`game-numeric-keypad__key--auto${
         enabled ? ' game-numeric-keypad__key--debug' : ''
-      }${virtualPressed ? ' game-numeric-keypad__key--virtual-press' : ''}`}
+      }`}
+      virtualPressed={virtualPressed}
+      virtualPressToken={virtualPressToken}
       onClick={onAutoCorrect}
-      aria-disabled={interactionLocked ? 'true' : undefined}
       aria-label={
         enabled
           ? DEBUG_AUTO_CHECK_ALWAYS_ENABLED
@@ -164,7 +286,7 @@ function AutoCheckButton({
           )}
         </motion.span>
       </AnimatePresence>
-    </motion.button>
+    </PremiumKey>
   )
 }
 
@@ -184,7 +306,7 @@ export const NumericKeypad = memo(function NumericKeypad({
   const isVirtualPressed = (key: BenchmarkVirtualKey) => virtualPress?.key === key
   const digitVirtualKey = (digit: string) => `digit-${digit}` as BenchmarkVirtualKey
   const virtualToken = virtualPress?.token ?? null
-  const effectiveDisabled = disabled || interactionLocked
+  const effectiveDisabled = disabled && !interactionLocked
 
   return (
     <motion.div
@@ -198,32 +320,19 @@ export const NumericKeypad = memo(function NumericKeypad({
       {DIGIT_ROWS.map((row) => (
         <div key={row.join('-')} className="game-numeric-keypad__row">
           {row.map((digit) => (
-            <motion.button
-              key={isVirtualPressed(digitVirtualKey(digit)) && virtualToken !== null ? `${digit}-${virtualToken}` : digit}
-              type="button"
+            <PremiumKey
+              key={digit}
               disabled={effectiveDisabled}
               variants={keypadReveal.key}
               whileTap={effectiveDisabled ? undefined : { scale: 0.97, y: 1 }}
-              animate={
-                isVirtualPressed(digitVirtualKey(digit))
-                  ? { scale: [1, 0.97, 1], y: [0, 1, 0] }
-                  : undefined
-              }
-              transition={
-                isVirtualPressed(digitVirtualKey(digit))
-                  ? { duration: 0.2, ease: 'easeOut' }
-                  : undefined
-              }
-              className={`game-numeric-keypad__key${
-                isVirtualPressed(digitVirtualKey(digit))
-                  ? ' game-numeric-keypad__key--virtual-press'
-                  : ''
-              }`}
+              virtualPressed={isVirtualPressed(digitVirtualKey(digit))}
+              virtualPressToken={virtualToken}
+              forceVisible={interactionLocked}
               onClick={() => onDigit(digit)}
               aria-label={`Dígito ${digit}`}
             >
               {digit}
-            </motion.button>
+            </PremiumKey>
           ))}
         </div>
       ))}
@@ -231,58 +340,52 @@ export const NumericKeypad = memo(function NumericKeypad({
       <div className="game-numeric-keypad__row">
         <AutoCheckButton
           disabled={effectiveDisabled}
-          interactionLocked={interactionLocked}
           charges={autoCheckCharges}
           virtualPressed={isVirtualPressed('auto')}
           virtualPressToken={virtualToken}
           onAutoCorrect={onAutoCorrect}
         />
-        <motion.button
-          key={isVirtualPressed('digit-0') && virtualToken !== null ? `0-${virtualToken}` : 'digit-0'}
-          type="button"
+        <PremiumKey
+          key="digit-0"
           disabled={effectiveDisabled}
           variants={keypadReveal.key}
           whileTap={effectiveDisabled ? undefined : { scale: 0.97, y: 1 }}
-          animate={isVirtualPressed('digit-0') ? { scale: [1, 0.97, 1], y: [0, 1, 0] } : undefined}
-          transition={isVirtualPressed('digit-0') ? { duration: 0.2, ease: 'easeOut' } : undefined}
-          className={`game-numeric-keypad__key${
-            isVirtualPressed('digit-0') ? ' game-numeric-keypad__key--virtual-press' : ''
-          }`}
+          virtualPressed={isVirtualPressed('digit-0')}
+          virtualPressToken={virtualToken}
+          forceVisible={interactionLocked}
           onClick={() => onDigit('0')}
           aria-label="Dígito 0"
         >
           0
-        </motion.button>
-        <motion.button
-          type="button"
+        </PremiumKey>
+        <PremiumKey
           disabled={effectiveDisabled || backspaceDisabled}
           variants={keypadReveal.key}
           whileTap={effectiveDisabled || backspaceDisabled ? undefined : { scale: 0.97, y: 1 }}
-          className="game-numeric-keypad__key game-numeric-keypad__key--backspace"
+          className="game-numeric-keypad__key--backspace"
+          forceVisible={interactionLocked}
           onClick={onBackspace}
           aria-label="Apagar dígito"
         >
           <IconBackspace />
-        </motion.button>
+        </PremiumKey>
       </div>
 
-      <motion.button
-        type="button"
-        key={isVirtualPressed('enter') && virtualToken !== null ? `enter-${virtualToken}` : 'enter'}
+      <PremiumKey
+        key="enter"
         disabled={effectiveDisabled}
         variants={keypadReveal.key}
         whileTap={effectiveDisabled ? undefined : { scale: 0.98, y: 1 }}
-        animate={isVirtualPressed('enter') ? { scale: [1, 0.98, 1], y: [0, 1, 0] } : undefined}
-        transition={isVirtualPressed('enter') ? { duration: 0.2, ease: 'easeOut' } : undefined}
-        className={`game-numeric-keypad__key game-numeric-keypad__key--enter game-numeric-keypad__key--enter-wide${
-          isVirtualPressed('enter') ? ' game-numeric-keypad__key--virtual-press' : ''
-        }`}
+        className="game-numeric-keypad__key--enter game-numeric-keypad__key--enter-wide"
+        virtualPressed={isVirtualPressed('enter')}
+        virtualPressToken={virtualToken}
+        forceVisible={interactionLocked}
         onClick={onEnter}
         aria-label="Confirmar resposta"
       >
         <IconCheck />
         <span>OK</span>
-      </motion.button>
+      </PremiumKey>
     </motion.div>
   )
 })

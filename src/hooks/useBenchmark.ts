@@ -130,6 +130,7 @@ interface UseBenchmarkOptions {
   grantAutoCheck: (amount: number) => void
   spendAutoCheck: () => boolean
   onVirtualKeyPress: (key: BenchmarkVirtualKey) => void
+  onBenchmarkPerfectAnswer: (timerMaxMs: number) => void
   onBenchmarkCorrectAnswer: (sessionBeforeSubmit: GameSession, fromAutoCheck: boolean) => void
 }
 
@@ -139,6 +140,7 @@ export function useBenchmark({
   grantAutoCheck,
   spendAutoCheck,
   onVirtualKeyPress,
+  onBenchmarkPerfectAnswer,
   onBenchmarkCorrectAnswer,
 }: UseBenchmarkOptions) {
   const [benchmarkActive, setBenchmarkActive] = useState(false)
@@ -358,6 +360,7 @@ export function useBenchmark({
 
       if (result !== 'correct') return
 
+      onBenchmarkPerfectAnswer(current.timerMaxMs)
       onBenchmarkCorrectAnswer(current, false)
       registerCorrectAnswer(runtime, next)
 
@@ -383,6 +386,7 @@ export function useBenchmark({
   }, [
     finalizeBenchmark,
     grantAutoCheck,
+    onBenchmarkPerfectAnswer,
     onBenchmarkCorrectAnswer,
     pushVirtualKeyPress,
     registerCorrectAnswer,
