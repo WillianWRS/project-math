@@ -250,7 +250,7 @@ function AutoCheckButton({
       virtualPressed={virtualPressed}
       virtualPressToken={virtualPressToken}
       onClick={onAutoCorrect}
-      aria-label={
+      ariaLabel={
         enabled
           ? DEBUG_AUTO_CHECK_ALWAYS_ENABLED
             ? 'Auto acerto (debug)'
@@ -329,7 +329,7 @@ export const NumericKeypad = memo(function NumericKeypad({
               virtualPressToken={virtualToken}
               forceVisible={interactionLocked}
               onClick={() => onDigit(digit)}
-              aria-label={`Dígito ${digit}`}
+              ariaLabel={`Dígito ${digit}`}
             >
               {digit}
             </PremiumKey>
@@ -354,7 +354,7 @@ export const NumericKeypad = memo(function NumericKeypad({
           virtualPressToken={virtualToken}
           forceVisible={interactionLocked}
           onClick={() => onDigit('0')}
-          aria-label="Dígito 0"
+          ariaLabel="Dígito 0"
         >
           0
         </PremiumKey>
@@ -365,7 +365,7 @@ export const NumericKeypad = memo(function NumericKeypad({
           className="game-numeric-keypad__key--backspace"
           forceVisible={interactionLocked}
           onClick={onBackspace}
-          aria-label="Apagar dígito"
+          ariaLabel="Apagar dígito"
         >
           <IconBackspace />
         </PremiumKey>
@@ -381,7 +381,7 @@ export const NumericKeypad = memo(function NumericKeypad({
         virtualPressToken={virtualToken}
         forceVisible={interactionLocked}
         onClick={onEnter}
-        aria-label="Confirmar resposta"
+        ariaLabel="Confirmar resposta"
       >
         <IconCheck />
         <span>OK</span>

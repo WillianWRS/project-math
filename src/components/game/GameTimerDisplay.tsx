@@ -5,7 +5,7 @@ import { useGameTimer } from '../../hooks/useGameTimer'
 import { formatDuration } from '../../engine/rewards'
 
 const HEARTBEAT_CYCLE_SECONDS = 0.82
-const HEARTBEAT_TIMES = [0, 0.14, 0.26, 0.56, 1] as const
+const HEARTBEAT_TIMES = [0, 0.14, 0.26, 0.56, 1]
 export const TIMER_URGENT_RATIO = 0.25
 export const TIMER_NEAR_DEATH_RATIO = 0.2
 
