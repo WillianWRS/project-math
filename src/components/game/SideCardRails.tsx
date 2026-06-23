@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from '../../lib/motion'
 import { SideCardPulse } from '../motion/SideCardPulse'
-import { memo, useCallback, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import {
   RightSideCardCatalog,
   type RightCardVariant,
@@ -390,8 +390,9 @@ function useSideCycleMergeExit(
 ) {
   const prevStepRef = useRef(cycleStep)
   const [mergeExit, setMergeExit] = useState<SideCycleMergeKeyframes | null>(null)
+  const mergeFrameRef = useRef(0)
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const prevStep = prevStepRef.current
     prevStepRef.current = cycleStep
 
@@ -399,24 +400,30 @@ function useSideCycleMergeExit(
       return
     }
 
-    const playRow = playRowRef.current
-    const answerField = answerFieldRef.current
-    const rightColumn = rightColumnRef.current
-    const leftColumn = leftColumnRef.current
-    if (!playRow || !answerField || !rightColumn || !leftColumn) return
+    mergeFrameRef.current = requestAnimationFrame(() => {
+      const playRow = playRowRef.current
+      const answerField = answerFieldRef.current
+      const rightColumn = rightColumnRef.current
+      const leftColumn = leftColumnRef.current
+      if (!playRow || !answerField || !rightColumn || !leftColumn) return
 
-    const playRowRect = playRow.getBoundingClientRect()
-    const answerRect = answerField.getBoundingClientRect()
-    const rightColumnRect = rightColumn.getBoundingClientRect()
-    const columnTop = leftColumn.getBoundingClientRect().top - playRowRect.top
-    const half = SIDE_CYCLE_BUTTON_SIZE / 2
+      const playRowRect = playRow.getBoundingClientRect()
+      const answerRect = answerField.getBoundingClientRect()
+      const rightColumnRect = rightColumn.getBoundingClientRect()
+      const columnTop = leftColumn.getBoundingClientRect().top - playRowRect.top
+      const half = SIDE_CYCLE_BUTTON_SIZE / 2
 
-    setMergeExit({
-      startLeft: rightColumnRect.left - playRowRect.left,
-      startTop: columnTop + slotTops[3],
-      targetLeft: answerRect.left + answerRect.width / 2 - playRowRect.left - half,
-      targetTop: answerRect.top + answerRect.height / 2 - playRowRect.top - half,
+      setMergeExit({
+        startLeft: rightColumnRect.left - playRowRect.left,
+        startTop: columnTop + slotTops[3],
+        targetLeft: answerRect.left + answerRect.width / 2 - playRowRect.left - half,
+        targetTop: answerRect.top + answerRect.height / 2 - playRowRect.top - half,
+      })
     })
+
+    return () => {
+      cancelAnimationFrame(mergeFrameRef.current)
+    }
   }, [
     cycleStep,
     gameChangerRemaining,

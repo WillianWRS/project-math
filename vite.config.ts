@@ -41,8 +41,12 @@ export default defineConfig({
         ],
       },
       workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,jpg}'],
         globIgnores: ['**/audio/**'],
+        navigationPreload: true,
+        skipWaiting: true,
         runtimeCaching: [
           {
             urlPattern: /\/audio\/.+\.mp3$/i,

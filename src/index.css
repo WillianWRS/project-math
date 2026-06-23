@@ -351,7 +351,7 @@ body {
   display: flex;
   flex-shrink: 0;
   color: #78350f;
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35));
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .game-side-card__icon--legendary {
@@ -1201,13 +1201,16 @@ body {
 
 .game-side-card--mult-div .game-side-card__icon--glyph {
   color: #93c5fd;
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.15));
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 /* Moldura pulsante dos 3 campos — animada via Motion (PlayFieldsFrame) */
 
 .game-play-stack {
   overflow: hidden;
+  backface-visibility: hidden;
+  contain: paint;
+  will-change: transform;
 }
 
 .game-play-frame-ring--reduced {

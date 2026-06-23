@@ -1701,6 +1701,16 @@ export function GameScreen({
 
       {showMenuChrome && (
         <>
+          <p
+            className="pointer-events-none fixed inset-x-0 bottom-[max(0.35rem,calc(env(safe-area-inset-bottom)*0.45))] z-[60] text-center text-[0.58rem] font-semibold tracking-wide text-white"
+            style={{
+              textShadow:
+                '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 2px #000',
+            }}
+            aria-hidden
+          >
+            v0.0.1
+          </p>
           <div className="fixed inset-x-0 top-0 z-[60] flex items-start justify-between px-6 pt-[max(1rem,env(safe-area-inset-top))]">
             <motion.div {...menuStageItem(0.06, -14, -8)}>
               <MenuHudInlineButton
