@@ -3,8 +3,10 @@ import { SimulatedRewardedAds } from '../platform/ads'
 import { ensureDailyFresh } from '../platform/daily-reset'
 import { loadPlayerData, savePlayerData, type BackgroundTheme, type PlayerData } from '../platform/storage'
 
+export const DISPLAY_NAME_MAX_LENGTH = 20
+
 export function sanitizeDisplayName(raw: string): string {
-  const trimmed = raw.trim().slice(0, 16)
+  const trimmed = raw.trim().slice(0, DISPLAY_NAME_MAX_LENGTH)
   if (trimmed.length < 2) return 'Jogador'
   return trimmed.replace(/[^\p{L}\p{N} ]/gu, '').trim() || 'Jogador'
 }

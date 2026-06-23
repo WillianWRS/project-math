@@ -40,13 +40,14 @@ function restoreElementAfterCapture(element: HTMLElement, previous: ReturnType<t
 
 async function captureElementAsBlob(element: HTMLElement): Promise<Blob | null> {
   const { toBlob } = await import('html-to-image')
+  const backgroundColor = element.dataset.captureBackground ?? '#141210'
   const previousStyle = prepareElementForCapture(element)
   try {
     return await toBlob(element, {
       width: 1080,
       height: 1350,
       pixelRatio: 1,
-      backgroundColor: '#141210',
+      backgroundColor,
       cacheBust: true,
     })
   } finally {

@@ -151,8 +151,18 @@ export function useGame() {
 
   useEffect(() => {
     timerMsRef.current = session.timerMs
-    elapsedMsRef.current = session.elapsedMs
-    gameTimerStore.sync(session.timerMs, session.elapsedMs)
+
+    if (session.phase !== 'playing') {
+      elapsedMsRef.current = session.elapsedMs
+      gameTimerStore.sync(session.timerMs, session.elapsedMs)
+      return
+    }
+
+    if (session.score === 0 && session.elapsedMs === 0) {
+      elapsedMsRef.current = 0
+    }
+
+    gameTimerStore.set(timerMsRef.current, elapsedMsRef.current)
   }, [session.phase, session.score, session.timerMs, session.elapsedMs, session.awaitingAutoCheckChoice])
 
   useEffect(() => {
@@ -195,7 +205,10 @@ export function useGame() {
           if (playerRef.current.walletAutoChecks > 0) {
             return { ...current, timerMs: 0, awaitingAutoCheckChoice: true }
           }
-          return tickTimer({ ...current, timerMs: 0 }, 0)
+          const timedOut = tickTimer({ ...current, timerMs: 0 }, 0)
+          return timedOut.phase === 'game_over'
+            ? { ...timedOut, elapsedMs: elapsedMsRef.current }
+            : timedOut
         })
       }
 
@@ -288,6 +301,7 @@ export function useGame() {
     gameOverFxHandledRef.current = false
     lastPersistedScoreRef.current = null
     setLastGameRewards({ xpGained: 0, coinsGained: 0, goalCompleted: false })
+    setPerfectAnswerToken(0)
     setInputValueState('')
     setSessionWithInputSync(startGame())
   }, [resetBenchmark, setSessionWithInputSync])
@@ -299,6 +313,7 @@ export function useGame() {
     gameOverFxHandledRef.current = false
     lastPersistedScoreRef.current = null
     setLastGameRewards({ xpGained: 0, coinsGained: 0, goalCompleted: false })
+    setPerfectAnswerToken(0)
     setInputValueState('')
     onStartBenchmark()
   }, [onStartBenchmark])
@@ -310,6 +325,7 @@ export function useGame() {
     resetBenchmark()
     gameOverFxHandledRef.current = false
     lastPersistedScoreRef.current = null
+    setPerfectAnswerToken(0)
     setInputValueState('')
     setSessionWithInputSync(returnToMenu())
   }, [onInterruptBenchmark, resetBenchmark, setSessionWithInputSync])
@@ -398,6 +414,7 @@ export function useGame() {
         ...current,
         phase: 'game_over',
         timerMs: 0,
+        elapsedMs: elapsedMsRef.current,
         awaitingAutoCheckChoice: false,
       }
     })

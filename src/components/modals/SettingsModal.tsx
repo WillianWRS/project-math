@@ -31,15 +31,31 @@ function stageItem(delay: number, x: number, y: number) {
   } as const
 }
 
+function IconGear() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+      />
+      <path
+        d="M19 12a7.2 7.2 0 00.1-1l2-1.5-2-3.5-2.3 1a7 7 0 00-1.7-1L15 3h-6l-.1 2.5a7 7 0 00-1.7 1l-2.3-1-2 3.5 2 1.5a7.2 7.2 0 00.1 1 7.2 7.2 0 00-.1 1l-2 1.5 2 3.5 2.3-1a7 7 0 001.7 1L9 21h6l.1-2.5a7 7 0 001.7-1l2.3 1 2-3.5-2-1.5a7.2 7.2 0 00-.1-1z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 function ThemeSelectionRing({ water }: { water: boolean }) {
   const reduceMotion = useReducedMotion()
 
   return (
     <motion.span
-      className={`pointer-events-none absolute inset-0 rounded-[0.875rem] border-2 ${
-        water ? 'border-sky-400/80' : 'border-amber-400/80'
-      }`}
-      animate={reduceMotion ? undefined : { opacity: [0.45, 1, 0.45], scale: [1, 1.015, 1] }}
+      className={`settings-theme-selection-ring${water ? ' settings-theme-selection-ring--water' : ''}`}
+      animate={reduceMotion ? undefined : { opacity: [0.45, 1, 0.45] }}
       transition={pulseRepeat(2.2)}
       aria-hidden
     />
@@ -64,7 +80,7 @@ export function SettingsModal({
   )
 
   return (
-    <Modal open={open} title="Configurações" onClose={onClose}>
+    <Modal open={open} title="Configurações" titleIcon={<IconGear />} onClose={onClose}>
       <div className="space-y-4">
         <motion.div {...stageItem(0.04, 0, 14)}>
           <p className="mb-2 text-sm font-medium text-stone-200">Fundo do jogo</p>
@@ -77,8 +93,8 @@ export function SettingsModal({
                   key={option.id}
                   type="button"
                   onClick={() => onBackgroundThemeChange(themeId)}
-                  className={`game-modal-card settings-theme-card relative flex flex-col overflow-hidden text-left ${
-                    selected ? '' : 'hover:border-stone-600/50'
+                  className={`game-modal-card settings-theme-card relative flex flex-col overflow-hidden text-left${
+                    selected ? ' settings-theme-card--selected' : ' hover:border-stone-600/50'
                   }`}
                   {...stageItem(0.12 + index * 0.06, index % 2 === 0 ? -8 : 8, 10)}
                 >

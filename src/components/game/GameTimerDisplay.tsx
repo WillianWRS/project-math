@@ -12,7 +12,7 @@ export const ElapsedTimeLabel = memo(function ElapsedTimeLabel({
   fallbackMs?: number
 }) {
   const { elapsedMs } = useGameTimer()
-  return <>{formatDuration(elapsedMs || fallbackMs)}</>
+  return <>{formatDuration(elapsedMs > 0 ? elapsedMs : fallbackMs)}</>
 })
 
 function TimerSpark({ urgent, nearDeath }: { urgent: boolean; nearDeath: boolean }) {

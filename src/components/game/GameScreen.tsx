@@ -1,13 +1,13 @@
 import { AnimatePresence, motion } from '../../lib/motion'
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { ForwardLinesBackground } from './ForwardLinesBackground'
 import { NumericKeypad } from './NumericKeypad'
 import { PlayFieldsSideLayout } from './SideCardRails'
 import {
   ElapsedTimeLabel,
   PlayingTimerBar,
-  TIMER_URGENT_RATIO,
 } from './GameTimerDisplay'
+import { timerDangerGlowIntensity } from '../../lib/timer-danger-glow'
 import { useGameTimer } from '../../hooks/useGameTimer'
 import { CurtainOverlay } from './CurtainOverlay'
 import { PlayFieldsFrame } from './PlayFieldsFrame'
@@ -24,9 +24,10 @@ import { ShopModal } from '../modals/ShopModal'
 import { SettingsModal } from '../modals/SettingsModal'
 import { ShareCardTemplate } from '../share/ShareCardTemplate'
 import { shareScoreCardFromElement } from '../../utils/share-score-card'
-import { xpToLevel } from '../../engine/player-level'
+import { xpProgressInLevel, xpToLevel } from '../../engine/player-level'
 import { formatDuration } from '../../engine/rewards'
 import { preloadGameplayModals } from '../../platform/preload-modals'
+import { playSfx } from '../../platform/audio-service'
 import type { BackgroundTheme, PlayerData, ScoreRecord } from '../../platform/storage'
 import type { PostGameRewards } from '../../hooks/useGame'
 import type { BenchmarkMetricGradeId, BenchmarkMetrics, BenchmarkVirtualKey } from '../../engine/benchmark-types'
@@ -192,25 +193,6 @@ function OperationValue({
   )
 }
 
-function IconTrophy() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M6 4h12v2a4 4 0 01-4 4h-.5A4 4 0 0110 6V4M8 20h8M12 14v6"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-      />
-      <path
-        d="M6 6H4a2 2 0 002 3M18 6h2a2 2 0 01-2 3"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
 function IconGear() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -308,6 +290,89 @@ function IconClock() {
   )
 }
 
+function IconHelp() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M9.75 9.25a2.25 2.25 0 013.4 1.95c0 1.85-2.15 2.3-2.15 4.05"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <circle cx="12" cy="17.25" r="1.1" fill="currentColor" />
+    </svg>
+  )
+}
+
+function IconPerson() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M5 20c0-3.314 3.134-6 7-6s7 2.686 7 6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function IconShop() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 10h16L18.5 5.5H5.5L4 10z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 10v9h12v-9M9 19v-4h6v4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.5 10V7.5M12 10V7M15.5 10V7.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function IconCoin() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M12 8v8M9.5 10.5h5M9.5 13.5h5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function IconAutoCheck() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M6 12.5l3.5 3.5L18 8"
+        stroke="currentColor"
+        strokeWidth="2.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 function RightCardIcon({ variant }: { variant: RightCardVariant }) {
   const iconClass = `game-side-card__icon game-side-card__icon--${variant}`
 
@@ -340,7 +405,6 @@ function ThemeTestSideLayout({
   autoCheckEnabled,
   onToggleAutoCheck,
   onToggleChanger,
-  onPlayClick,
   parallaxActive,
   children,
 }: {
@@ -348,7 +412,6 @@ function ThemeTestSideLayout({
   autoCheckEnabled: boolean
   onToggleAutoCheck: () => void
   onToggleChanger: (variant: RightCardVariant) => void
-  onPlayClick: () => void
   parallaxActive: boolean
   children: ReactNode
 }) {
@@ -366,10 +429,7 @@ function ThemeTestSideLayout({
               {index === 0 ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    onPlayClick()
-                    onToggleAutoCheck()
-                  }}
+                  onClick={onToggleAutoCheck}
                   className={`game-side-card game-side-card--legendary game-side-card--auto-cycle transition-all duration-150 hover:scale-[1.03] active:scale-[0.97] ${
                     autoCheckEnabled ? '' : 'opacity-55 saturate-50'
                   }`}
@@ -412,10 +472,7 @@ function ThemeTestSideLayout({
               <div key={card.id} className="game-side-card-slot">
                 <button
                   type="button"
-                  onClick={() => {
-                    onPlayClick()
-                    onToggleChanger(card.variant)
-                  }}
+                  onClick={() => onToggleChanger(card.variant)}
                   className={`game-side-card ${card.styleClass} transition-transform duration-150 hover:scale-[1.03] active:scale-[0.97] ${
                     active ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-charcoal' : ''
                   }`}
@@ -458,18 +515,29 @@ function IconShare() {
 function MenuHudButton({
   label,
   onClick,
+  disabled = false,
+  labelClassName,
   children,
 }: {
   label: string
-  onClick: () => void
+  onClick?: () => void
+  disabled?: boolean
+  labelClassName?: string
   children: ReactNode
 }) {
   return (
-    <button type="button" onClick={onClick} className="game-menu-hud-btn" aria-label={label}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-disabled={disabled}
+      className={`game-menu-hud-btn${disabled ? ' opacity-50' : ''}`}
+      aria-label={label}
+    >
       <span className="game-menu-hud-btn__plate">
         <span className="game-menu-hud-btn__icon">{children}</span>
       </span>
-      <span className="game-menu-hud-btn__label">{label}</span>
+      <span className={`game-menu-hud-btn__label${labelClassName ? ` ${labelClassName}` : ''}`}>{label}</span>
     </button>
   )
 }
@@ -509,28 +577,15 @@ function MenuHudInlineButton({
   )
 }
 
-const menuButtonScaleTransition = { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }
-
 function AnimatedGameMenuButton({
-  compact,
   waterLight,
   onClick,
 }: {
-  compact: boolean
   waterLight: boolean
   onClick: () => void
 }) {
   return (
-    <motion.div
-      className="pointer-events-auto"
-      initial={false}
-      animate={{
-        scale: compact ? 0.72 : 1,
-        x: compact ? 6 : 0,
-      }}
-      transition={menuButtonScaleTransition}
-      style={{ transformOrigin: '100% 50%' }}
-    >
+    <div className="pointer-events-auto">
       <button
         type="button"
         onClick={onClick}
@@ -539,13 +594,60 @@ function AnimatedGameMenuButton({
         }`}
         aria-label="Menu"
       >
-        <span className="game-menu-hud-btn__plate game-menu-hud-btn__plate--inline game-menu-hud-btn__plate--icon-only">
+        <span className="game-menu-hud-btn__plate game-menu-hud-btn__plate--inline game-menu-hud-btn__plate--icon-only game-menu-hud-btn__plate--back-menu">
           <span className="game-menu-hud-btn__icon">
             <IconBack />
           </span>
         </span>
       </button>
-    </motion.div>
+    </div>
+  )
+}
+
+function MenuLevelBadge({ xp }: { xp: number }) {
+  const progress = xpProgressInLevel(xp)
+  const ratio = progress.needed > 0 ? progress.current / progress.needed : 0
+  const size = 68
+  const stroke = 3.5
+  const radius = (size - stroke) / 2
+  const circumference = 2 * Math.PI * radius
+  const dashOffset = circumference * (1 - Math.min(1, Math.max(0, ratio)))
+
+  return (
+    <div
+      className="game-menu-level-badge"
+      aria-label={`Nível ${progress.level}, ${progress.current} de ${progress.needed} XP`}
+    >
+      <svg
+        className="game-menu-level-badge__ring"
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        aria-hidden
+      >
+        <circle
+          className="game-menu-level-badge__track"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          strokeWidth={stroke}
+        />
+        <circle
+          className="game-menu-level-badge__progress"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          strokeWidth={stroke}
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </svg>
+      <span className="game-menu-level-badge__value">{progress.level}</span>
+    </div>
   )
 }
 
@@ -571,6 +673,7 @@ function MenuBenchmarkButton({ onClick }: { onClick: () => void }) {
       aria-label="Iniciar benchmark"
       className="game-btn-push game-btn-push-secondary flex items-center gap-2 rounded-xl bg-charcoal-elevated px-5 py-2.5 text-sm font-semibold tracking-wide text-stone-200 ring-1 ring-stone-700/50"
     >
+      <IconBenchmark />
       <span>Benchmark</span>
     </button>
   )
@@ -584,8 +687,39 @@ function MenuThemeTestButton({ onClick }: { onClick: () => void }) {
       aria-label="Abrir teste de tema"
       className="game-btn-push game-btn-push-secondary flex items-center gap-2 rounded-xl bg-charcoal-elevated px-5 py-2.5 text-sm font-semibold tracking-wide text-stone-200 ring-1 ring-stone-700/50"
     >
+      <IconThemeTest />
       <span>Theme Test</span>
     </button>
+  )
+}
+
+function IconBenchmark() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0">
+      <path d="M4 19h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M7 16V9M12 16V5M17 16v-4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function IconThemeTest() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0">
+      <path
+        d="M12 3c-3 2.5-5 5.2-5 8.5a5 5 0 1010 0C17 8.2 15 5.5 12 3z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <circle cx="9.5" cy="10.5" r="1" fill="currentColor" />
+      <circle cx="12" cy="8.5" r="1" fill="currentColor" />
+      <circle cx="14.5" cy="11" r="1" fill="currentColor" />
+    </svg>
   )
 }
 
@@ -689,11 +823,33 @@ function PerfectAnswerBadge({ token }: { token: number }) {
   )
 }
 
+const wrongAnswerShakeTransition = { duration: SUBMIT_LOCK_MS / 1000, ease: [0.22, 1, 0.36, 1] as const }
+const wrongAnswerShakeX = [0, -10, 10, -8, 8, -4, 4, 0]
+
+function PlayFieldsShake({
+  active,
+  shakeKey,
+  children,
+}: {
+  active: boolean
+  shakeKey: number
+  children: ReactNode
+}) {
+  return (
+    <motion.div
+      key={shakeKey}
+      animate={active ? { x: wrongAnswerShakeX } : { x: 0 }}
+      transition={wrongAnswerShakeTransition}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 function AnswerDisplay({
   value,
   disabled,
   shake,
-  shakeKey,
   answerFlash,
   answerFlashAuto,
   flashKey,
@@ -708,7 +864,6 @@ function AnswerDisplay({
   value: string
   disabled: boolean
   shake: boolean
-  shakeKey: number
   answerFlash: string | null
   answerFlashAuto: boolean
   flashKey: number
@@ -722,11 +877,12 @@ function AnswerDisplay({
 }) {
   const displayValue = answerFlash ? '' : value || '·'
   const gameChangerActive = fourSecondsLight || timesDivLight || plusLight || minusLight
-  const useWaterAnswerRow = waterLight && !gameChangerActive
 
   return (
     <div
-      className={`relative overflow-visible px-3 py-3${useWaterAnswerRow ? ' game-answer-row--water' : ''}`}
+      className={`relative overflow-visible px-3 py-3${
+        waterLight ? ' game-answer-row--water' : ''
+      }${gameChangerActive ? ' game-answer-row--game-changer' : ''}`}
     >
       {perfectAnswerToken > 0 && <PerfectAnswerBadge token={perfectAnswerToken} />}
       <AnimatePresence>
@@ -738,11 +894,7 @@ function AnswerDisplay({
           />
         )}
       </AnimatePresence>
-      <motion.div
-        key={shakeKey}
-        animate={shake ? { x: [0, -10, 10, -8, 8, -4, 4, 0] } : { x: 0 }}
-        transition={{ duration: SUBMIT_LOCK_MS / 1000 }}
-      >
+      <div>
         <div
           ref={slotRef}
           role="status"
@@ -782,7 +934,7 @@ function AnswerDisplay({
         >
           {displayValue}
         </div>
-      </motion.div>
+      </div>
     </div>
   )
 }
@@ -1033,10 +1185,12 @@ export function GameScreen({
   }
 
   const handleThemeTestChangerToggle = (variant: RightCardVariant) => {
+    playSfx('gameChanger', soundEnabled)
     setThemeTestChanger((current) => (current === variant ? null : variant))
   }
 
   const handleThemeTestAutoCheckToggle = () => {
+    playSfx('autoCheck', soundEnabled)
     setThemeTestAutoCheckEnabled((current) => !current)
   }
 
@@ -1053,12 +1207,11 @@ export function GameScreen({
 
   const handleThemeTestKeypadEnter = () => {
     if (!isThemeTestScene) return
-    onPlayClick()
+    playSfx('success', soundEnabled)
   }
 
   const handleThemeTestKeypadAuto = () => {
     if (!isThemeTestScene) return
-    onPlayClick()
     handleThemeTestAutoCheckToggle()
   }
 
@@ -1173,7 +1326,8 @@ export function GameScreen({
   const { timerMs: liveTimerMs } = useGameTimer()
   const timerNowMs = isPlaying ? liveTimerMs : session.timerMs
   const timerRatio = session.timerMaxMs > 0 ? Math.max(0, timerNowMs / session.timerMaxMs) : 0
-  const timerDanger = isPlaying && timerRatio < TIMER_URGENT_RATIO
+  const timerDangerGlow = isPlaying ? timerDangerGlowIntensity(timerRatio) : 0
+  const timerDangerActive = timerDangerGlow > 0
   const currentPlayStackClass = fourSecondsActive
     ? 'game-play-stack--four-seconds'
     : timesDivActive
@@ -1185,10 +1339,10 @@ export function GameScreen({
           : useWaterBackground
             ? 'game-play-stack--water'
             : 'bg-charcoal-field'
-  const showGoodSceneBorder = isInGameScene && !timerDanger && currentScore >= 500
+  const showGoodSceneBorder = isInGameScene && !timerDangerActive && currentScore >= 500
 
   useEffect(() => {
-    if (!isInGameScene || timerDanger) {
+    if (!isInGameScene || timerDangerActive) {
       prevScoreRef.current = currentScore
       return
     }
@@ -1201,7 +1355,7 @@ export function GameScreen({
     }
 
     prevScoreRef.current = currentScore
-  }, [currentScore, isInGameScene, timerDanger])
+  }, [currentScore, isInGameScene, timerDangerActive])
 
   return (
     <div
@@ -1209,22 +1363,17 @@ export function GameScreen({
         useWaterBackground ? 'game-scene--water' : 'bg-charcoal'
       }`}
     >
-      <AnimatePresence>
-        {timerDanger && (
-          <motion.div
-            key="danger-vignette"
-            className="game-scene-danger-vignette pointer-events-none absolute inset-0 z-[40]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.9 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            aria-hidden
-          />
-        )}
-      </AnimatePresence>
-      {timerDanger && (
+      {timerDangerGlow > 0 && (
+        <div
+          className="game-scene-danger-vignette pointer-events-none absolute inset-0 z-[40]"
+          style={{ opacity: timerDangerGlow * 0.9 }}
+          aria-hidden
+        />
+      )}
+      {timerDangerGlow > 0 && (
         <div
           className="game-scene-border-pulse game-scene-border-pulse--danger game-scene-border-pulse--danger-animated pointer-events-none absolute inset-0 z-[45]"
+          style={{ ['--danger-glow-intensity' as string]: String(timerDangerGlow) }}
           aria-hidden
         />
       )}
@@ -1322,9 +1471,12 @@ export function GameScreen({
                   </div>
 
                   {isInGameScene && (
-                    <div className="game-header-menu-dock pointer-events-none absolute inset-y-0 right-4 flex items-center">
+                    <div
+                      className={`game-header-menu-dock pointer-events-none absolute inset-y-0 right-4 flex${
+                        isGameOver ? ' game-header-menu-dock--game-over' : ' items-center'
+                      }`}
+                    >
                       <AnimatedGameMenuButton
-                        compact={!isGameOver}
                         waterLight={useWaterBackground}
                         onClick={handleReturnToMenu}
                       />
@@ -1338,7 +1490,7 @@ export function GameScreen({
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.92 }}
                         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                        className="game-over-actions pointer-events-none absolute inset-0 flex items-center justify-center"
+                        className="game-over-actions game-over-actions--play pointer-events-none absolute inset-0 flex"
                       >
                         <div className="game-over-actions__row game-over-actions__row--play">
                           <MenuHudInlineButton
@@ -1373,7 +1525,6 @@ export function GameScreen({
                 autoCheckEnabled={themeTestAutoCheckEnabled}
                 onToggleAutoCheck={handleThemeTestAutoCheckToggle}
                 onToggleChanger={handleThemeTestChangerToggle}
-                onPlayClick={onPlayClick}
                 parallaxActive={parallaxLayerActive}
               >
                 <PlayFieldsFrame
@@ -1382,12 +1533,17 @@ export function GameScreen({
                   burstScore={themeTestBurstToken}
                   waterLight={useWaterBackground}
                   borderActive
-                  timerDanger={timerDanger}
+                  timerDangerGlow={timerDangerGlow}
                 >
                   <div
                     className={`game-play-stack w-full rounded-3xl ${currentPlayStackClass}${
-                      timerDanger ? ' game-play-stack--timer-danger' : ''
+                      timerDangerGlow > 0 ? ' game-play-stack--timer-danger' : ''
                     }`}
+                    style={
+                      timerDangerGlow > 0
+                        ? ({ ['--timer-danger-strength' as string]: String(timerDangerGlow) } as CSSProperties)
+                        : undefined
+                    }
                   >
                     <button
                       type="button"
@@ -1422,7 +1578,6 @@ export function GameScreen({
                         value="31"
                         disabled={false}
                         shake={false}
-                        shakeKey={0}
                         answerFlash={null}
                         answerFlashAuto={false}
                         flashKey={themeTestScore}
@@ -1457,65 +1612,73 @@ export function GameScreen({
                   burstScore={session.score}
                   waterLight={useWaterBackground}
                   borderActive={isPlaying}
-                  timerDanger={timerDanger}
+                  timerDangerGlow={timerDangerGlow}
                 >
                   <div
                     className={`game-play-stack w-full rounded-3xl ${currentPlayStackClass}${
-                      timerDanger ? ' game-play-stack--timer-danger' : ''
+                      timerDangerGlow > 0 ? ' game-play-stack--timer-danger' : ''
                     }`}
+                    style={
+                      timerDangerGlow > 0
+                        ? ({ ['--timer-danger-strength' as string]: String(timerDangerGlow) } as CSSProperties)
+                        : undefined
+                    }
                   >
-                    <div className="game-play-stack__divider border-b px-3 py-4 text-center">
-                      {isPlaying || isGameOver ? (
-                        <SlideValue
-                          value={session.baseNumber}
-                          slotClassName="h-14"
-                          className={`text-5xl font-bold ${baseFieldClass}`}
-                        />
-                      ) : (
-                        <p
-                          className={`font-mono text-5xl font-bold tabular-nums ${mutedFieldClass}`}
-                        >
-                          —
-                        </p>
-                      )}
-                    </div>
+                    <PlayFieldsShake active={session.isSubmitLocked && isPlaying} shakeKey={shakeKey}>
+                      <div className="game-play-stack__divider border-b px-3 py-4 text-center">
+                        {isPlaying || isGameOver ? (
+                          <SlideValue
+                            value={session.baseNumber}
+                            slotClassName="h-14"
+                            className={`text-5xl font-bold ${baseFieldClass}`}
+                          />
+                        ) : (
+                          <p
+                            className={`font-mono text-5xl font-bold tabular-nums ${mutedFieldClass}`}
+                          >
+                            —
+                          </p>
+                        )}
+                      </div>
 
-                    <div className="game-play-stack__divider border-b px-3 py-3 text-center">
-                      {session.operation && (isPlaying || isGameOver) ? (
-                        <OperationValue
-                          operation={session.operation}
-                          slotClassName="h-10"
-                          waterLight={useWaterBackground}
-                          fourSecondsLight={fourSecondsActive}
-                          timesDivLight={timesDivActive}
-                          plusLight={plusActive}
-                          minusLight={minusActive}
-                        />
-                      ) : (
-                        <p
-                          className={`font-mono text-3xl font-medium tabular-nums tracking-wide ${mutedFieldClass}`}
-                        >
-                          —
-                        </p>
-                      )}
-                    </div>
+                      <div className="game-play-stack__divider border-b px-3 py-3 text-center">
+                        {session.operation && (isPlaying || isGameOver) ? (
+                          <OperationValue
+                            operation={session.operation}
+                            slotClassName="h-10"
+                            waterLight={useWaterBackground}
+                            fourSecondsLight={fourSecondsActive}
+                            timesDivLight={timesDivActive}
+                            plusLight={plusActive}
+                            minusLight={minusActive}
+                          />
+                        ) : (
+                          <p
+                            className={`font-mono text-3xl font-medium tabular-nums tracking-wide ${mutedFieldClass}`}
+                          >
+                            —
+                          </p>
+                        )}
+                      </div>
 
-                    <AnswerDisplay
-                      value={inputValue}
-                      disabled={inputDisabled}
-                      shake={session.isSubmitLocked}
-                      shakeKey={shakeKey}
-                      answerFlash={session.answerFlash}
-                      answerFlashAuto={session.answerFlashAuto}
-                      flashKey={session.score}
-                      perfectAnswerToken={perfectAnswerToken}
-                      waterLight={useWaterBackground}
-                      fourSecondsLight={fourSecondsActive}
-                      timesDivLight={timesDivActive}
-                      plusLight={plusActive}
-                      minusLight={minusActive}
-                      slotRef={answerFieldRef}
-                    />
+                      <AnswerDisplay
+                        value={inputValue}
+                        disabled={inputDisabled}
+                        shake={session.isSubmitLocked}
+                        answerFlash={session.answerFlash}
+                        answerFlashAuto={session.answerFlashAuto}
+                        flashKey={session.score}
+                        perfectAnswerToken={
+                          isPlaying && session.score > 0 ? perfectAnswerToken : 0
+                        }
+                        waterLight={useWaterBackground}
+                        fourSecondsLight={fourSecondsActive}
+                        timesDivLight={timesDivActive}
+                        plusLight={plusActive}
+                        minusLight={minusActive}
+                        slotRef={answerFieldRef}
+                      />
+                    </PlayFieldsShake>
                   </div>
                 </PlayFieldsFrame>
               </PlayFieldsSideLayout>
@@ -1547,10 +1710,8 @@ export function GameScreen({
             )}
 
             {isPlaying && (
-              <>
-                <div className="w-full max-w-xs">
-                  <PlayingTimerBar timerMaxMs={session.timerMaxMs} />
-                </div>
+              <div className="game-play-controls flex w-full max-w-xs flex-col gap-4">
+                <PlayingTimerBar timerMaxMs={session.timerMaxMs} />
                 <NumericKeypad
                   disabled={inputDisabled}
                   interactionLocked={benchmarkMode}
@@ -1563,7 +1724,7 @@ export function GameScreen({
                   onAutoCorrect={onAutoCorrect}
                   onEnter={onConfirm}
                 />
-              </>
+              </div>
             )}
 
             {benchmarkMode && isPlaying && (
@@ -1597,7 +1758,11 @@ export function GameScreen({
                   >
                     {session.score} pontos
                   </p>
-                  <p className={`mt-1 text-xs ${useWaterBackground ? '' : 'text-charcoal-muted'}`}>
+                  <p
+                    className={`game-over-card__duration mt-1 text-xs ${
+                      useWaterBackground ? '' : 'text-charcoal-muted'
+                    }`}
+                  >
                     Tempo: {gameOverElapsedText}
                   </p>
 
@@ -1701,40 +1866,29 @@ export function GameScreen({
 
       {showMenuChrome && (
         <>
-          <p
-            className="pointer-events-none fixed inset-x-0 bottom-[max(0.35rem,calc(env(safe-area-inset-bottom)*0.45))] z-[60] text-center text-[0.58rem] font-semibold tracking-wide text-white"
-            style={{
-              textShadow:
-                '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 2px #000',
-            }}
-            aria-hidden
-          >
-            v0.0.3
-          </p>
-          <div className="fixed inset-x-0 top-0 z-[60] flex items-start justify-between px-6 pt-[max(1rem,env(safe-area-inset-top))]">
-            <motion.div {...menuStageItem(0.06, -14, -8)}>
-              <MenuHudInlineButton
-                label="Loja"
-                onClick={() => {
-                  onPlayClick()
-                  setShopOpen(true)
-                }}
-              >
-                <IconTrophy />
-              </MenuHudInlineButton>
+          <div className="game-menu-top fixed inset-x-0 top-0 z-[60] flex items-start justify-between gap-3 px-4 pt-[max(0.3rem,env(safe-area-inset-top))] sm:px-6">
+            <motion.div {...menuStageItem(0.06, -12, -10)} className="game-menu-player-header">
+              <MenuLevelBadge xp={player.xp} />
+              <span className="game-menu-player-header__name">{player.displayName}</span>
             </motion.div>
-            <motion.div {...menuStageItem(0.12, 14, -10)}>
-              <button
-                type="button"
-                disabled
-                aria-disabled="true"
-                className="game-menu-hud-btn game-menu-hud-btn--inline opacity-50"
+            <div className="game-menu-top-stats">
+              <motion.div
+                {...menuStageItem(0.07, 0, -10)}
+                className="game-menu-autocheck"
+                aria-label={`${player.walletAutoChecks} auto-check${player.walletAutoChecks === 1 ? '' : 's'}`}
               >
-                <span className="game-menu-hud-btn__plate game-menu-hud-btn__plate--inline">
-                  <span className="game-menu-hud-btn__inline-text">Como jogar</span>
+                <span className="game-menu-autocheck__icon">
+                  <IconAutoCheck />
                 </span>
-              </button>
-            </motion.div>
+                <span className="game-menu-autocheck__value">{player.walletAutoChecks}</span>
+              </motion.div>
+              <motion.div {...menuStageItem(0.08, 12, -10)} className="game-menu-coins" aria-label={`${player.coins} moedas`}>
+                <span className="game-menu-coins__icon">
+                  <IconCoin />
+                </span>
+                <span className="game-menu-coins__value">{player.coins}</span>
+              </motion.div>
+            </div>
           </div>
 
           <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
@@ -1755,31 +1909,55 @@ export function GameScreen({
             </div>
           </div>
 
-          <footer className="fixed inset-x-0 bottom-0 z-[60] flex items-end justify-between px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-            <motion.div {...menuStageItem(0.22, -16, 12)}>
-              <MenuHudButton
-                label="Jogador"
-                onClick={() => {
-                  onPlayClick()
-                  setPlayerOpen(true)
-                }}
-              >
-                <IconTrophy />
-              </MenuHudButton>
-            </motion.div>
+          <div className="game-menu-dock fixed inset-x-0 bottom-0 z-[60]">
+            <footer className="game-menu-footer flex items-end justify-between gap-1 px-3 pb-2 pt-1 sm:gap-2 sm:px-6">
+              <motion.div {...menuStageItem(0.18, -16, 12)}>
+                <MenuHudButton
+                  label="Jogador"
+                  onClick={() => {
+                    onPlayClick()
+                    setPlayerOpen(true)
+                  }}
+                >
+                  <IconPerson />
+                </MenuHudButton>
+              </motion.div>
 
-            <motion.div {...menuStageItem(0.28, 16, 12)}>
-              <MenuHudButton
-                label="Config"
-                onClick={() => {
-                  onPlayClick()
-                  setSettingsOpen(true)
-                }}
-              >
-                <IconGear />
-              </MenuHudButton>
-            </motion.div>
-          </footer>
+              <motion.div {...menuStageItem(0.22, -8, 12)}>
+                <MenuHudButton
+                  label="Loja"
+                  onClick={() => {
+                    onPlayClick()
+                    setShopOpen(true)
+                  }}
+                >
+                  <IconShop />
+                </MenuHudButton>
+              </motion.div>
+
+              <motion.div {...menuStageItem(0.26, 8, 12)}>
+                <MenuHudButton label="Tutorial" disabled>
+                  <IconHelp />
+                </MenuHudButton>
+              </motion.div>
+
+              <motion.div {...menuStageItem(0.3, 16, 12)}>
+                <MenuHudButton
+                  label="Config"
+                  onClick={() => {
+                    onPlayClick()
+                    setSettingsOpen(true)
+                  }}
+                >
+                  <IconGear />
+                </MenuHudButton>
+              </motion.div>
+            </footer>
+
+            <div className="game-menu-version-strip" aria-hidden>
+              <span>v0.0.4</span>
+            </div>
+          </div>
         </>
       )}
 
@@ -1822,10 +2000,14 @@ export function GameScreen({
       </Suspense>
       {isGameOver && (
         <ShareCardTemplate
+          theme={backgroundTheme}
           playerName={player.displayName}
           level={playerLevel}
           score={session.score}
           durationText={gameOverElapsedText}
+          xpGained={lastGameRewards.xpGained}
+          coinsGained={lastGameRewards.coinsGained}
+          goalCompleted={lastGameRewards.goalCompleted}
         />
       )}
     </div>

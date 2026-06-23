@@ -12,7 +12,7 @@ interface PlayFieldsFrameProps {
   burstScore: number
   waterLight: boolean
   borderActive: boolean
-  timerDanger?: boolean
+  timerDangerGlow?: number
   children: ReactNode
 }
 
@@ -22,7 +22,7 @@ export function PlayFieldsFrame({
   burstScore,
   waterLight,
   borderActive,
-  timerDanger = false,
+  timerDangerGlow = 0,
   children,
 }: PlayFieldsFrameProps) {
   const reduceMotion = useReducedMotion()
@@ -30,23 +30,23 @@ export function PlayFieldsFrame({
   const normalizedLevel = Math.min(Math.max(level, 1), 12)
   const pulseDurationSeconds = Math.max(0.56, 1.08 - (normalizedLevel - 1) * 0.03)
   const pulseScale = Math.min(1.0155, 1.006 + normalizedLevel * 0.0008)
-  const ringClass = timerDanger
-    ? 'border-rose-400/90 shadow-[0_0_22px_rgba(251,113,133,0.5)]'
-    : waterLight
-      ? 'border-amber-500/80 shadow-[0_0_18px_rgba(251,191,36,0.35)]'
-      : 'border-amber-400/75 shadow-[0_0_16px_rgba(251,191,36,0.28)]'
+  const dangerGlow = Math.min(1, Math.max(0, timerDangerGlow))
+  const ringMixClass = `game-play-frame-ring--danger-mix${
+    waterLight ? ' game-play-frame-ring--water' : ''
+  }`
 
   return (
     <div className="game-play-stack-frame relative w-full max-w-[var(--game-main-column-width)]">
       {borderActive && (
         <div
-          className={`pointer-events-none absolute inset-0 z-[3] rounded-3xl border-2 ${ringClass}${
+          className={`pointer-events-none absolute inset-0 z-[3] rounded-3xl border-2 ${ringMixClass}${
             reduceMotion ? ' game-play-frame-ring--reduced' : ' game-play-frame-ring--animated'
-          }`}
+          }${dangerGlow > 0 && !reduceMotion ? ' game-play-frame-ring--danger-animated' : ''}`}
           style={
             reduceMotion
-              ? undefined
+              ? ({ ['--danger-glow-intensity' as const]: String(dangerGlow) } as CSSProperties)
               : ({
+                  ['--danger-glow-intensity' as const]: String(dangerGlow),
                   ['--play-frame-pulse-duration' as const]: `${pulseDurationSeconds}s`,
                   ['--play-frame-pulse-scale' as const]: String(pulseScale),
                 } as CSSProperties)
@@ -59,7 +59,8 @@ export function PlayFieldsFrame({
         <>
           <motion.div
             key={`burst-ring-${burstScore}`}
-            className={`pointer-events-none absolute inset-0 z-[2] rounded-3xl border-2 ${ringClass}`}
+            className={`pointer-events-none absolute inset-0 z-[2] rounded-3xl border-2 ${ringMixClass}`}
+            style={{ ['--danger-glow-intensity' as const]: String(dangerGlow) } as CSSProperties}
             initial={{ scale: 1, opacity: 0.95 }}
             animate={{ scale: playBurstScaleMax(burstLevel), opacity: 0 }}
             transition={reduceMotion ? { duration: 0 } : LEVEL_UP_BURST_TRANSITION}

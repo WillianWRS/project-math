@@ -3,7 +3,7 @@ import { xpProgressInLevel } from '../../engine/player-level'
 import { formatDuration } from '../../engine/rewards'
 import { motion } from '../../lib/motion'
 import type { PlayerData, ScoreRecord } from '../../platform/storage'
-import { sanitizeDisplayName } from '../../hooks/usePlayer'
+import { sanitizeDisplayName, DISPLAY_NAME_MAX_LENGTH } from '../../hooks/usePlayer'
 import { Modal } from '../ui/Modal'
 
 interface PlayerModalProps {
@@ -46,7 +46,7 @@ function rankTextClass(index: number): string {
 
 function IconPerson() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
       <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" />
       <path
         d="M5 20c0-3.314 3.134-6 7-6s7 2.686 7 6"
@@ -109,7 +109,7 @@ export function PlayerModal({
   const dailyGoalRatio = Math.min(1, player.daily.scoreAccumulated / 1000)
 
   return (
-    <Modal open={open} title="Jogador" onClose={onClose}>
+    <Modal open={open} title="Jogador" titleIcon={<IconPerson />} onClose={onClose}>
       <div className="space-y-4">
         <motion.section className="game-modal-card p-3" {...stageItem(0.04, -10, 12)}>
           <p className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-charcoal-muted">
@@ -122,7 +122,7 @@ export function PlayerModal({
             key={player.displayName}
             defaultValue={player.displayName}
             onBlur={(event) => onSaveName(sanitizeDisplayName(event.currentTarget.value))}
-            maxLength={16}
+            maxLength={DISPLAY_NAME_MAX_LENGTH}
             className="mt-2 w-full rounded-lg border border-stone-700/60 bg-charcoal px-3 py-2 text-sm text-stone-100 outline-none focus:border-amber-400/55"
           />
         </motion.section>

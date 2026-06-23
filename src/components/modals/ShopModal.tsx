@@ -24,9 +24,35 @@ function stageItem(delay: number, x: number, y: number) {
   } as const
 }
 
+function IconShop() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 10h16L18.5 5.5H5.5L4 10z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 10v9h12v-9M9 19v-4h6v4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.5 10V7.5M12 10V7M15.5 10V7.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 export function ShopModal({ open, onClose, player }: ShopModalProps) {
   return (
-    <Modal open={open} title="Loja" onClose={onClose}>
+    <Modal open={open} title="Loja" titleIcon={<IconShop />} onClose={onClose}>
       <div className="space-y-3">
         <motion.div
           className="game-modal-card flex items-center justify-between px-3 py-2"
