@@ -10,10 +10,14 @@ import {
 const MANIFEST_PATH = '/audio/sfx-manifest.json'
 const MAX_WRITE_OVERLAP = 6
 
+type AudioContextConstructor = typeof AudioContext
+
 let manifestPromise: Promise<SfxManifest> | null = null
+let manifestCache: SfxManifest | null = null
 let audioContext: AudioContext | null = null
 let sfxGain: GainNode | null = null
 let ambientGain: GainNode | null = null
+let iosUnlockPrimed = false
 
 const bufferCache = new Map<ClipId, AudioBuffer>()
 const clipLoadPromises = new Map<ClipId, Promise<void>>()
@@ -27,24 +31,19 @@ let ambientSource: AudioBufferSourceNode | null = null
 
 const activeWriteSources = new Set<AudioBufferSourceNode>()
 
-async function loadManifest(): Promise<SfxManifest> {
-  if (!manifestPromise) {
-    manifestPromise = fetch(MANIFEST_PATH)
-      .then((response) => {
-        if (!response.ok) throw new Error(`Failed to load ${MANIFEST_PATH}`)
-        return response.json() as Promise<SfxManifest>
-      })
-      .catch((error) => {
-        manifestPromise = null
-        throw error
-      })
+function getAudioContextConstructor(): AudioContextConstructor {
+  const extendedWindow = window as Window & { webkitAudioContext?: AudioContextConstructor }
+  const ctor = window.AudioContext ?? extendedWindow.webkitAudioContext
+  if (!ctor) {
+    throw new Error('Web Audio API unavailable')
   }
-  return manifestPromise
+  return ctor
 }
 
-async function getContext(): Promise<AudioContext> {
+function ensureContextSync(): AudioContext {
   if (!audioContext) {
-    audioContext = new AudioContext()
+    const AudioContextCtor = getAudioContextConstructor()
+    audioContext = new AudioContextCtor()
     const masterGain = audioContext.createGain()
     sfxGain = audioContext.createGain()
     ambientGain = audioContext.createGain()
@@ -55,8 +54,61 @@ async function getContext(): Promise<AudioContext> {
   return audioContext
 }
 
+function primeIosAudioUnlock(context: AudioContext): void {
+  if (iosUnlockPrimed) return
+  iosUnlockPrimed = true
+
+  const buffer = context.createBuffer(1, 1, context.sampleRate)
+  const source = context.createBufferSource()
+  source.buffer = buffer
+  source.connect(context.destination)
+  try {
+    source.start(0)
+  } catch {
+    /* already started or context blocked */
+  }
+}
+
+function stopAmbient(): void {
+  if (!ambientSource) return
+
+  try {
+    ambientSource.stop(0)
+  } catch {
+    /* already stopped */
+  }
+  ambientSource.disconnect()
+  ambientSource = null
+}
+
+async function loadManifest(): Promise<SfxManifest> {
+  if (manifestCache) return manifestCache
+
+  if (!manifestPromise) {
+    manifestPromise = fetch(MANIFEST_PATH)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Failed to load ${MANIFEST_PATH}`)
+        return response.json() as Promise<SfxManifest>
+      })
+      .then((manifest) => {
+        manifestCache = manifest
+        return manifest
+      })
+      .catch((error) => {
+        manifestPromise = null
+        throw error
+      })
+  }
+
+  return manifestPromise
+}
+
+function warmManifestFetch(): void {
+  void loadManifest().catch(() => {})
+}
+
 async function decodeAudio(url: string): Promise<AudioBuffer> {
-  const context = await getContext()
+  const context = ensureContextSync()
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Failed to fetch audio: ${url}`)
   const data = await response.arrayBuffer()
@@ -186,8 +238,52 @@ function playBufferClip(id: ClipId, manifest: SfxManifest, enabled: boolean): vo
   source.start(0)
 }
 
+function tryPlayClipSync(id: ClipId, enabled: boolean): boolean {
+  if (!enabled || !manifestCache || !bufferCache.has(id)) return false
+  if (!audioContext || !sfxGain) return false
+
+  try {
+    playBufferClip(id, manifestCache, enabled)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function tryStartAmbientSync(shouldPlay: boolean): boolean {
+  if (!shouldPlay) {
+    stopAmbient()
+    return true
+  }
+
+  if (ambientSource || !audioContext || !ambientGain || !ambientBuffer) return false
+
+  try {
+    const source = audioContext.createBufferSource()
+    source.buffer = ambientBuffer
+    source.loop = true
+    source.connect(ambientGain)
+    source.start(0)
+    ambientSource = source
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function unlockAudioContextSync(): void {
+  const context = ensureContextSync()
+  primeIosAudioUnlock(context)
+  warmManifestFetch()
+
+  if (context.state === 'suspended') {
+    void context.resume()
+  }
+}
+
 export async function unlockAudioContext(): Promise<void> {
-  const context = await getContext()
+  unlockAudioContextSync()
+  const context = ensureContextSync()
   if (context.state === 'suspended') {
     await context.resume()
   }
@@ -201,6 +297,7 @@ export async function preloadAudioTier(tier: AudioTier): Promise<void> {
   }
 
   const promise = (async () => {
+    unlockAudioContextSync()
     await unlockAudioContext()
     const manifest = await loadManifest()
 
@@ -240,6 +337,9 @@ export function preloadAudioTierIdle(tier: AudioTier): void {
 export function playClip(id: ClipId, enabled: boolean): void {
   if (!enabled) return
 
+  unlockAudioContextSync()
+  if (tryPlayClipSync(id, enabled)) return
+
   void (async () => {
     await unlockAudioContext()
     const manifest = await loadManifest()
@@ -256,49 +356,27 @@ export function playRandomWriteClip(enabled: boolean): void {
 }
 
 export function syncAmbientPlayback(shouldPlay: boolean): void {
+  unlockAudioContextSync()
+
+  if (tryStartAmbientSync(shouldPlay)) return
+
   void (async () => {
     await unlockAudioContext()
     await loadAmbientBuffer()
-
-    if (!shouldPlay) {
-      if (ambientSource) {
-        try {
-          ambientSource.stop(0)
-        } catch {
-          /* already stopped */
-        }
-        ambientSource.disconnect()
-        ambientSource = null
-      }
-      return
-    }
-
-    if (ambientSource || !audioContext || !ambientGain || !ambientBuffer) return
-
-    const source = audioContext.createBufferSource()
-    source.buffer = ambientBuffer
-    source.loop = true
-    source.connect(ambientGain)
-    source.start(0)
-    ambientSource = source
+    tryStartAmbientSync(shouldPlay)
   })()
 }
 
 export function resetAudioEngineForTests(): void {
-  if (ambientSource) {
-    try {
-      ambientSource.stop(0)
-    } catch {
-      /* noop */
-    }
-    ambientSource.disconnect()
-  }
+  stopAmbient()
 
   audioContext?.close().catch(() => {})
   audioContext = null
   sfxGain = null
   ambientGain = null
+  manifestCache = null
   manifestPromise = null
+  iosUnlockPrimed = false
   bufferCache.clear()
   clipLoadPromises.clear()
   tierLoadPromises.clear()
@@ -306,6 +384,5 @@ export function resetAudioEngineForTests(): void {
   spriteLoadPromise = null
   ambientBuffer = null
   ambientLoadPromise = null
-  ambientSource = null
   activeWriteSources.clear()
 }

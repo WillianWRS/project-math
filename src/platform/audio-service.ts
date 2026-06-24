@@ -5,6 +5,7 @@ import {
   preloadAudioTierIdle,
   syncAmbientPlayback,
   unlockAudioContext,
+  unlockAudioContextSync,
 } from './audio-engine'
 import type { SfxId } from './audio-types'
 
@@ -12,6 +13,10 @@ export type { SfxId } from './audio-types'
 
 export function unlockAudio(): Promise<void> {
   return unlockAudioContext()
+}
+
+export function unlockAudioSync(): void {
+  unlockAudioContextSync()
 }
 
 /** @deprecated Prefer tiered preload helpers below. */

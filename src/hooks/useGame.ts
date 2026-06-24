@@ -28,7 +28,7 @@ import {
   saveTopScore,
   type ScoreRecord,
 } from '../platform/storage'
-import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, preloadAudioCritical, preloadAudioGameplay, preloadAudioIdle, syncAmbient, unlockAudio } from '../platform/audio-service'
+import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, preloadAudioCritical, preloadAudioGameplay, preloadAudioIdle, syncAmbient, unlockAudio, unlockAudioSync } from '../platform/audio-service'
 import { gameTimerStore } from '../platform/game-timer-store'
 import type { BenchmarkVirtualKey } from '../engine/benchmark-types'
 
@@ -143,15 +143,18 @@ export function useGame() {
 
   useEffect(() => {
     const bootstrap = () => {
+      unlockAudioSync()
       void unlockAudio().then(() => preloadAudioCritical())
+      preloadAudioIdle()
     }
 
-    window.addEventListener('pointerdown', bootstrap, { once: true, passive: true })
+    window.addEventListener('touchstart', bootstrap, { once: true, passive: true, capture: true })
+    window.addEventListener('pointerdown', bootstrap, { once: true, passive: true, capture: true })
     window.addEventListener('keydown', bootstrap, { once: true })
-    preloadAudioIdle()
 
     return () => {
-      window.removeEventListener('pointerdown', bootstrap)
+      window.removeEventListener('touchstart', bootstrap, true)
+      window.removeEventListener('pointerdown', bootstrap, true)
       window.removeEventListener('keydown', bootstrap)
     }
   }, [])
@@ -439,20 +442,25 @@ export function useGame() {
   }, [])
 
   const playClick = useCallback(() => {
+    unlockAudioSync()
     void preloadAudioCritical()
     playSfx('click', soundEnabledRef.current)
   }, [])
   const playGameStart = useCallback(() => {
+    unlockAudioSync()
     void preloadAudioGameplay()
     playSfx('gameStart', soundEnabledRef.current)
   }, [])
   const playWriteKey = useCallback(() => {
+    unlockAudioSync()
     playRandomWriteSfx(soundEnabledRef.current)
   }, [])
   const playEraseKey = useCallback(() => {
+    unlockAudioSync()
     playSfx('erase', soundEnabledRef.current)
   }, [])
   const playGoToMenu = useCallback(() => {
+    unlockAudioSync()
     playSfx('goToMenu', soundEnabledRef.current)
   }, [])
 
