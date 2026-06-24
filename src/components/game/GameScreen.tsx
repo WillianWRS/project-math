@@ -1427,7 +1427,7 @@ export function GameScreen({
 
       {showGameContent && (
         <motion.div
-          className="relative z-10 mx-auto flex h-full w-full max-w-md flex-1 flex-col overflow-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
+          className="relative z-10 mx-auto flex h-full w-full max-w-md flex-1 flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
           initial={{ x: '100%' }}
           animate={{ x: 0 }}
           transition={sceneEnterTransition}
@@ -1518,7 +1518,7 @@ export function GameScreen({
           </motion.header>
 
           <motion.main
-            className="mt-5 flex min-h-0 flex-1 flex-col items-center gap-4 overflow-hidden"
+            className="mt-5 flex min-h-0 flex-1 flex-col items-center gap-4"
             initial={{ opacity: 0, x: -8, y: 14 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ ...layerParallaxTransition, delay: 0.08 }}
@@ -1941,7 +1941,7 @@ export function GameScreen({
             </footer>
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.13</span>
+              <span>v0.0.14</span>
             </div>
           </div>
         </>
