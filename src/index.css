@@ -25,6 +25,11 @@ body {
   min-height: 100dvh;
 }
 
+.game-scene-root {
+  --timer-danger-strength: 0;
+  --danger-glow-intensity: 0;
+}
+
 .game-scene--water {
   background: linear-gradient(
     180deg,
@@ -1164,6 +1169,9 @@ body {
 
 .share-card__player-level {
   flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
   border-radius: 999px;
   padding: 10px 22px;
   font-family: var(--font-mono);

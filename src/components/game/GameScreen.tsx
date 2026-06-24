@@ -1,17 +1,16 @@
 import { AnimatePresence, motion } from '../../lib/motion'
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { NumericKeypad } from './NumericKeypad'
 import { PlayFieldsSideLayout } from './SideCardRails'
 import {
   ElapsedTimeLabel,
   PlayingTimerBar,
 } from './GameTimerDisplay'
-import { timerDangerGlowIntensity } from '../../lib/timer-danger-glow'
-import { useGameTimer } from '../../hooks/useGameTimer'
 import { CurtainOverlay } from './CurtainOverlay'
 import { PlayFieldsFrame } from './PlayFieldsFrame'
 import { PlayStackWithChangerBg, type PlayStackChangerTheme } from './PlayStackWithChangerBg'
 import { SideCardActivateBurst } from '../motion/SideCardActivateBurst'
+import { TimerDangerOverlay } from './TimerDangerOverlay'
 import { WaterSceneLayer } from './WaterSceneLayer'
 import { SLIDE_TRANSITION } from '../../lib/motion-presets'
 import { isFourSecondsGameChangerActive, isMinusGameChangerActive, isPlusGameChangerActive, isTimesDivGameChangerActive } from '../../engine/game-changer-cycles'
@@ -20,9 +19,6 @@ import { SUBMIT_LOCK_MS } from '../../engine/game-state-machine'
 import { RightSideCardCatalog, type RightCardVariant } from './side-card-types'
 import type { Operation } from '../../engine/types'
 import type { GameSession } from '../../engine/types'
-import { PlayerModal } from '../modals/PlayerModal'
-import { ShopModal } from '../modals/ShopModal'
-import { SettingsModal } from '../modals/SettingsModal'
 import { ShareCardTemplate } from '../share/ShareCardTemplate'
 import { shareScoreCardFromElement } from '../../utils/share-score-card'
 import { xpProgressInLevel, xpToLevel } from '../../engine/player-level'
@@ -38,6 +34,15 @@ const RewardedAutoCheckModal = lazy(() =>
 )
 const AutoCheckTimeoutModal = lazy(() =>
   import('../modals/AutoCheckTimeoutModal').then((m) => ({ default: m.AutoCheckTimeoutModal })),
+)
+const PlayerModal = lazy(() =>
+  import('../modals/PlayerModal').then((m) => ({ default: m.PlayerModal })),
+)
+const ShopModal = lazy(() =>
+  import('../modals/ShopModal').then((m) => ({ default: m.ShopModal })),
+)
+const SettingsModal = lazy(() =>
+  import('../modals/SettingsModal').then((m) => ({ default: m.SettingsModal })),
 )
 
 interface GameScreenProps {
@@ -998,10 +1003,12 @@ export function GameScreen({
   onPlayEraseKey,
   onPlayGoToMenu,
 }: GameScreenProps) {
+  const sceneRootRef = useRef<HTMLDivElement>(null)
   const [playerOpen, setPlayerOpen] = useState(false)
   const [shopOpen, setShopOpen] = useState(false)
   const [rewardedOpen, setRewardedOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [timerDangerActive, setTimerDangerActive] = useState(false)
   const [shakeKey, setShakeKey] = useState(0)
   const [presentation, setPresentation] = useState<PresentationPhase>('menu')
   const prevScoreRef = useRef(0)
@@ -1355,12 +1362,11 @@ export function GameScreen({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  const handleTimerDangerActiveChange = useCallback((active: boolean) => {
+    setTimerDangerActive((current) => (current === active ? current : active))
+  }, [])
+
   const themeTestOperation: Operation = { operator: '+', operand: 7, result: 31 }
-  const { timerMs: liveTimerMs } = useGameTimer()
-  const timerNowMs = isPlaying ? liveTimerMs : session.timerMs
-  const timerRatio = session.timerMaxMs > 0 ? Math.max(0, timerNowMs / session.timerMaxMs) : 0
-  const timerDangerGlow = isPlaying ? timerDangerGlowIntensity(timerRatio) : 0
-  const timerDangerActive = timerDangerGlow > 0
   const activeChangerTheme: PlayStackChangerTheme | null = fourSecondsActive
     ? 'four-seconds'
     : timesDivActive
@@ -1391,27 +1397,21 @@ export function GameScreen({
 
   return (
     <div
-      className={`relative flex min-h-dvh flex-col overflow-hidden text-white transition-colors duration-500 ${
+      ref={sceneRootRef}
+      className={`game-scene-root relative flex min-h-dvh flex-col overflow-hidden text-white transition-colors duration-500 ${
         useWaterBackground ? 'game-scene--water' : 'bg-charcoal'
       }`}
     >
-      {timerDangerGlow > 0 && (
-        <div
-          className="game-scene-danger-vignette pointer-events-none absolute inset-0 z-[40]"
-          style={{ opacity: timerDangerGlow * 0.9 }}
-          aria-hidden
-        />
-      )}
-      {timerDangerGlow > 0 && (
-        <div
-          className="game-scene-border-pulse game-scene-border-pulse--danger game-scene-border-pulse--danger-animated pointer-events-none absolute inset-0 z-[45]"
-          style={{ ['--danger-glow-intensity' as string]: String(timerDangerGlow) }}
-          aria-hidden
-        />
-      )}
+      <TimerDangerOverlay
+        containerRef={sceneRootRef}
+        isPlaying={isPlaying}
+        timerMaxMs={session.timerMaxMs}
+        fallbackTimerMs={session.timerMs}
+        onDangerActiveChange={handleTimerDangerActiveChange}
+      />
       {showGoodSceneBorder && (
         <div
-          className="game-scene-border-static pointer-events-none absolute inset-0 z-[44]"
+          className="game-scene-border-static pointer-events-none fixed inset-0 z-[44]"
           aria-hidden
         />
       )}
@@ -1419,7 +1419,7 @@ export function GameScreen({
         {showGoodSceneBorder && victoryBorderPulseToken > 0 && (
           <motion.div
             key={`victory-border-${victoryBorderPulseToken}`}
-            className="game-scene-border-burst pointer-events-none absolute inset-0 z-[45]"
+            className="game-scene-border-burst pointer-events-none fixed inset-0 z-[45]"
             initial={{ opacity: 0.25, scale: 1 }}
             animate={{ opacity: [0.25, 0.9, 0], scale: [1, 1.01, 1.02] }}
             exit={{ opacity: 0 }}
@@ -1566,17 +1566,12 @@ export function GameScreen({
                   burstScore={themeTestBurstToken}
                   waterLight={useWaterBackground}
                   borderActive
-                  timerDangerGlow={timerDangerGlow}
+                  timerDangerActive={timerDangerActive}
                 >
                   <PlayStackWithChangerBg
                     baseClassName={basePlayStackClass}
                     activeChangerTheme={activeChangerTheme}
-                    timerDanger={timerDangerGlow > 0}
-                    timerDangerStyle={
-                      timerDangerGlow > 0
-                        ? ({ ['--timer-danger-strength' as string]: String(timerDangerGlow) } as CSSProperties)
-                        : undefined
-                    }
+                    timerDanger={timerDangerActive}
                   >
                     <button
                       type="button"
@@ -1645,17 +1640,12 @@ export function GameScreen({
                   burstScore={session.score}
                   waterLight={useWaterBackground}
                   borderActive={isPlaying}
-                  timerDangerGlow={timerDangerGlow}
+                  timerDangerActive={timerDangerActive}
                 >
                   <PlayStackWithChangerBg
                     baseClassName={basePlayStackClass}
                     activeChangerTheme={activeChangerTheme}
-                    timerDanger={timerDangerGlow > 0}
-                    timerDangerStyle={
-                      timerDangerGlow > 0
-                        ? ({ ['--timer-danger-strength' as string]: String(timerDangerGlow) } as CSSProperties)
-                        : undefined
-                    }
+                    timerDanger={timerDangerActive}
                   >
                     <PlayFieldsShake active={session.isSubmitLocked && isPlaying} shakeKey={shakeKey}>
                       <div className="game-play-stack__divider border-b px-3 py-4 text-center">
@@ -1978,36 +1968,36 @@ export function GameScreen({
             </footer>
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.9</span>
+              <span>v0.0.10</span>
             </div>
           </div>
         </>
       )}
 
-      <PlayerModal
-        open={playerOpen}
-        onClose={() => setPlayerOpen(false)}
-        player={player}
-        topScores={topScores}
-        onSaveName={onSaveDisplayName}
-        onOpenRewardedModal={() => {
-          setPlayerOpen(false)
-          setRewardedOpen(true)
-        }}
-      />
-      <ShopModal open={shopOpen} onClose={() => setShopOpen(false)} player={player} />
-      <SettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        soundEnabled={soundEnabled}
-        onSoundChange={onSoundChange}
-        devModeEnabled={devModeEnabled}
-        onDevModeChange={onDevModeChange}
-        backgroundTheme={backgroundTheme}
-        ownedThemeIds={player.ownedThemeIds}
-        onBackgroundThemeChange={onBackgroundThemeChange}
-      />
       <Suspense fallback={null}>
+        <PlayerModal
+          open={playerOpen}
+          onClose={() => setPlayerOpen(false)}
+          player={player}
+          topScores={topScores}
+          onSaveName={onSaveDisplayName}
+          onOpenRewardedModal={() => {
+            setPlayerOpen(false)
+            setRewardedOpen(true)
+          }}
+        />
+        <ShopModal open={shopOpen} onClose={() => setShopOpen(false)} player={player} />
+        <SettingsModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          soundEnabled={soundEnabled}
+          onSoundChange={onSoundChange}
+          devModeEnabled={devModeEnabled}
+          onDevModeChange={onDevModeChange}
+          backgroundTheme={backgroundTheme}
+          ownedThemeIds={player.ownedThemeIds}
+          onBackgroundThemeChange={onBackgroundThemeChange}
+        />
         <RewardedAutoCheckModal
           open={rewardedOpen}
           onClose={() => setRewardedOpen(false)}

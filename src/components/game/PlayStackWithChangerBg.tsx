@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useReducedMotion } from '../../lib/motion'
 import { GAME_CHANGER_BURST_MS } from '../../lib/motion-presets'
 
@@ -15,7 +15,6 @@ interface PlayStackWithChangerBgProps {
   baseClassName: string
   activeChangerTheme: PlayStackChangerTheme | null
   timerDanger?: boolean
-  timerDangerStyle?: CSSProperties
   children: ReactNode
 }
 
@@ -23,7 +22,6 @@ export function PlayStackWithChangerBg({
   baseClassName,
   activeChangerTheme,
   timerDanger = false,
-  timerDangerStyle,
   children,
 }: PlayStackWithChangerBgProps) {
   const reduceMotion = useReducedMotion()
@@ -100,7 +98,6 @@ export function PlayStackWithChangerBg({
       className={`game-play-stack game-play-stack--uses-changer-overlay w-full rounded-3xl ${baseClassName}${
         stackChangerClass ? ` ${stackChangerClass}` : ''
       }${timerDanger ? ' game-play-stack--timer-danger' : ''}`}
-      style={timerDangerStyle}
     >
       {overlayTheme && overlayPhase === 'exit' ? (
         <>
