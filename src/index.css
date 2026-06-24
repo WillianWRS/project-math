@@ -25,35 +25,6 @@ body {
   min-height: 100dvh;
 }
 
-.forward-line {
-  --forward-opacity: 0.1;
-  --forward-duration: 3s;
-  --forward-delay: 0s;
-
-  transform: translateZ(0);
-  opacity: 0;
-  background: rgba(214, 205, 190, 0.42);
-  box-shadow: 0 0 5px rgba(214, 205, 190, 0.2);
-}
-
-.forward-line--water {
-  background: rgba(255, 255, 255, 0.42);
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
-}
-
-.forward-line--animated {
-  animation-name: forward-line-fall, forward-line-fade;
-  animation-duration: var(--forward-duration), var(--forward-duration);
-  animation-delay: var(--forward-delay), var(--forward-delay);
-  animation-timing-function: linear, linear;
-  animation-iteration-count: infinite, infinite;
-}
-
-.forward-line--idle {
-  transform: translate3d(0, -12px, 0);
-  opacity: 0;
-}
-
 .game-scene--water {
   background: linear-gradient(
     180deg,
@@ -2432,34 +2403,6 @@ body {
 
 .timer-spark--near-death:not(.timer-spark-trail) {
   animation: timer-spark-dot-near-death 0.82s linear infinite;
-}
-
-@keyframes forward-line-fall {
-  from {
-    transform: translate3d(0, -12px, 0);
-  }
-
-  to {
-    transform: translate3d(0, calc(100dvh + 24px), 0);
-  }
-}
-
-@keyframes forward-line-fade {
-  0% {
-    opacity: 0;
-  }
-
-  8% {
-    opacity: var(--forward-opacity);
-  }
-
-  92% {
-    opacity: var(--forward-opacity);
-  }
-
-  100% {
-    opacity: 0;
-  }
 }
 
 @keyframes game-scene-danger-pulse {

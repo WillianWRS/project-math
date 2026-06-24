@@ -3,7 +3,6 @@ import {
   playRandomWriteClip,
   preloadAudioTier,
   preloadAudioTierIdle,
-  syncAmbientPlayback,
   unlockAudioContext,
   unlockAudioContextSync,
 } from './audio-engine'
@@ -61,8 +60,4 @@ export function playCorrectAnswerSfx(
 
 export function playRandomWriteSfx(enabled: boolean): void {
   playRandomWriteClip(enabled)
-}
-
-export function syncAmbient(shouldPlay: boolean): void {
-  syncAmbientPlayback(shouldPlay)
 }

@@ -28,7 +28,7 @@ import {
   saveTopScore,
   type ScoreRecord,
 } from '../platform/storage'
-import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, preloadAudioCritical, preloadAudioGameplay, preloadAudioIdle, syncAmbient, unlockAudio, unlockAudioSync } from '../platform/audio-service'
+import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, preloadAudioCritical, preloadAudioGameplay, preloadAudioIdle, unlockAudio, unlockAudioSync } from '../platform/audio-service'
 import { gameTimerStore } from '../platform/game-timer-store'
 import type { BenchmarkVirtualKey } from '../engine/benchmark-types'
 
@@ -158,10 +158,6 @@ export function useGame() {
       window.removeEventListener('keydown', bootstrap)
     }
   }, [])
-
-  useEffect(() => {
-    syncAmbient(soundEnabled && session.phase === 'playing' && !session.awaitingAutoCheckChoice)
-  }, [soundEnabled, session.phase, session.awaitingAutoCheckChoice])
 
   useEffect(() => {
     timerMsRef.current = session.timerMs

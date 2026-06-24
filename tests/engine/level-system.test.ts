@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  backgroundScrollDuration,
   crossedScoreMilestoneBurst,
   levelTimerMs,
   levelTimerSeconds,
@@ -41,12 +40,6 @@ describe('levelTimerSeconds', () => {
   it('converte milissegundos em segundos', () => {
     expect(levelTimerSeconds(1)).toBe(12)
     expect(levelTimerSeconds(5)).toBe(7)
-  })
-})
-
-describe('backgroundScrollDuration', () => {
-  it('acelera a animação em níveis mais altos', () => {
-    expect(backgroundScrollDuration(1)).toBeGreaterThan(backgroundScrollDuration(5))
   })
 })
 

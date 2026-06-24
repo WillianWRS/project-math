@@ -14,9 +14,9 @@ type AudioContextConstructor = typeof AudioContext
 
 let manifestPromise: Promise<SfxManifest> | null = null
 let manifestCache: SfxManifest | null = null
+let audioUnlocked = false
 let audioContext: AudioContext | null = null
 let sfxGain: GainNode | null = null
-let ambientGain: GainNode | null = null
 let iosUnlockPrimed = false
 
 const bufferCache = new Map<ClipId, AudioBuffer>()
@@ -25,9 +25,6 @@ const tierLoadPromises = new Map<AudioTier, Promise<void>>()
 
 let spriteBuffer: AudioBuffer | null = null
 let spriteLoadPromise: Promise<void> | null = null
-let ambientBuffer: AudioBuffer | null = null
-let ambientLoadPromise: Promise<void> | null = null
-let ambientSource: AudioBufferSourceNode | null = null
 
 const activeWriteSources = new Set<AudioBufferSourceNode>()
 
@@ -40,17 +37,18 @@ function getAudioContextConstructor(): AudioContextConstructor {
   return ctor
 }
 
-function ensureContextSync(): AudioContext {
+function ensureContextSync(): AudioContext | null {
+  if (!audioUnlocked) return null
+
   if (!audioContext) {
     const AudioContextCtor = getAudioContextConstructor()
     audioContext = new AudioContextCtor()
     const masterGain = audioContext.createGain()
     sfxGain = audioContext.createGain()
-    ambientGain = audioContext.createGain()
     sfxGain.connect(masterGain)
-    ambientGain.connect(masterGain)
     masterGain.connect(audioContext.destination)
   }
+
   return audioContext
 }
 
@@ -67,18 +65,6 @@ function primeIosAudioUnlock(context: AudioContext): void {
   } catch {
     /* already started or context blocked */
   }
-}
-
-function stopAmbient(): void {
-  if (!ambientSource) return
-
-  try {
-    ambientSource.stop(0)
-  } catch {
-    /* already stopped */
-  }
-  ambientSource.disconnect()
-  ambientSource = null
 }
 
 async function loadManifest(): Promise<SfxManifest> {
@@ -109,6 +95,8 @@ function warmManifestFetch(): void {
 
 async function decodeAudio(url: string): Promise<AudioBuffer> {
   const context = ensureContextSync()
+  if (!context) throw new Error('AudioContext is locked until user gesture')
+
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Failed to fetch audio: ${url}`)
   const data = await response.arrayBuffer()
@@ -179,21 +167,6 @@ async function loadClipBuffer(id: ClipId): Promise<void> {
   }
 }
 
-async function loadAmbientBuffer(): Promise<void> {
-  if (ambientBuffer) return
-  if (!ambientLoadPromise) {
-    ambientLoadPromise = (async () => {
-      const manifest = await loadManifest()
-      ambientBuffer = await decodeAudio(manifest.ambient.src)
-      if (ambientGain) ambientGain.gain.value = manifest.ambient.volume
-    })().catch((error) => {
-      ambientLoadPromise = null
-      throw error
-    })
-  }
-  await ambientLoadPromise
-}
-
 function trimWritePool(): void {
   while (activeWriteSources.size >= MAX_WRITE_OVERLAP) {
     const oldest = activeWriteSources.values().next().value
@@ -250,29 +223,11 @@ function tryPlayClipSync(id: ClipId, enabled: boolean): boolean {
   }
 }
 
-function tryStartAmbientSync(shouldPlay: boolean): boolean {
-  if (!shouldPlay) {
-    stopAmbient()
-    return true
-  }
-
-  if (ambientSource || !audioContext || !ambientGain || !ambientBuffer) return false
-
-  try {
-    const source = audioContext.createBufferSource()
-    source.buffer = ambientBuffer
-    source.loop = true
-    source.connect(ambientGain)
-    source.start(0)
-    ambientSource = source
-    return true
-  } catch {
-    return false
-  }
-}
-
 export function unlockAudioContextSync(): void {
+  audioUnlocked = true
   const context = ensureContextSync()
+  if (!context) return
+
   primeIosAudioUnlock(context)
   warmManifestFetch()
 
@@ -284,12 +239,16 @@ export function unlockAudioContextSync(): void {
 export async function unlockAudioContext(): Promise<void> {
   unlockAudioContextSync()
   const context = ensureContextSync()
+  if (!context) return
+
   if (context.state === 'suspended') {
     await context.resume()
   }
 }
 
 export async function preloadAudioTier(tier: AudioTier): Promise<void> {
+  if (!audioUnlocked) return
+
   const pending = tierLoadPromises.get(tier)
   if (pending) {
     await pending
@@ -297,7 +256,6 @@ export async function preloadAudioTier(tier: AudioTier): Promise<void> {
   }
 
   const promise = (async () => {
-    unlockAudioContextSync()
     await unlockAudioContext()
     const manifest = await loadManifest()
 
@@ -307,10 +265,6 @@ export async function preloadAudioTier(tier: AudioTier): Promise<void> {
 
     const clipIds = clipsForTier(manifest, tier)
     await Promise.all(clipIds.map((id) => loadClipBuffer(id)))
-
-    if (tier === 'idle') {
-      await loadAmbientBuffer()
-    }
   })()
 
   tierLoadPromises.set(tier, promise)
@@ -335,7 +289,7 @@ export function preloadAudioTierIdle(tier: AudioTier): void {
 }
 
 export function playClip(id: ClipId, enabled: boolean): void {
-  if (!enabled) return
+  if (!enabled || !audioUnlocked) return
 
   unlockAudioContextSync()
   if (tryPlayClipSync(id, enabled)) return
@@ -355,25 +309,11 @@ export function playRandomWriteClip(enabled: boolean): void {
   playClip(WRITE_SFX_IDS[index], enabled)
 }
 
-export function syncAmbientPlayback(shouldPlay: boolean): void {
-  unlockAudioContextSync()
-
-  if (tryStartAmbientSync(shouldPlay)) return
-
-  void (async () => {
-    await unlockAudioContext()
-    await loadAmbientBuffer()
-    tryStartAmbientSync(shouldPlay)
-  })()
-}
-
 export function resetAudioEngineForTests(): void {
-  stopAmbient()
-
   audioContext?.close().catch(() => {})
   audioContext = null
   sfxGain = null
-  ambientGain = null
+  audioUnlocked = false
   manifestCache = null
   manifestPromise = null
   iosUnlockPrimed = false
@@ -382,7 +322,5 @@ export function resetAudioEngineForTests(): void {
   tierLoadPromises.clear()
   spriteBuffer = null
   spriteLoadPromise = null
-  ambientBuffer = null
-  ambientLoadPromise = null
   activeWriteSources.clear()
 }

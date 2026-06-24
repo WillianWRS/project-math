@@ -1,11 +1,6 @@
 {
   "mode": "files",
   "sprite": "/audio/sfx-sprite.mp3",
-  "ambient": {
-    "src": "/audio/ambient.mp3",
-    "tier": "idle",
-    "volume": 0.32
-  },
   "clips": {
     "click": {
       "src": "/audio/click.mp3",

@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from '../../lib/motion'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
-import { ForwardLinesBackground } from './ForwardLinesBackground'
 import { NumericKeypad } from './NumericKeypad'
 import { PlayFieldsSideLayout } from './SideCardRails'
 import {
@@ -1057,12 +1056,6 @@ export function GameScreen({
   const isGameOver = session.phase === 'game_over'
   const isThemeTestScene = presentation === 'theme-test'
   const showBenchmarkResults = benchmarkMode && isGameOver && benchmarkMetrics !== null
-  const anyModalOpen =
-    playerOpen ||
-    shopOpen ||
-    settingsOpen ||
-    rewardedOpen ||
-    (session.awaitingAutoCheckChoice && isPlaying && !benchmarkMode)
   const playerLevel = xpToLevel(player.xp)
   const gameOverElapsedText = formatDuration(session.elapsedMs)
   const liveFourSecondsActive = isFourSecondsGameChangerActive(session)
@@ -1446,12 +1439,6 @@ export function GameScreen({
         transition={layerParallaxTransition}
       >
         {useWaterBackground && <WaterSceneLayer />}
-        <ForwardLinesBackground
-          active={presentation !== 'menu' && !anyModalOpen}
-          rhythmLevel={session.rhythmLevel}
-          speedMultiplier={isGameOver ? 0.1 : 1}
-          theme={useWaterBackground ? 'water' : 'default'}
-        />
       </motion.div>
 
       {showGameContent && (
@@ -1991,7 +1978,7 @@ export function GameScreen({
             </footer>
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.8</span>
+              <span>v0.0.9</span>
             </div>
           </div>
         </>

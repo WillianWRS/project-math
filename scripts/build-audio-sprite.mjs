@@ -85,11 +85,6 @@ function buildFilesManifest() {  const clips = Object.fromEntries(
   return {
     mode: 'files',
     sprite: '/audio/sfx-sprite.mp3',
-    ambient: {
-      src: '/audio/ambient.mp3',
-      tier: 'idle',
-      volume: 0.32,
-    },
     clips,
   }
 }
@@ -132,11 +127,7 @@ function buildSpriteManifest() {
   return {
     mode: 'sprite',
     sprite: '/audio/sfx-sprite.mp3',
-    spriteSources,    ambient: {
-      src: '/audio/ambient.mp3',
-      tier: 'idle',
-      volume: 0.32,
-    },
+    spriteSources,
     clips,
   }
 }

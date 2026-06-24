@@ -20,7 +20,6 @@ interface AudioManifestFile {
   mode: 'files' | 'sprite'
   sprite: string
   spriteSources?: string[]
-  ambient: { src: string }
   clips: Record<string, AudioClipManifest>
 }
 
@@ -53,7 +52,6 @@ function getAudioPrecacheEntries(): { url: string; revision: string }[] {
       entries.push({ url: source, revision: fileRevision(source) })
     }
 
-    entries.push({ url: manifest.ambient.src, revision: fileRevision(manifest.ambient.src) })
     return entries
   }
 
@@ -118,7 +116,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,jpg,webmanifest}'],
         globIgnores: ['**/audio/**'],
         additionalManifestEntries: audioPrecacheEntries,
-        navigationPreload: true,
+        navigationPreload: false,
         skipWaiting: true,
         runtimeCaching: [
           {

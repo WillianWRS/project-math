@@ -13,13 +13,6 @@ export function rhythmLevelTimerSeconds(rhythmLevel: number): number {
   return rhythmLevelTimerMs(rhythmLevel) / 1000
 }
 
-export function rhythmBackgroundScrollDuration(rhythmLevel: number): number {
-  // Quanto menor, mais rápido. Progressão suave entre níveis (L1→L5 ≈ 4×).
-  const durations = [48, 34, 24, 17, 12]
-  const index = Math.min(Math.max(rhythmLevel, 1), 5) - 1
-  return durations[index]
-}
-
 const SCORE_MILESTONE_START = 300
 const SCORE_MILESTONE_INTERVAL = 100
 
@@ -40,4 +33,3 @@ export function crossedScoreMilestoneBurst(previousScore: number, score: number)
 export const scoreToLevel = scoreToRhythmLevel
 export const levelTimerMs = rhythmLevelTimerMs
 export const levelTimerSeconds = rhythmLevelTimerSeconds
-export const backgroundScrollDuration = rhythmBackgroundScrollDuration

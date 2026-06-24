@@ -5,7 +5,6 @@ import type { SfxManifest } from './audio-types'
 const manifest = {
   mode: 'files',
   sprite: '/audio/sfx-sprite.mp3',
-  ambient: { src: '/audio/ambient.mp3', tier: 'idle', volume: 0.32 },
   clips: {
     click: { src: '/audio/click.mp3', tier: 'critical', volume: 1 },
     gameStart: { src: '/audio/game-start.mp3', tier: 'gameplay', volume: 1 },

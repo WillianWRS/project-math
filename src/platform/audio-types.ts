@@ -33,17 +33,10 @@ export interface FileClipDef {
   pool?: AudioPool
 }
 
-export interface AmbientDef {
-  src: string
-  tier: AudioTier
-  volume: number
-}
-
 export interface SfxManifest {
   mode: 'files' | 'sprite'
   sprite: string
   spriteSources?: string[]
-  ambient: AmbientDef
   clips: Record<ClipId, FileClipDef | SpriteClipDef>
 }
 
