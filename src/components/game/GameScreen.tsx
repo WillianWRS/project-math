@@ -112,25 +112,31 @@ function SlideValue({
   value,
   className,
   slotClassName,
+  shakeActive = false,
+  shakeKey = 0,
 }: {
   value: string | number
   className?: string
   slotClassName?: string
+  shakeActive?: boolean
+  shakeKey?: number
 }) {
   return (
     <div className={`relative overflow-hidden ${slotClassName ?? ''}`}>
-      <AnimatePresence mode="sync" initial={false}>
-        <motion.p
-          key={value}
-          className={`absolute inset-x-0 font-mono tabular-nums ${className ?? ''}`}
-          initial={{ y: '100%', opacity: 0.5 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: '-100%', opacity: 0 }}
-          transition={slideTransition}
-        >
-          {value}
-        </motion.p>
-      </AnimatePresence>
+      <NumberShake active={shakeActive} shakeKey={shakeKey}>
+        <AnimatePresence mode="sync" initial={false}>
+          <motion.p
+            key={value}
+            className={`absolute inset-x-0 font-mono tabular-nums ${className ?? ''}`}
+            initial={{ y: '100%', opacity: 0.5 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '-100%', opacity: 0 }}
+            transition={slideTransition}
+          >
+            {value}
+          </motion.p>
+        </AnimatePresence>
+      </NumberShake>
     </div>
   )
 }
@@ -144,6 +150,8 @@ function OperationValue({
   timesDivLight = false,
   plusLight = false,
   minusLight = false,
+  shakeActive = false,
+  shakeKey = 0,
 }: {
   operation: Operation
   className?: string
@@ -153,6 +161,8 @@ function OperationValue({
   timesDivLight?: boolean
   plusLight?: boolean
   minusLight?: boolean
+  shakeActive?: boolean
+  shakeKey?: number
 }) {
   const key = `${operation.operator} ${operation.operand}`
   const operandClass = fourSecondsLight
@@ -169,32 +179,34 @@ function OperationValue({
 
   return (
     <div className={`relative overflow-hidden ${slotClassName ?? ''}`}>
-      <AnimatePresence mode="sync" initial={false}>
-        <motion.p
-          key={key}
-          className={`absolute inset-x-0 flex items-center justify-center gap-1.5 font-mono tabular-nums tracking-wide ${className ?? ''}`}
-          initial={{ x: '-100%', opacity: 0 }}
-          animate={{
-            x: 0,
-            opacity: 1,
-            transition: { duration: 0.26, ease: [0.22, 1, 0.36, 1] },
-          }}
-          exit={{
-            y: '-100%',
-            opacity: 0,
-            transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
-          }}
-        >
-          <span
-            className={`text-4xl font-bold leading-none ${OPERATOR_COLOR_CLASS[operation.operator]}`}
+      <NumberShake active={shakeActive} shakeKey={shakeKey}>
+        <AnimatePresence mode="sync" initial={false}>
+          <motion.p
+            key={key}
+            className={`absolute inset-x-0 flex items-center justify-center gap-1.5 font-mono tabular-nums tracking-wide ${className ?? ''}`}
+            initial={{ x: '-100%', opacity: 0 }}
+            animate={{
+              x: 0,
+              opacity: 1,
+              transition: { duration: 0.26, ease: [0.22, 1, 0.36, 1] },
+            }}
+            exit={{
+              y: '-100%',
+              opacity: 0,
+              transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+            }}
           >
-            {operation.operator}
-          </span>
-          <span className={`text-3xl font-normal leading-none ${operandClass}`}>
-            {operation.operand}
-          </span>
-        </motion.p>
-      </AnimatePresence>
+            <span
+              className={`text-4xl font-bold leading-none ${OPERATOR_COLOR_CLASS[operation.operator]}`}
+            >
+              {operation.operator}
+            </span>
+            <span className={`text-3xl font-normal leading-none ${operandClass}`}>
+              {operation.operand}
+            </span>
+          </motion.p>
+        </AnimatePresence>
+      </NumberShake>
     </div>
   )
 }
@@ -478,16 +490,19 @@ function ThemeTestSideLayout({
         <div className="game-side-cards game-side-cards--right !pointer-events-auto">
           {RightSideCardCatalog.cards.map((card) => {
             const active = activeChanger === card.variant
+            const changerLocked = activeChanger !== null && !active
 
             return (
               <div key={card.id} className="game-side-card-slot game-side-card-slot--burst-host">
                 <button
                   type="button"
+                  disabled={changerLocked}
                   onClick={() => onToggleChanger(card.variant)}
                   className={`game-side-card ${card.styleClass} transition-transform duration-150 hover:scale-[1.03] active:scale-[0.97] ${
                     active ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-charcoal' : ''
-                  }`}
+                  }${changerLocked ? ' opacity-45 saturate-50 cursor-not-allowed' : ''}`}
                   aria-pressed={active}
+                  aria-disabled={changerLocked || undefined}
                   aria-label={`Alternar preview do game changer ${card.id}`}
                 >
                   <span className="game-side-card__content">
@@ -856,7 +871,7 @@ function PerfectAnswerBadge({ token }: { token: number }) {
 const wrongAnswerShakeTransition = { duration: SUBMIT_LOCK_MS / 1000, ease: [0.22, 1, 0.36, 1] as const }
 const wrongAnswerShakeX = [0, -10, 10, -8, 8, -4, 4, 0]
 
-function PlayFieldsShake({
+function NumberShake({
   active,
   shakeKey,
   children,
@@ -868,6 +883,7 @@ function PlayFieldsShake({
   return (
     <motion.div
       key={shakeKey}
+      className="relative h-full w-full"
       animate={active ? { x: wrongAnswerShakeX } : { x: 0 }}
       transition={wrongAnswerShakeTransition}
     >
@@ -880,6 +896,7 @@ function AnswerDisplay({
   value,
   disabled,
   shake,
+  shakeKey = 0,
   answerFlash,
   answerFlashAuto,
   flashKey,
@@ -894,6 +911,7 @@ function AnswerDisplay({
   value: string
   disabled: boolean
   shake: boolean
+  shakeKey?: number
   answerFlash: string | null
   answerFlashAuto: boolean
   flashKey: number
@@ -962,7 +980,9 @@ function AnswerDisplay({
                             : 'text-charcoal-muted/50'
           } ${disabled ? 'opacity-50' : ''}`}
         >
-          {displayValue}
+          <NumberShake active={shake} shakeKey={shakeKey}>
+            <span>{displayValue}</span>
+          </NumberShake>
         </div>
       </div>
     </div>
@@ -1008,7 +1028,6 @@ export function GameScreen({
   const [shopOpen, setShopOpen] = useState(false)
   const [rewardedOpen, setRewardedOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [timerDangerActive, setTimerDangerActive] = useState(false)
   const [shakeKey, setShakeKey] = useState(0)
   const [presentation, setPresentation] = useState<PresentationPhase>('menu')
   const answerFieldRef = useRef<HTMLDivElement>(null)
@@ -1353,10 +1372,6 @@ export function GameScreen({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  const handleTimerDangerActiveChange = useCallback((active: boolean) => {
-    setTimerDangerActive((current) => (current === active ? current : active))
-  }, [])
-
   const themeTestOperation: Operation = { operator: '+', operand: 7, result: 31 }
   const activeChangerTheme: PlayStackChangerTheme | null = fourSecondsActive
     ? 'four-seconds'
@@ -1377,11 +1392,9 @@ export function GameScreen({
       }`}
     >
       <TimerDangerOverlay
-        containerRef={sceneRootRef}
         isPlaying={isPlaying}
         timerMaxMs={session.timerMaxMs}
         fallbackTimerMs={session.timerMs}
-        onDangerActiveChange={handleTimerDangerActiveChange}
       />
       <motion.div
         className="pointer-events-none absolute inset-0 z-0"
@@ -1410,16 +1423,7 @@ export function GameScreen({
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ ...layerParallaxTransition, delay: 0.04 }}
           >
-            <motion.div
-              key={`hud-shake-${shakeKey}`}
-              animate={
-                shakeKey > 0
-                  ? { x: [0, -7, 6, -4, 3, 0], y: [0, -1, 1, -1, 0], rotate: [0, -0.3, 0.25, -0.12, 0] }
-                  : { x: 0, y: 0, rotate: 0 }
-              }
-              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="game-scene-header-bar relative">
+            <div className="game-scene-header-bar relative">
                 {isInGameScene ? (
                   <div className="game-header-left-dock">
                     <span className="game-player-level-badge rounded-md bg-charcoal-elevated px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-200">
@@ -1495,7 +1499,6 @@ export function GameScreen({
                   )}
                 </div>
               </div>
-            </motion.div>
           </motion.header>
 
           <motion.main
@@ -1521,12 +1524,10 @@ export function GameScreen({
                   burstScore={themeTestBurstToken}
                   waterLight={useWaterBackground}
                   borderActive
-                  timerDangerActive={timerDangerActive}
                 >
                   <PlayStackWithChangerBg
                     baseClassName={basePlayStackClass}
                     activeChangerTheme={activeChangerTheme}
-                    timerDanger={timerDangerActive}
                   >
                     <button
                       type="button"
@@ -1595,68 +1596,69 @@ export function GameScreen({
                   burstScore={session.score}
                   waterLight={useWaterBackground}
                   borderActive={isPlaying}
-                  timerDangerActive={timerDangerActive}
                 >
                   <PlayStackWithChangerBg
                     baseClassName={basePlayStackClass}
                     activeChangerTheme={activeChangerTheme}
-                    timerDanger={timerDangerActive}
                   >
-                    <PlayFieldsShake active={session.isSubmitLocked && isPlaying} shakeKey={shakeKey}>
-                      <div className="game-play-stack__divider border-b px-3 py-4 text-center">
-                        {isPlaying || isGameOver ? (
-                          <SlideValue
-                            value={session.baseNumber}
-                            slotClassName="h-14"
-                            className={`text-5xl font-bold ${baseFieldClass}`}
-                          />
-                        ) : (
-                          <p
-                            className={`font-mono text-5xl font-bold tabular-nums ${mutedFieldClass}`}
-                          >
-                            —
-                          </p>
-                        )}
-                      </div>
+                    <div className="game-play-stack__divider border-b px-3 py-4 text-center">
+                      {isPlaying || isGameOver ? (
+                        <SlideValue
+                          value={session.baseNumber}
+                          slotClassName="h-14"
+                          className={`text-5xl font-bold ${baseFieldClass}`}
+                          shakeActive={session.isSubmitLocked && isPlaying}
+                          shakeKey={shakeKey}
+                        />
+                      ) : (
+                        <p
+                          className={`font-mono text-5xl font-bold tabular-nums ${mutedFieldClass}`}
+                        >
+                          —
+                        </p>
+                      )}
+                    </div>
 
-                      <div className="game-play-stack__divider border-b px-3 py-3 text-center">
-                        {session.operation && (isPlaying || isGameOver) ? (
-                          <OperationValue
-                            operation={session.operation}
-                            slotClassName="h-10"
-                            waterLight={useWaterBackground}
-                            fourSecondsLight={fourSecondsActive}
-                            timesDivLight={timesDivActive}
-                            plusLight={plusActive}
-                            minusLight={minusActive}
-                          />
-                        ) : (
-                          <p
-                            className={`font-mono text-3xl font-medium tabular-nums tracking-wide ${mutedFieldClass}`}
-                          >
-                            —
-                          </p>
-                        )}
-                      </div>
+                    <div className="game-play-stack__divider border-b px-3 py-3 text-center">
+                      {session.operation && (isPlaying || isGameOver) ? (
+                        <OperationValue
+                          operation={session.operation}
+                          slotClassName="h-10"
+                          waterLight={useWaterBackground}
+                          fourSecondsLight={fourSecondsActive}
+                          timesDivLight={timesDivActive}
+                          plusLight={plusActive}
+                          minusLight={minusActive}
+                          shakeActive={session.isSubmitLocked && isPlaying}
+                          shakeKey={shakeKey}
+                        />
+                      ) : (
+                        <p
+                          className={`font-mono text-3xl font-medium tabular-nums tracking-wide ${mutedFieldClass}`}
+                        >
+                          —
+                        </p>
+                      )}
+                    </div>
 
-                      <AnswerDisplay
-                        value={inputValue}
-                        disabled={inputDisabled}
-                        shake={session.isSubmitLocked}
-                        answerFlash={session.answerFlash}
-                        answerFlashAuto={session.answerFlashAuto}
-                        flashKey={session.score}
-                        perfectAnswerToken={
-                          isPlaying && session.score > 0 ? perfectAnswerToken : 0
-                        }
-                        waterLight={useWaterBackground}
-                        fourSecondsLight={fourSecondsActive}
-                        timesDivLight={timesDivActive}
-                        plusLight={plusActive}
-                        minusLight={minusActive}
-                        slotRef={answerFieldRef}
-                      />
-                    </PlayFieldsShake>
+                    <AnswerDisplay
+                      value={inputValue}
+                      disabled={inputDisabled}
+                      shake={session.isSubmitLocked}
+                      shakeKey={shakeKey}
+                      answerFlash={session.answerFlash}
+                      answerFlashAuto={session.answerFlashAuto}
+                      flashKey={session.score}
+                      perfectAnswerToken={
+                        isPlaying && session.score > 0 ? perfectAnswerToken : 0
+                      }
+                      waterLight={useWaterBackground}
+                      fourSecondsLight={fourSecondsActive}
+                      timesDivLight={timesDivActive}
+                      plusLight={plusActive}
+                      minusLight={minusActive}
+                      slotRef={answerFieldRef}
+                    />
                   </PlayStackWithChangerBg>
                 </PlayFieldsFrame>
               </PlayFieldsSideLayout>
@@ -1923,7 +1925,7 @@ export function GameScreen({
             </footer>
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.11</span>
+              <span>v0.0.12</span>
             </div>
           </div>
         </>

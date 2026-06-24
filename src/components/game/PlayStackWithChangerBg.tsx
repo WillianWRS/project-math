@@ -14,14 +14,12 @@ const CHANGER_STACK_CLASS: Record<PlayStackChangerTheme, string> = {
 interface PlayStackWithChangerBgProps {
   baseClassName: string
   activeChangerTheme: PlayStackChangerTheme | null
-  timerDanger?: boolean
   children: ReactNode
 }
 
 export function PlayStackWithChangerBg({
   baseClassName,
   activeChangerTheme,
-  timerDanger = false,
   children,
 }: PlayStackWithChangerBgProps) {
   const reduceMotion = useReducedMotion()
@@ -97,7 +95,7 @@ export function PlayStackWithChangerBg({
     <div
       className={`game-play-stack game-play-stack--uses-changer-overlay w-full rounded-3xl ${baseClassName}${
         stackChangerClass ? ` ${stackChangerClass}` : ''
-      }${timerDanger ? ' game-play-stack--timer-danger' : ''}`}
+      }`}
     >
       {overlayTheme && overlayPhase === 'exit' ? (
         <>

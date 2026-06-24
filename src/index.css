@@ -2311,6 +2311,7 @@ body {
     box-shadow 0.12s ease,
     filter 0.12s ease;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .game-numeric-keypad__key:active:not(:disabled) {
