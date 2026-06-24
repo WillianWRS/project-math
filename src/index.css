@@ -1300,25 +1300,31 @@ body {
   --shadow-color: #b45309;
 }
 
+.game-btn-push-rose {
+  --shadow-color: #9f1239;
+}
+
 .autocheck-timeout-decline {
   --decline-fill-duration: 5s;
-  border: 1px solid rgba(251, 191, 36, 0.42);
-  background: rgba(254, 243, 199, 0.28);
+  border: 1px solid rgba(87, 83, 78, 0.35);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, transparent 42%),
+    linear-gradient(180deg, #2a2522 0%, #1f1b18 55%, #141210 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 240, 215, 0.08);
 }
 
 .autocheck-timeout-decline__label {
-  color: #fffbeb;
+  color: #e7e5e4;
   text-shadow:
-    0 1px 0 rgba(69, 26, 3, 0.92),
-    0 2px 5px rgba(69, 26, 3, 0.62),
-    0 0 1px rgba(69, 26, 3, 0.88);
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 0 1px rgba(0, 0, 0, 0.35);
 }
 
 .autocheck-timeout-decline__fill {
   position: absolute;
   inset: 0 auto 0 0;
   width: 0;
-  background: linear-gradient(90deg, #fde68a 0%, #fbbf24 52%, #f59e0b 100%);
+  background: linear-gradient(90deg, #fda4af 0%, #f43f5e 52%, #e11d48 100%);
   animation: autocheck-timeout-decline-fill var(--decline-fill-duration) linear forwards;
 }
 

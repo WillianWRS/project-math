@@ -1991,7 +1991,7 @@ export function GameScreen({
             </footer>
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.6</span>
+              <span>v0.0.7</span>
             </div>
           </div>
         </>

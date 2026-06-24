@@ -66,7 +66,7 @@ export function AutoCheckTimeoutModal({
         <button
           type="button"
           onClick={() => resolveOnce(onDecline)}
-          className="autocheck-timeout-decline game-btn-push game-btn-push-amber relative w-full overflow-hidden rounded-xl px-4 py-3 text-sm font-semibold"
+          className="autocheck-timeout-decline game-btn-push game-btn-push-secondary relative w-full overflow-hidden rounded-xl px-4 py-3 text-sm font-semibold"
         >
           <span
             className={`autocheck-timeout-decline__fill${
