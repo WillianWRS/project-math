@@ -1011,10 +1011,8 @@ export function GameScreen({
   const [timerDangerActive, setTimerDangerActive] = useState(false)
   const [shakeKey, setShakeKey] = useState(0)
   const [presentation, setPresentation] = useState<PresentationPhase>('menu')
-  const prevScoreRef = useRef(0)
   const answerFieldRef = useRef<HTMLDivElement>(null)
   const [sharing, setSharing] = useState(false)
-  const [victoryBorderPulseToken, setVictoryBorderPulseToken] = useState(0)
   const [pendingStartMode, setPendingStartMode] = useState<'play' | 'benchmark' | 'theme-test' | null>(null)
   const [themeTestScore, setThemeTestScore] = useState(0)
   const [themeTestBurstFlash, setThemeTestBurstFlash] = useState<number | null>(null)
@@ -1197,7 +1195,6 @@ export function GameScreen({
   const handlePlayAgain = () => {
     if (presentation !== 'in-game' || session.phase !== 'game_over') return
     onPlayGameStart()
-    prevScoreRef.current = 0
     setSharing(false)
     onStart()
   }
@@ -1327,12 +1324,6 @@ export function GameScreen({
   }, [session.isSubmitLocked, session.phase])
 
   useEffect(() => {
-    if (session.phase === 'playing' && session.score === 0) {
-      prevScoreRef.current = 0
-    }
-  }, [session.phase, session.score])
-
-  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (benchmarkModeRef.current || phaseRef.current !== 'playing' || submitLockedRef.current) return
 
@@ -1377,23 +1368,6 @@ export function GameScreen({
           ? 'minus-cycle'
           : null
   const basePlayStackClass = useWaterBackground ? 'game-play-stack--water' : 'bg-charcoal-field'
-  const showGoodSceneBorder = isInGameScene && !timerDangerActive && currentScore >= 500
-
-  useEffect(() => {
-    if (!isInGameScene || timerDangerActive) {
-      prevScoreRef.current = currentScore
-      return
-    }
-
-    const previousScore = prevScoreRef.current
-    const previousMilestone = previousScore >= 500 ? Math.floor(previousScore / 100) : 4
-    const currentMilestone = currentScore >= 500 ? Math.floor(currentScore / 100) : 4
-    if (currentScore >= 500 && currentMilestone > previousMilestone) {
-      setVictoryBorderPulseToken((token) => token + 1)
-    }
-
-    prevScoreRef.current = currentScore
-  }, [currentScore, isInGameScene, timerDangerActive])
 
   return (
     <div
@@ -1409,25 +1383,6 @@ export function GameScreen({
         fallbackTimerMs={session.timerMs}
         onDangerActiveChange={handleTimerDangerActiveChange}
       />
-      {showGoodSceneBorder && (
-        <div
-          className="game-scene-border-static pointer-events-none fixed inset-0 z-[44]"
-          aria-hidden
-        />
-      )}
-      <AnimatePresence>
-        {showGoodSceneBorder && victoryBorderPulseToken > 0 && (
-          <motion.div
-            key={`victory-border-${victoryBorderPulseToken}`}
-            className="game-scene-border-burst pointer-events-none fixed inset-0 z-[45]"
-            initial={{ opacity: 0.25, scale: 1 }}
-            animate={{ opacity: [0.25, 0.9, 0], scale: [1, 1.01, 1.02] }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-            aria-hidden
-          />
-        )}
-      </AnimatePresence>
       <motion.div
         className="pointer-events-none absolute inset-0 z-0"
         initial={false}
@@ -1968,7 +1923,7 @@ export function GameScreen({
             </footer>
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.10</span>
+              <span>v0.0.11</span>
             </div>
           </div>
         </>

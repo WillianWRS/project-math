@@ -47,11 +47,6 @@ export const TimerDangerOverlay = memo(function TimerDangerOverlay({
         style={{ opacity: timerDangerGlow * 0.9 }}
         aria-hidden
       />
-      <div
-        className="game-scene-border-pulse game-scene-border-pulse--danger game-scene-border-pulse--danger-animated pointer-events-none fixed inset-0 z-[45]"
-        style={{ ['--danger-glow-intensity' as string]: String(timerDangerGlow) }}
-        aria-hidden
-      />
     </>
   )
 })
