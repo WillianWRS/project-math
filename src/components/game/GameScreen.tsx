@@ -84,6 +84,7 @@ type PresentationPhase = 'menu' | 'opening' | 'in-game' | 'theme-test' | 'closin
 const slideTransition = SLIDE_TRANSITION
 const sceneEnterTransition = { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const }
 const ENTER_DURATION_MS = 340
+const THEME_TEST_ENTER_DURATION_MS = 120
 const CLOSE_DURATION_MS = 420
 const menuStageTransition = { duration: 0.44, ease: [0.22, 1, 0.36, 1] as const }
 const layerParallaxTransition = { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
@@ -1295,9 +1296,24 @@ export function GameScreen({
   }, [showMenuChrome])
 
   useEffect(() => {
+    const { body } = document
+    const previousOverflow = body.style.overflow
+    const previousOverscrollBehavior = body.style.overscrollBehavior
+
+    body.style.overflow = 'hidden'
+    body.style.overscrollBehavior = 'none'
+
+    return () => {
+      body.style.overflow = previousOverflow
+      body.style.overscrollBehavior = previousOverscrollBehavior
+    }
+  }, [])
+
+  useEffect(() => {
     if (presentation !== 'opening' || pendingStartMode === null) return
 
     const mode = pendingStartMode
+    const enterDuration = mode === 'theme-test' ? THEME_TEST_ENTER_DURATION_MS : ENTER_DURATION_MS
     const timeout = window.setTimeout(() => {
       if (mode === 'benchmark') {
         onStartBenchmarkSessionRef.current()
@@ -1309,7 +1325,7 @@ export function GameScreen({
         setPresentation('in-game')
       }
       setPendingStartMode(null)
-    }, ENTER_DURATION_MS)
+    }, enterDuration)
 
     return () => window.clearTimeout(timeout)
   }, [presentation, pendingStartMode])
@@ -1387,7 +1403,7 @@ export function GameScreen({
   return (
     <div
       ref={sceneRootRef}
-      className={`game-scene-root relative flex min-h-dvh flex-col overflow-hidden text-white transition-colors duration-500 ${
+      className={`game-scene-root relative flex h-dvh min-h-dvh max-h-dvh flex-col overflow-hidden text-white transition-colors duration-500 ${
         useWaterBackground ? 'game-scene--water' : 'bg-charcoal'
       }`}
     >
@@ -1411,7 +1427,7 @@ export function GameScreen({
 
       {showGameContent && (
         <motion.div
-          className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
+          className="relative z-10 mx-auto flex h-full w-full max-w-md flex-1 flex-col overflow-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
           initial={{ x: '100%' }}
           animate={{ x: 0 }}
           transition={sceneEnterTransition}
@@ -1502,7 +1518,7 @@ export function GameScreen({
           </motion.header>
 
           <motion.main
-            className="mt-5 flex flex-1 flex-col items-center gap-4"
+            className="mt-5 flex min-h-0 flex-1 flex-col items-center gap-4 overflow-hidden"
             initial={{ opacity: 0, x: -8, y: 14 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ ...layerParallaxTransition, delay: 0.08 }}
@@ -1925,7 +1941,7 @@ export function GameScreen({
             </footer>
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.12</span>
+              <span>v0.0.13</span>
             </div>
           </div>
         </>

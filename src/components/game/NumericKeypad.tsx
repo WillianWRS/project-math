@@ -75,7 +75,6 @@ function PremiumKey({
   const buttonRef = useRef<HTMLButtonElement | null>(null)
   const rippleIdRef = useRef(0)
   const lastVirtualTokenRef = useRef<number | null>(null)
-  const pointerDownRef = useRef(false)
   const pointerActivatedRef = useRef(false)
   const [ripples, setRipples] = useState<KeyRipple[]>([])
 
@@ -130,9 +129,7 @@ function PremiumKey({
       onPointerDown={(event) => {
         if (disabled) return
         if (event.pointerType === 'mouse' && event.button !== 0) return
-        pointerDownRef.current = true
-        pointerActivatedRef.current = false
-        event.currentTarget.setPointerCapture(event.pointerId)
+        pointerActivatedRef.current = true
         event.currentTarget.classList.add('game-numeric-keypad__key--pointer-press')
         const rect = event.currentTarget.getBoundingClientRect()
         spawnRipple(
@@ -142,24 +139,15 @@ function PremiumKey({
           rect.height,
           false,
         )
+        activate()
       }}
       onPointerUp={(event) => {
         event.currentTarget.classList.remove('game-numeric-keypad__key--pointer-press')
-        if (!pointerDownRef.current) return
-        pointerDownRef.current = false
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-          event.currentTarget.releasePointerCapture(event.pointerId)
-        }
-        pointerActivatedRef.current = true
-        activate()
       }}
       onPointerLeave={(event) => event.currentTarget.classList.remove('game-numeric-keypad__key--pointer-press')}
       onPointerCancel={(event) => {
-        pointerDownRef.current = false
+        pointerActivatedRef.current = false
         event.currentTarget.classList.remove('game-numeric-keypad__key--pointer-press')
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-          event.currentTarget.releasePointerCapture(event.pointerId)
-        }
       }}
       onKeyDown={(event) => {
         if (disabled) return
