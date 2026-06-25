@@ -11,6 +11,9 @@ interface SettingsModalProps {
   onSoundChange: (enabled: boolean) => void
   devModeEnabled: boolean
   onDevModeChange: (enabled: boolean) => void
+  godModeEnabled: boolean
+  onGodModeChange: (enabled: boolean) => void
+  showGodModeToggle: boolean
   backgroundTheme: BackgroundTheme
   ownedThemeIds: BackgroundTheme[]
   onBackgroundThemeChange: (theme: BackgroundTheme) => void
@@ -69,6 +72,9 @@ export function SettingsModal({
   onSoundChange,
   devModeEnabled,
   onDevModeChange,
+  godModeEnabled,
+  onGodModeChange,
+  showGodModeToggle,
   backgroundTheme,
   ownedThemeIds,
   onBackgroundThemeChange,
@@ -161,6 +167,34 @@ export function SettingsModal({
             />
           </motion.button>
         </motion.label>
+
+        {showGodModeToggle && (
+          <motion.label
+            className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3"
+            {...stageItem(0.34, -10, 10)}
+          >
+            <div>
+              <p className="font-medium text-stone-200">God Mode</p>
+              <p className="text-xs text-charcoal-muted">Libera todos os temas feitos na configuração</p>
+            </div>
+            <motion.button
+              type="button"
+              role="switch"
+              aria-checked={godModeEnabled}
+              onClick={() => onGodModeChange(!godModeEnabled)}
+              className={`relative h-8 w-14 rounded-full ${
+                godModeEnabled ? 'bg-amber-500' : 'bg-charcoal-elevated ring-1 ring-stone-700/50'
+              }`}
+              whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+            >
+              <motion.span
+                className="absolute top-1 h-6 w-6 rounded-full bg-stone-100 shadow"
+                animate={{ left: godModeEnabled ? '1.75rem' : '0.25rem' }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </motion.button>
+          </motion.label>
+        )}
       </div>
     </Modal>
   )

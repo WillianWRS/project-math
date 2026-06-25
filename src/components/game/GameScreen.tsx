@@ -24,10 +24,13 @@ import { shareScoreCardFromElement } from '../../utils/share-score-card'
 import { xpProgressInLevel, xpToLevel } from '../../engine/player-level'
 import { formatDuration } from '../../engine/rewards'
 import { preloadGameplayModals } from '../../platform/preload-modals'
+import { isIPhone } from '../../platform/device'
 import { playSfx } from '../../platform/audio-service'
 import type { BackgroundTheme, PlayerData, ScoreRecord } from '../../platform/storage'
+import { THEME_CATALOG } from '../../cosmetics/theme-catalog'
 import type { PostGameRewards } from '../../hooks/useGame'
 import type { BenchmarkMetricGradeId, BenchmarkMetrics, BenchmarkVirtualKey } from '../../engine/benchmark-types'
+import { Modal } from '../ui/Modal'
 
 const RewardedAutoCheckModal = lazy(() =>
   import('../modals/RewardedAutoCheckModal').then((m) => ({ default: m.RewardedAutoCheckModal })),
@@ -56,7 +59,11 @@ interface GameScreenProps {
   benchmarkMetrics: BenchmarkMetrics | null
   benchmarkVirtualKeypadPress: { key: BenchmarkVirtualKey; token: number } | null
   soundEnabled: boolean
+  menuAudioReady: boolean
+  menuAudioPrefetchComplete: boolean
   devModeEnabled: boolean
+  godModeEnabled: boolean
+  showGodModeToggle: boolean
   backgroundTheme: BackgroundTheme
   onStart: () => void
   onStartBenchmarkSession: () => void
@@ -68,7 +75,9 @@ interface GameScreenProps {
   onInputChange: (value: string) => void
   onSoundChange: (enabled: boolean) => void
   onDevModeChange: (enabled: boolean) => void
+  onGodModeChange: (enabled: boolean) => void
   onBackgroundThemeChange: (theme: BackgroundTheme) => void
+  onBuyTheme: (theme: BackgroundTheme, priceCoins: number) => boolean
   onSaveDisplayName: (name: string) => void
   onWatchRewardedAd: () => Promise<'completed' | 'dismissed' | 'limit'>
   rewardedAdsWatched: number
@@ -88,6 +97,20 @@ const THEME_TEST_ENTER_DURATION_MS = 120
 const CLOSE_DURATION_MS = 420
 const menuStageTransition = { duration: 0.44, ease: [0.22, 1, 0.36, 1] as const }
 const layerParallaxTransition = { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
+const LIGHT_THEMES: BackgroundTheme[] = ['water', 'sunset', 'ice', 'aurora']
+
+const SCENE_THEME_CLASS: Partial<Record<BackgroundTheme, string>> = {
+  water: 'game-scene--water',
+  sunset: 'game-scene--sunset',
+  forest: 'game-scene--forest',
+  violet: 'game-scene--violet',
+  ember: 'game-scene--ember',
+  neon: 'game-scene--neon',
+  midnight: 'game-scene--midnight',
+  retro: 'game-scene--retro',
+  ice: 'game-scene--ice',
+  aurora: 'game-scene--aurora',
+}
 
 function menuStageItem(
   delay: number,
@@ -147,6 +170,13 @@ function OperationValue({
   className,
   slotClassName,
   waterLight = false,
+  sunsetLight = false,
+  forestLight = false,
+  violetLight = false,
+  emberLight = false,
+  neonLight = false,
+  midnightLight = false,
+  retroLight = false,
   fourSecondsLight = false,
   timesDivLight = false,
   plusLight = false,
@@ -158,6 +188,13 @@ function OperationValue({
   className?: string
   slotClassName?: string
   waterLight?: boolean
+  sunsetLight?: boolean
+  forestLight?: boolean
+  violetLight?: boolean
+  emberLight?: boolean
+  neonLight?: boolean
+  midnightLight?: boolean
+  retroLight?: boolean
   fourSecondsLight?: boolean
   timesDivLight?: boolean
   plusLight?: boolean
@@ -176,7 +213,21 @@ function OperationValue({
           ? 'text-rose-900'
           : waterLight
             ? 'text-sky-800'
-            : 'text-stone-300'
+            : sunsetLight
+              ? 'text-orange-900'
+              : forestLight
+                ? 'text-amber-950'
+                : violetLight
+                  ? 'text-violet-950'
+                  : emberLight
+                    ? 'text-orange-950'
+                    : neonLight
+                      ? 'text-sky-100'
+                      : midnightLight
+                        ? 'text-slate-100'
+                        : retroLight
+                          ? 'text-amber-950'
+                          : 'text-stone-300'
 
   return (
     <div className={`relative overflow-hidden ${slotClassName ?? ''}`}>
@@ -588,6 +639,13 @@ function MenuHudInlineButton({
   onClick,
   variant = 'default',
   waterLight = false,
+  sunsetLight = false,
+  forestLight = false,
+  violetLight = false,
+  emberLight = false,
+  neonLight = false,
+  midnightLight = false,
+  retroLight = false,
   fill = false,
   children,
 }: {
@@ -595,6 +653,13 @@ function MenuHudInlineButton({
   onClick: () => void
   variant?: 'default' | 'accent'
   waterLight?: boolean
+  sunsetLight?: boolean
+  forestLight?: boolean
+  violetLight?: boolean
+  emberLight?: boolean
+  neonLight?: boolean
+  midnightLight?: boolean
+  retroLight?: boolean
   fill?: boolean
   children: ReactNode
 }) {
@@ -607,7 +672,7 @@ function MenuHudInlineButton({
     <button
       type="button"
       onClick={onClick}
-      className={`game-menu-hud-btn game-menu-hud-btn--inline${fill ? ' game-menu-hud-btn--fill' : ''}${waterLight ? ' game-menu-hud-btn--water-light' : ''}`}
+      className={`game-menu-hud-btn game-menu-hud-btn--inline${fill ? ' game-menu-hud-btn--fill' : ''}${waterLight ? ' game-menu-hud-btn--water-light' : ''}${sunsetLight ? ' game-menu-hud-btn--sunset-light' : ''}${forestLight ? ' game-menu-hud-btn--forest-light' : ''}${violetLight ? ' game-menu-hud-btn--violet-light' : ''}${emberLight ? ' game-menu-hud-btn--ember-light' : ''}${neonLight ? ' game-menu-hud-btn--neon-light' : ''}${midnightLight ? ' game-menu-hud-btn--midnight-light' : ''}${retroLight ? ' game-menu-hud-btn--retro-light' : ''}`}
       aria-label={label}
     >
       <span className={plateClass}>
@@ -620,9 +685,23 @@ function MenuHudInlineButton({
 
 function AnimatedGameMenuButton({
   waterLight,
+  sunsetLight,
+  forestLight,
+  violetLight,
+  emberLight,
+  neonLight,
+  midnightLight,
+  retroLight,
   onClick,
 }: {
   waterLight: boolean
+  sunsetLight: boolean
+  forestLight: boolean
+  violetLight: boolean
+  emberLight: boolean
+  neonLight: boolean
+  midnightLight: boolean
+  retroLight: boolean
   onClick: () => void
 }) {
   return (
@@ -632,7 +711,13 @@ function AnimatedGameMenuButton({
         onClick={onClick}
         className={`game-menu-hud-btn game-menu-hud-btn--inline${
           waterLight ? ' game-menu-hud-btn--water-light' : ''
-        }`}
+        }${sunsetLight ? ' game-menu-hud-btn--sunset-light' : ''}${
+          forestLight ? ' game-menu-hud-btn--forest-light' : ''
+        }${violetLight ? ' game-menu-hud-btn--violet-light' : ''}${
+          emberLight ? ' game-menu-hud-btn--ember-light' : ''
+        }${neonLight ? ' game-menu-hud-btn--neon-light' : ''}${
+          midnightLight ? ' game-menu-hud-btn--midnight-light' : ''
+        }${retroLight ? ' game-menu-hud-btn--retro-light' : ''}`}
         aria-label="Voltar ao menu"
       >
         <span className="game-menu-hud-btn__plate game-menu-hud-btn__plate--inline game-menu-hud-btn__plate--icon-only game-menu-hud-btn__plate--back-menu">
@@ -903,6 +988,13 @@ function AnswerDisplay({
   flashKey,
   perfectAnswerToken,
   waterLight = false,
+  sunsetLight = false,
+  forestLight = false,
+  violetLight = false,
+  emberLight = false,
+  neonLight = false,
+  midnightLight = false,
+  retroLight = false,
   fourSecondsLight = false,
   timesDivLight = false,
   plusLight = false,
@@ -918,6 +1010,13 @@ function AnswerDisplay({
   flashKey: number
   perfectAnswerToken: number
   waterLight?: boolean
+  sunsetLight?: boolean
+  forestLight?: boolean
+  violetLight?: boolean
+  emberLight?: boolean
+  neonLight?: boolean
+  midnightLight?: boolean
+  retroLight?: boolean
   fourSecondsLight?: boolean
   timesDivLight?: boolean
   plusLight?: boolean
@@ -930,7 +1029,23 @@ function AnswerDisplay({
   return (
     <div
       className={`relative overflow-visible px-3 py-3${
-        waterLight ? ' game-answer-row--water' : ''
+        waterLight
+          ? ' game-answer-row--water'
+          : sunsetLight
+            ? ' game-answer-row--sunset'
+            : forestLight
+              ? ' game-answer-row--forest'
+              : violetLight
+                ? ' game-answer-row--violet'
+                : emberLight
+                  ? ' game-answer-row--ember'
+                  : neonLight
+                    ? ' game-answer-row--neon'
+                    : midnightLight
+                      ? ' game-answer-row--midnight'
+                      : retroLight
+                        ? ' game-answer-row--retro'
+                        : ''
       }${gameChangerActive ? ' game-answer-row--game-changer' : ''}`}
     >
       {perfectAnswerToken > 0 && <PerfectAnswerBadge token={perfectAnswerToken} />}
@@ -950,7 +1065,23 @@ function AnswerDisplay({
           aria-live="polite"
           aria-label={`Resposta: ${value || 'vazio'}`}
           className={`game-answer-slot flex h-16 w-full items-center justify-center bg-transparent text-center font-mono text-4xl font-bold tabular-nums ${
-            waterLight ? 'game-answer-slot--water' : ''
+            waterLight
+              ? 'game-answer-slot--water'
+              : sunsetLight
+                ? 'game-answer-slot--sunset'
+                : forestLight
+                  ? 'game-answer-slot--forest'
+                  : violetLight
+                    ? 'game-answer-slot--violet'
+                    : emberLight
+                      ? 'game-answer-slot--ember'
+                      : neonLight
+                        ? 'game-answer-slot--neon'
+                        : midnightLight
+                          ? 'game-answer-slot--midnight'
+                          : retroLight
+                            ? 'game-answer-slot--retro'
+                            : ''
           } ${
             answerFlash
               ? 'text-transparent'
@@ -967,7 +1098,21 @@ function AnswerDisplay({
                           ? 'text-rose-950'
                           : waterLight
                             ? 'text-sky-900'
-                            : 'text-amber-50'
+                            : sunsetLight
+                              ? 'text-orange-950'
+                              : forestLight
+                                ? 'text-amber-950'
+                                : violetLight
+                                  ? 'text-violet-950'
+                                  : emberLight
+                                    ? 'text-orange-950'
+                                    : neonLight
+                                      ? 'text-sky-100'
+                                      : midnightLight
+                                        ? 'text-slate-100'
+                                        : retroLight
+                                          ? 'text-amber-950'
+                                          : 'text-amber-50'
                   : fourSecondsLight
                     ? 'text-orange-800/35'
                     : timesDivLight
@@ -978,7 +1123,21 @@ function AnswerDisplay({
                           ? 'text-rose-800/35'
                           : waterLight
                             ? 'text-sky-700/35'
-                            : 'text-charcoal-muted/50'
+                            : sunsetLight
+                              ? 'text-orange-900/35'
+                              : forestLight
+                                ? 'text-amber-900/35'
+                                : violetLight
+                                  ? 'text-violet-900/35'
+                                  : emberLight
+                                    ? 'text-orange-900/35'
+                                    : neonLight
+                                      ? 'text-sky-200/40'
+                                      : midnightLight
+                                        ? 'text-slate-300/40'
+                                        : retroLight
+                                          ? 'text-amber-900/35'
+                                          : 'text-charcoal-muted/50'
           } ${disabled ? 'opacity-50' : ''}`}
         >
           <NumberShake active={shake} shakeKey={shakeKey}>
@@ -1002,7 +1161,11 @@ export function GameScreen({
   benchmarkMetrics,
   benchmarkVirtualKeypadPress,
   soundEnabled,
+  menuAudioReady,
+  menuAudioPrefetchComplete,
   devModeEnabled,
+  godModeEnabled,
+  showGodModeToggle,
   onStart,
   onStartBenchmarkSession,
   onReturnToMenu,
@@ -1013,8 +1176,10 @@ export function GameScreen({
   onInputChange,
   onSoundChange,
   onDevModeChange,
+  onGodModeChange,
   backgroundTheme,
   onBackgroundThemeChange,
+  onBuyTheme,
   onSaveDisplayName,
   onWatchRewardedAd,
   rewardedAdsWatched,
@@ -1029,6 +1194,7 @@ export function GameScreen({
   const [shopOpen, setShopOpen] = useState(false)
   const [rewardedOpen, setRewardedOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false)
   const [shakeKey, setShakeKey] = useState(0)
   const [presentation, setPresentation] = useState<PresentationPhase>('menu')
   const answerFieldRef = useRef<HTMLDivElement>(null)
@@ -1052,6 +1218,8 @@ export function GameScreen({
   const benchmarkModeRef = useRef(benchmarkMode)
   const phaseRef = useRef(session.phase)
   const submitLockedRef = useRef(session.isSubmitLocked)
+  const backNavigationBypassRef = useRef(false)
+  const backTrapInitializedRef = useRef(false)
 
   useEffect(() => {
     onStartRef.current = onStart
@@ -1094,6 +1262,13 @@ export function GameScreen({
   const minusActive = isThemeTestScene ? themeTestChanger === 'cap-down' : liveMinusActive
   const currentScore = isThemeTestScene ? themeTestScore : session.score
   const inputDisabled = !isPlaying || session.isSubmitLocked || benchmarkMode
+  const timeoutModalOpen = session.awaitingAutoCheckChoice && session.phase === 'playing' && !benchmarkMode
+  const allImplementedThemeIds = THEME_CATALOG.flatMap((entry) =>
+    entry.equippableThemeId === undefined ? [] : [entry.equippableThemeId],
+  )
+  const settingsThemeIds = godModeEnabled
+    ? Array.from(new Set<BackgroundTheme>(allImplementedThemeIds))
+    : player.ownedThemeIds
 
   useEffect(() => {
     inputValueRef.current = inputValue
@@ -1136,6 +1311,41 @@ export function GameScreen({
   const parallaxLayerActive =
     presentation === 'opening' || presentation === 'in-game' || presentation === 'theme-test'
   const useWaterBackground = isInGameScene && backgroundTheme === 'water'
+  const useWaterLikeBackground =
+    isInGameScene && (backgroundTheme === 'water' || backgroundTheme === 'ice' || backgroundTheme === 'aurora')
+  const useSunsetBackground = isInGameScene && backgroundTheme === 'sunset'
+  const useSunsetUiLight = useSunsetBackground
+  const useForestBackground = isInGameScene && backgroundTheme === 'forest'
+  const useForestUiLight = useForestBackground
+  const useVioletBackground = isInGameScene && backgroundTheme === 'violet'
+  const useVioletUiLight = useVioletBackground
+  const useEmberBackground = isInGameScene && backgroundTheme === 'ember'
+  const useEmberUiLight = useEmberBackground
+  const useNeonBackground = isInGameScene && backgroundTheme === 'neon'
+  const useNeonUiLight = useNeonBackground
+  const useMidnightBackground = isInGameScene && backgroundTheme === 'midnight'
+  const useMidnightUiLight = useMidnightBackground
+  const useRetroBackground = isInGameScene && backgroundTheme === 'retro'
+  const useRetroUiLight = useRetroBackground
+  const useLightBackground = isInGameScene && LIGHT_THEMES.includes(backgroundTheme)
+  const sceneThemeClass = isInGameScene ? (SCENE_THEME_CLASS[backgroundTheme] ?? 'bg-charcoal') : 'bg-charcoal'
+  const headerThemeClass = useWaterLikeBackground
+    ? 'game-scene-header--water'
+    : useSunsetBackground
+      ? 'game-scene-header--sunset'
+      : useForestBackground
+        ? 'game-scene-header--forest'
+        : useVioletBackground
+          ? 'game-scene-header--violet'
+          : useEmberBackground
+            ? 'game-scene-header--ember'
+            : useNeonBackground
+              ? 'game-scene-header--neon'
+              : useMidnightBackground
+                ? 'game-scene-header--midnight'
+                : useRetroBackground
+                  ? 'game-scene-header--retro'
+                  : undefined
   const baseFieldClass = fourSecondsActive
     ? 'text-orange-950'
     : timesDivActive
@@ -1144,9 +1354,23 @@ export function GameScreen({
         ? 'text-emerald-950'
         : minusActive
           ? 'text-rose-950'
-          : useWaterBackground
+          : useWaterLikeBackground
             ? 'text-sky-900'
-            : 'text-white'
+            : useSunsetUiLight
+              ? 'text-orange-950'
+              : useForestUiLight
+                ? 'text-amber-950'
+                : useVioletUiLight
+                  ? 'text-violet-950'
+                  : useEmberUiLight
+                    ? 'text-orange-950'
+                    : useNeonUiLight
+                      ? 'text-sky-100'
+                      : useMidnightUiLight
+                        ? 'text-slate-100'
+                        : useRetroUiLight
+                          ? 'text-amber-950'
+                          : 'text-white'
   const mutedFieldClass = fourSecondsActive
     ? 'text-orange-800/45'
     : timesDivActive
@@ -1155,9 +1379,23 @@ export function GameScreen({
         ? 'text-emerald-800/45'
         : minusActive
           ? 'text-rose-800/45'
-          : useWaterBackground
+          : useWaterLikeBackground
             ? 'text-sky-700/45'
-            : 'text-charcoal-muted'
+            : useSunsetUiLight
+              ? 'text-orange-900/45'
+              : useForestUiLight
+                ? 'text-amber-900/45'
+                : useVioletUiLight
+                  ? 'text-violet-900/45'
+                  : useEmberUiLight
+                    ? 'text-orange-900/45'
+                    : useNeonUiLight
+                      ? 'text-sky-200/40'
+                      : useMidnightUiLight
+                        ? 'text-slate-300/40'
+                        : useRetroUiLight
+                          ? 'text-amber-900/45'
+                          : 'text-charcoal-muted'
   const showCurtain = presentation !== 'in-game' && presentation !== 'theme-test'
   const curtainOpen = presentation === 'opening'
   const curtainInitialOpen = presentation === 'closing'
@@ -1175,6 +1413,7 @@ export function GameScreen({
 
   const handlePlay = () => {
     if (presentation !== 'menu') return
+    setExitConfirmOpen(false)
     setPendingStartMode('play')
     onPlayGameStart()
     setSharing(false)
@@ -1183,6 +1422,7 @@ export function GameScreen({
 
   const handleBenchmark = () => {
     if (presentation !== 'menu') return
+    setExitConfirmOpen(false)
     setPendingStartMode('benchmark')
     onPlayGameStart()
     setSharing(false)
@@ -1191,6 +1431,7 @@ export function GameScreen({
 
   const handleThemeTest = () => {
     if (presentation !== 'menu') return
+    setExitConfirmOpen(false)
     setPendingStartMode('theme-test')
     setThemeTestScore(99999)
     setThemeTestBurstFlash(null)
@@ -1204,13 +1445,87 @@ export function GameScreen({
     setPresentation('opening')
   }
 
-  const handleReturnToMenu = () => {
+  const handleReturnToMenu = useCallback(() => {
     if (!isInGameScene) return
+    setExitConfirmOpen(false)
     onPlayGoToMenu()
     onReturnToMenu()
     setSharing(false)
     setPresentation('closing')
-  }
+  }, [isInGameScene, onPlayGoToMenu, onReturnToMenu])
+
+  const closePlayerModal = useCallback(() => {
+    setPlayerOpen(false)
+    playSfx('clickClose', soundEnabled)
+  }, [soundEnabled])
+
+  const closeShopModal = useCallback(() => {
+    setShopOpen(false)
+    playSfx('clickClose', soundEnabled)
+  }, [soundEnabled])
+
+  const closeSettingsModal = useCallback(() => {
+    setSettingsOpen(false)
+    playSfx('clickClose', soundEnabled)
+  }, [soundEnabled])
+
+  const requestExitAppOrPreviousPage = useCallback(() => {
+    const nav = navigator as Navigator & { app?: { exitApp?: () => void } }
+    if (typeof nav.app?.exitApp === 'function') {
+      nav.app.exitApp()
+      return
+    }
+    if (window.history.length > 1) {
+      window.history.back()
+      return
+    }
+    window.close()
+  }, [])
+
+  const handleBackRequest = useCallback((): 'consumed' | 'exit' => {
+    if (playerOpen) {
+      closePlayerModal()
+      return 'consumed'
+    }
+    if (shopOpen) {
+      closeShopModal()
+      return 'consumed'
+    }
+    if (settingsOpen) {
+      closeSettingsModal()
+      return 'consumed'
+    }
+    if (rewardedOpen) {
+      setRewardedOpen(false)
+      return 'consumed'
+    }
+    if (timeoutModalOpen) {
+      onDeclineAutoCheckAtTimeout()
+      return 'consumed'
+    }
+    if (presentation !== 'menu') {
+      handleReturnToMenu()
+      return 'consumed'
+    }
+    if (!exitConfirmOpen) {
+      setExitConfirmOpen(true)
+      return 'consumed'
+    }
+    return 'exit'
+  }, [
+    playerOpen,
+    shopOpen,
+    settingsOpen,
+    rewardedOpen,
+    timeoutModalOpen,
+    presentation,
+    exitConfirmOpen,
+    closePlayerModal,
+    closeShopModal,
+    closeSettingsModal,
+    onDeclineAutoCheckAtTimeout,
+    handleReturnToMenu,
+  ])
 
   const handlePlayAgain = () => {
     if (presentation !== 'in-game' || session.phase !== 'game_over') return
@@ -1388,6 +1703,44 @@ export function GameScreen({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  useEffect(() => {
+    if (!backTrapInitializedRef.current) {
+      window.history.pushState({ projectMathBackTrap: true }, '', window.location.href)
+      backTrapInitializedRef.current = true
+    }
+
+    const onPopState = () => {
+      if (backNavigationBypassRef.current) {
+        backNavigationBypassRef.current = false
+        return
+      }
+
+      const action = handleBackRequest()
+      if (action === 'exit') {
+        backNavigationBypassRef.current = true
+        requestExitAppOrPreviousPage()
+        return
+      }
+
+      window.history.pushState({ projectMathBackTrap: true }, '', window.location.href)
+    }
+
+    const onHardwareBack = (event: Event) => {
+      event.preventDefault?.()
+      const action = handleBackRequest()
+      if (action === 'exit') {
+        requestExitAppOrPreviousPage()
+      }
+    }
+
+    window.addEventListener('popstate', onPopState)
+    window.addEventListener('backbutton', onHardwareBack)
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      window.removeEventListener('backbutton', onHardwareBack)
+    }
+  }, [handleBackRequest, requestExitAppOrPreviousPage])
+
   const themeTestOperation: Operation = { operator: '+', operand: 7, result: 31 }
   const activeChangerTheme: PlayStackChangerTheme | null = fourSecondsActive
     ? 'four-seconds'
@@ -1398,14 +1751,28 @@ export function GameScreen({
         : minusActive
           ? 'minus-cycle'
           : null
-  const basePlayStackClass = useWaterBackground ? 'game-play-stack--water' : 'bg-charcoal-field'
+  const basePlayStackClass = useWaterLikeBackground
+    ? 'game-play-stack--water'
+    : useSunsetBackground
+      ? 'game-play-stack--sunset'
+      : useForestBackground
+        ? 'game-play-stack--forest'
+        : useVioletBackground
+          ? 'game-play-stack--violet'
+          : useEmberBackground
+            ? 'game-play-stack--ember'
+            : useNeonBackground
+              ? 'game-play-stack--neon'
+              : useMidnightBackground
+                ? 'game-play-stack--midnight'
+                : useRetroBackground
+                  ? 'game-play-stack--retro'
+                  : 'bg-charcoal-field'
 
   return (
     <div
       ref={sceneRootRef}
-      className={`game-scene-root relative flex h-dvh min-h-dvh max-h-dvh flex-col overflow-hidden text-white transition-colors duration-500 ${
-        useWaterBackground ? 'game-scene--water' : 'bg-charcoal'
-      }`}
+      className={`game-scene-root relative flex h-dvh min-h-dvh max-h-dvh flex-col overflow-hidden text-white transition-colors duration-500 ${sceneThemeClass}`}
     >
       <TimerDangerOverlay
         isPlaying={isPlaying}
@@ -1434,7 +1801,7 @@ export function GameScreen({
           style={{ willChange: presentation === 'opening' ? 'transform' : 'auto' }}
         >
           <motion.header
-            className={useWaterBackground ? 'game-scene-header--water' : undefined}
+            className={headerThemeClass}
             initial={{ opacity: 0, x: 10, y: -12 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ ...layerParallaxTransition, delay: 0.04 }}
@@ -1446,7 +1813,14 @@ export function GameScreen({
                       Nível {playerLevel}
                     </span>
                     <AnimatedGameMenuButton
-                      waterLight={useWaterBackground}
+                      waterLight={useWaterLikeBackground}
+                      sunsetLight={useSunsetUiLight}
+                      forestLight={useForestUiLight}
+                      violetLight={useVioletUiLight}
+                      emberLight={useEmberUiLight}
+                      neonLight={useNeonUiLight}
+                      midnightLight={useMidnightUiLight}
+                      retroLight={useRetroUiLight}
                       onClick={handleReturnToMenu}
                     />
                   </div>
@@ -1481,7 +1855,14 @@ export function GameScreen({
                           label="Jogar novamente"
                           variant="accent"
                           onClick={handlePlayAgain}
-                          waterLight={useWaterBackground}
+                          waterLight={useWaterLikeBackground}
+                          sunsetLight={useSunsetUiLight}
+                          forestLight={useForestUiLight}
+                          violetLight={useVioletUiLight}
+                          emberLight={useEmberUiLight}
+                          neonLight={useNeonUiLight}
+                          midnightLight={useMidnightUiLight}
+                          retroLight={useRetroUiLight}
                           fill
                         >
                           <span className="scale-75">
@@ -1538,7 +1919,7 @@ export function GameScreen({
                   level={5}
                   levelUpFlash={themeTestBurstFlash}
                   burstScore={themeTestBurstToken}
-                  waterLight={useWaterBackground}
+                  waterLight={useLightBackground}
                   borderActive
                 >
                   <PlayStackWithChangerBg
@@ -1565,7 +1946,14 @@ export function GameScreen({
                       <OperationValue
                         operation={themeTestOperation}
                         slotClassName="h-10"
-                        waterLight={useWaterBackground}
+                        waterLight={useWaterLikeBackground}
+                        sunsetLight={useSunsetUiLight}
+                        forestLight={useForestUiLight}
+                        violetLight={useVioletUiLight}
+                        emberLight={useEmberUiLight}
+                        neonLight={useNeonUiLight}
+                        midnightLight={useMidnightUiLight}
+                        retroLight={useRetroUiLight}
                         fourSecondsLight={fourSecondsActive}
                         timesDivLight={timesDivActive}
                         plusLight={plusActive}
@@ -1582,7 +1970,14 @@ export function GameScreen({
                         answerFlashAuto={false}
                         flashKey={themeTestScore}
                         perfectAnswerToken={0}
-                        waterLight={useWaterBackground}
+                        waterLight={useWaterLikeBackground}
+                        sunsetLight={useSunsetUiLight}
+                        forestLight={useForestUiLight}
+                        violetLight={useVioletUiLight}
+                        emberLight={useEmberUiLight}
+                        neonLight={useNeonUiLight}
+                        midnightLight={useMidnightUiLight}
+                        retroLight={useRetroUiLight}
                         fourSecondsLight={fourSecondsActive}
                         timesDivLight={timesDivActive}
                         plusLight={plusActive}
@@ -1610,7 +2005,7 @@ export function GameScreen({
                   level={session.rhythmLevel}
                   levelUpFlash={session.rhythmLevelUpFlash}
                   burstScore={session.score}
-                  waterLight={useWaterBackground}
+                  waterLight={useLightBackground}
                   borderActive={isPlaying}
                 >
                   <PlayStackWithChangerBg
@@ -1640,7 +2035,14 @@ export function GameScreen({
                         <OperationValue
                           operation={session.operation}
                           slotClassName="h-10"
-                          waterLight={useWaterBackground}
+                          waterLight={useWaterLikeBackground}
+                          sunsetLight={useSunsetUiLight}
+                          forestLight={useForestUiLight}
+                          violetLight={useVioletUiLight}
+                          emberLight={useEmberUiLight}
+                          neonLight={useNeonUiLight}
+                          midnightLight={useMidnightUiLight}
+                          retroLight={useRetroUiLight}
                           fourSecondsLight={fourSecondsActive}
                           timesDivLight={timesDivActive}
                           plusLight={plusActive}
@@ -1668,7 +2070,14 @@ export function GameScreen({
                       perfectAnswerToken={
                         isPlaying && session.score > 0 ? perfectAnswerToken : 0
                       }
-                      waterLight={useWaterBackground}
+                      waterLight={useWaterLikeBackground}
+                      sunsetLight={useSunsetUiLight}
+                      forestLight={useForestUiLight}
+                      violetLight={useVioletUiLight}
+                      emberLight={useEmberUiLight}
+                      neonLight={useNeonUiLight}
+                      midnightLight={useMidnightUiLight}
+                      retroLight={useRetroUiLight}
                       fourSecondsLight={fourSecondsActive}
                       timesDivLight={timesDivActive}
                       plusLight={plusActive}
@@ -1691,7 +2100,14 @@ export function GameScreen({
                   disabled={false}
                   interactionLocked={false}
                   backspaceDisabled={false}
-                  waterLight={useWaterBackground}
+                  waterLight={useWaterLikeBackground}
+                  sunsetLight={useSunsetUiLight}
+                  forestLight={useForestUiLight}
+                  violetLight={useVioletUiLight}
+                  emberLight={useEmberUiLight}
+                  neonLight={useNeonUiLight}
+                  midnightLight={useMidnightUiLight}
+                  retroLight={useRetroUiLight}
                   autoCheckCharges={themeTestAutoCheckEnabled ? 1 : 0}
                   virtualPress={null}
                   onDigit={() => handleThemeTestKeypadDigit()}
@@ -1712,7 +2128,14 @@ export function GameScreen({
                   disabled={inputDisabled}
                   interactionLocked={benchmarkMode}
                   backspaceDisabled={inputValue.length === 0}
-                  waterLight={useWaterBackground}
+                  waterLight={useWaterLikeBackground}
+                  sunsetLight={useSunsetUiLight}
+                  forestLight={useForestUiLight}
+                  violetLight={useVioletUiLight}
+                  emberLight={useEmberUiLight}
+                  neonLight={useNeonUiLight}
+                  midnightLight={useMidnightUiLight}
+                  retroLight={useRetroUiLight}
                   autoCheckCharges={player.walletAutoChecks}
                   virtualPress={benchmarkMode ? benchmarkVirtualKeypadPress : null}
                   onDigit={appendDigit}
@@ -1737,19 +2160,23 @@ export function GameScreen({
               >
                 <div
                   className={`game-over-card w-full rounded-2xl p-4 text-center ${
-                    useWaterBackground ? 'game-over-card--water' : 'game-over-card--default'
+                    useWaterLikeBackground
+                      ? 'game-over-card--water'
+                      : useSunsetBackground
+                        ? 'game-over-card--sunset'
+                        : 'game-over-card--default'
                   }`}
                 >
                   <p
                     className={`game-over-card__label text-sm uppercase tracking-wide ${
-                      useWaterBackground ? '' : 'text-charcoal-muted'
+                      useLightBackground ? '' : 'text-charcoal-muted'
                     }`}
                   >
                     {benchmarkMode && benchmarkMetrics ? 'Benchmark' : 'FIM DE JOGO'}
                   </p>
                   <p
                     className={`game-over-card__score font-mono text-2xl font-bold ${
-                      useWaterBackground ? '' : 'text-white'
+                      useLightBackground ? '' : 'text-white'
                     }`}
                   >
                     {session.score} pontos
@@ -1757,7 +2184,7 @@ export function GameScreen({
                   {!(benchmarkMode && benchmarkMetrics) && (
                     <p
                       className={`game-over-card__duration mt-1 text-xs ${
-                        useWaterBackground ? '' : 'text-charcoal-muted'
+                        useLightBackground ? '' : 'text-charcoal-muted'
                       }`}
                     >
                       Tempo: {gameOverElapsedText}
@@ -1816,7 +2243,7 @@ export function GameScreen({
                   ) : topScore ? (
                     <p
                       className={`game-over-card__meta mt-1 text-sm ${
-                        useWaterBackground ? '' : 'text-charcoal-muted'
+                        useLightBackground ? '' : 'text-charcoal-muted'
                       }`}
                     >
                       Recorde: {topScore.score} pontos
@@ -1878,70 +2305,88 @@ export function GameScreen({
           </div>
 
           <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
-            <div className="pointer-events-auto flex flex-col items-center gap-3">
-              <motion.div {...menuStageItem(0.18, 0, 20)}>
-                <MenuPlayButton onClick={handlePlay} />
-              </motion.div>
-              {devModeEnabled && (
-                <>
-                  <motion.div {...menuStageItem(0.26, -8, 16)}>
-                    <MenuBenchmarkButton onClick={handleBenchmark} />
-                  </motion.div>
-                  <motion.div {...menuStageItem(0.32, 9, 18)}>
-                    <MenuThemeTestButton onClick={handleThemeTest} />
-                  </motion.div>
-                </>
-              )}
-            </div>
+            {menuAudioReady ? (
+              <div className="pointer-events-auto flex flex-col items-center gap-3">
+                <motion.div {...menuStageItem(0.18, 0, 20)}>
+                  <MenuPlayButton onClick={handlePlay} />
+                </motion.div>
+                {devModeEnabled && (
+                  <>
+                    <motion.div {...menuStageItem(0.26, -8, 16)}>
+                      <MenuBenchmarkButton onClick={handleBenchmark} />
+                    </motion.div>
+                    <motion.div {...menuStageItem(0.32, 9, 18)}>
+                      <MenuThemeTestButton onClick={handleThemeTest} />
+                    </motion.div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <motion.p
+                className="pointer-events-none px-6 text-center text-sm font-medium tracking-wide text-stone-400"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {menuAudioPrefetchComplete && isIPhone()
+                  ? 'Toque na tela para começar'
+                  : 'Carregando sons...'}
+              </motion.p>
+            )}
           </div>
 
           <div className="game-menu-dock fixed inset-x-0 bottom-0 z-[60]">
-            <footer className="game-menu-footer flex items-end justify-between gap-1 px-3 pb-2 pt-1 sm:gap-2 sm:px-6">
-              <motion.div {...menuStageItem(0.18, -16, 12)}>
-                <MenuHudButton
-                  label="Jogador"
-                  onClick={() => {
-                    onPlayClick()
-                    setPlayerOpen(true)
-                  }}
-                >
-                  <IconPerson />
-                </MenuHudButton>
-              </motion.div>
+            {menuAudioReady ? (
+              <footer className="game-menu-footer flex items-end justify-between gap-1 px-3 pb-2 pt-1 sm:gap-2 sm:px-6">
+                <motion.div {...menuStageItem(0.18, -16, 12)}>
+                  <MenuHudButton
+                    label="Jogador"
+                    onClick={() => {
+                      onPlayClick()
+                      setExitConfirmOpen(false)
+                      setPlayerOpen(true)
+                    }}
+                  >
+                    <IconPerson />
+                  </MenuHudButton>
+                </motion.div>
 
-              <motion.div {...menuStageItem(0.22, -8, 12)}>
-                <MenuHudButton
-                  label="Loja"
-                  onClick={() => {
-                    onPlayClick()
-                    setShopOpen(true)
-                  }}
-                >
-                  <IconShop />
-                </MenuHudButton>
-              </motion.div>
+                <motion.div {...menuStageItem(0.22, -8, 12)}>
+                  <MenuHudButton
+                    label="Loja"
+                    onClick={() => {
+                      onPlayClick()
+                      setExitConfirmOpen(false)
+                      setShopOpen(true)
+                    }}
+                  >
+                    <IconShop />
+                  </MenuHudButton>
+                </motion.div>
 
-              <motion.div {...menuStageItem(0.26, 8, 12)}>
-                <MenuHudButton label="Tutorial" disabled>
-                  <IconHelp />
-                </MenuHudButton>
-              </motion.div>
+                <motion.div {...menuStageItem(0.26, 8, 12)}>
+                  <MenuHudButton label="Tutorial" disabled>
+                    <IconHelp />
+                  </MenuHudButton>
+                </motion.div>
 
-              <motion.div {...menuStageItem(0.3, 16, 12)}>
-                <MenuHudButton
-                  label="Config"
-                  onClick={() => {
-                    onPlayClick()
-                    setSettingsOpen(true)
-                  }}
-                >
-                  <IconGear />
-                </MenuHudButton>
-              </motion.div>
-            </footer>
+                <motion.div {...menuStageItem(0.3, 16, 12)}>
+                  <MenuHudButton
+                    label="Config"
+                    onClick={() => {
+                      onPlayClick()
+                      setExitConfirmOpen(false)
+                      setSettingsOpen(true)
+                    }}
+                  >
+                    <IconGear />
+                  </MenuHudButton>
+                </motion.div>
+              </footer>
+            ) : null}
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.14</span>
+              <span>v0.0.16</span>
             </div>
           </div>
         </>
@@ -1950,7 +2395,7 @@ export function GameScreen({
       <Suspense fallback={null}>
         <PlayerModal
           open={playerOpen}
-          onClose={() => setPlayerOpen(false)}
+          onClose={closePlayerModal}
           player={player}
           topScores={topScores}
           onSaveName={onSaveDisplayName}
@@ -1959,16 +2404,25 @@ export function GameScreen({
             setRewardedOpen(true)
           }}
         />
-        <ShopModal open={shopOpen} onClose={() => setShopOpen(false)} player={player} />
+        <ShopModal
+          open={shopOpen}
+          onClose={closeShopModal}
+          player={player}
+          godModeEnabled={godModeEnabled}
+          onBuyTheme={onBuyTheme}
+        />
         <SettingsModal
           open={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
+          onClose={closeSettingsModal}
           soundEnabled={soundEnabled}
           onSoundChange={onSoundChange}
           devModeEnabled={devModeEnabled}
           onDevModeChange={onDevModeChange}
+          godModeEnabled={godModeEnabled}
+          onGodModeChange={onGodModeChange}
+          showGodModeToggle={showGodModeToggle}
           backgroundTheme={backgroundTheme}
-          ownedThemeIds={player.ownedThemeIds}
+          ownedThemeIds={settingsThemeIds}
           onBackgroundThemeChange={onBackgroundThemeChange}
         />
         <RewardedAutoCheckModal
@@ -1978,11 +2432,32 @@ export function GameScreen({
           onWatchAd={onWatchRewardedAd}
         />
         <AutoCheckTimeoutModal
-          open={session.awaitingAutoCheckChoice && session.phase === 'playing' && !benchmarkMode}
+          open={timeoutModalOpen}
           walletAutoChecks={player.walletAutoChecks}
           onUse={onUseAutoCheckAtTimeout}
           onDecline={onDeclineAutoCheckAtTimeout}
         />
+        <Modal open={exitConfirmOpen} title="Sair do jogo?" onClose={() => setExitConfirmOpen(false)}>
+          <div className="space-y-4">
+            <p className="text-sm leading-relaxed text-stone-200">
+              Deseja sair mesmo ou continuar no menu?
+            </p>
+            <button
+              type="button"
+              onClick={requestExitAppOrPreviousPage}
+              className="game-btn-push game-btn-push-amber w-full rounded-xl bg-gradient-to-b from-amber-300 to-amber-500 px-4 py-3 text-sm font-semibold text-amber-950"
+            >
+              Sair
+            </button>
+            <button
+              type="button"
+              onClick={() => setExitConfirmOpen(false)}
+              className="game-btn-push game-btn-push-secondary w-full rounded-xl bg-charcoal-elevated px-4 py-3 text-sm font-semibold text-stone-100"
+            >
+              Continuar
+            </button>
+          </div>
+        </Modal>
       </Suspense>
       {isGameOver && (
         <ShareCardTemplate

@@ -8,6 +8,13 @@ interface NumericKeypadProps {
   interactionLocked?: boolean
   backspaceDisabled?: boolean
   waterLight?: boolean
+  sunsetLight?: boolean
+  forestLight?: boolean
+  violetLight?: boolean
+  emberLight?: boolean
+  neonLight?: boolean
+  midnightLight?: boolean
+  retroLight?: boolean
   autoCheckCharges?: number
   virtualPress?: { key: BenchmarkVirtualKey; token: number } | null
   onDigit: (digit: string) => void
@@ -359,6 +366,13 @@ export const NumericKeypad = memo(function NumericKeypad({
   interactionLocked = false,
   backspaceDisabled = false,
   waterLight = false,
+  sunsetLight = false,
+  forestLight = false,
+  violetLight = false,
+  emberLight = false,
+  neonLight = false,
+  midnightLight = false,
+  retroLight = false,
   autoCheckCharges = 0,
   virtualPress = null,
   onDigit,
@@ -366,7 +380,23 @@ export const NumericKeypad = memo(function NumericKeypad({
   onAutoCorrect,
   onEnter,
 }: NumericKeypadProps) {
-  const keypadClass = waterLight ? 'game-numeric-keypad game-numeric-keypad--water' : 'game-numeric-keypad'
+  const keypadClass = waterLight
+    ? 'game-numeric-keypad game-numeric-keypad--water'
+    : sunsetLight
+      ? 'game-numeric-keypad game-numeric-keypad--sunset'
+      : forestLight
+        ? 'game-numeric-keypad game-numeric-keypad--forest'
+        : violetLight
+          ? 'game-numeric-keypad game-numeric-keypad--violet'
+          : emberLight
+            ? 'game-numeric-keypad game-numeric-keypad--ember'
+        : neonLight
+          ? 'game-numeric-keypad game-numeric-keypad--neon'
+          : midnightLight
+            ? 'game-numeric-keypad game-numeric-keypad--midnight'
+            : retroLight
+              ? 'game-numeric-keypad game-numeric-keypad--retro'
+              : 'game-numeric-keypad'
   const isVirtualPressed = (key: BenchmarkVirtualKey) => virtualPress?.key === key
   const digitVirtualKey = (digit: string) => `digit-${digit}` as BenchmarkVirtualKey
   const virtualToken = virtualPress?.token ?? null

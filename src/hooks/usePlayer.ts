@@ -63,6 +63,23 @@ export function usePlayer() {
     })
   }, [commitPlayer])
 
+  const purchaseTheme = useCallback((theme: BackgroundTheme, priceCoins: number): boolean => {
+    if (priceCoins < 0) return false
+
+    let purchased = false
+    commitPlayer((current) => {
+      if (current.ownedThemeIds.includes(theme)) return current
+      if (current.coins < priceCoins) return current
+      purchased = true
+      return {
+        ...current,
+        coins: current.coins - priceCoins,
+        ownedThemeIds: [...current.ownedThemeIds, theme],
+      }
+    })
+    return purchased
+  }, [commitPlayer])
+
   const rewardedAdsRemaining = Math.max(0, 5 - player.daily.rewardedAdsWatched)
 
   const watchSimulatedAd = useCallback(async () => {
@@ -88,6 +105,7 @@ export function usePlayer() {
     grantAutoCheck,
     spendAutoCheck,
     setEquippedTheme,
+    purchaseTheme,
     rewardedAdsRemaining,
     watchSimulatedAd,
     commitPlayer,

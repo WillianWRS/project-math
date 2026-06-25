@@ -20,8 +20,12 @@ let sfxGain: GainNode | null = null
 let iosUnlockPrimed = false
 
 const bufferCache = new Map<ClipId, AudioBuffer>()
+const rawBytesCache = new Map<string, ArrayBuffer>()
 const clipLoadPromises = new Map<ClipId, Promise<void>>()
 const tierLoadPromises = new Map<AudioTier, Promise<void>>()
+const MENU_AUDIO_TIERS: AudioTier[] = ['critical', 'gameplay']
+let menuAudioPrefetchPromise: Promise<void> | null = null
+let menuAudioPreparePromise: Promise<void> | null = null
 
 let spriteBuffer: AudioBuffer | null = null
 let spriteLoadPromise: Promise<void> | null = null
@@ -93,13 +97,22 @@ function warmManifestFetch(): void {
   void loadManifest().catch(() => {})
 }
 
-async function decodeAudio(url: string): Promise<AudioBuffer> {
-  const context = ensureContextSync()
-  if (!context) throw new Error('AudioContext is locked until user gesture')
+async function fetchAudioBytes(url: string): Promise<ArrayBuffer> {
+  const cached = rawBytesCache.get(url)
+  if (cached) return cached
 
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Failed to fetch audio: ${url}`)
   const data = await response.arrayBuffer()
+  rawBytesCache.set(url, data)
+  return data
+}
+
+async function decodeAudio(url: string): Promise<AudioBuffer> {
+  const context = ensureContextSync()
+  if (!context) throw new Error('AudioContext is locked until user gesture')
+
+  const data = await fetchAudioBytes(url)
   return context.decodeAudioData(data.slice(0))
 }
 
@@ -309,6 +322,72 @@ export function playRandomWriteClip(enabled: boolean): void {
   playClip(WRITE_SFX_IDS[index], enabled)
 }
 
+async function prefetchClipBytes(manifest: SfxManifest, id: ClipId): Promise<void> {
+  const clip = manifest.clips[id]
+  if (!clip) return
+
+  if (manifest.mode === 'sprite' && !isFileClipDef(clip)) return
+
+  if (isFileClipDef(clip)) {
+    await fetchAudioBytes(clip.src)
+  }
+}
+
+async function prefetchSpriteBytes(manifest: SfxManifest): Promise<void> {
+  if (manifest.mode !== 'sprite') return
+
+  const sources = manifest.spriteSources ?? [manifest.sprite]
+  await Promise.all(sources.map((source) => fetchAudioBytes(source)))
+}
+
+export async function prefetchMenuAudioBytes(): Promise<void> {
+  if (!menuAudioPrefetchPromise) {
+    menuAudioPrefetchPromise = (async () => {
+      const manifest = await loadManifest()
+      await prefetchSpriteBytes(manifest)
+
+      for (const tier of MENU_AUDIO_TIERS) {
+        const clipIds = clipsForTier(manifest, tier)
+        await Promise.all(clipIds.map((id) => prefetchClipBytes(manifest, id)))
+      }
+    })().catch((error) => {
+      menuAudioPrefetchPromise = null
+      throw error
+    })
+  }
+
+  await menuAudioPrefetchPromise
+}
+
+export function isMenuAudioReady(): boolean {
+  if (!audioUnlocked || !manifestCache) return false
+
+  const clipIds = MENU_AUDIO_TIERS.flatMap((tier) => clipsForTier(manifestCache!, tier))
+  return clipIds.every((id) => bufferCache.has(id))
+}
+
+export async function prepareMenuAudio(): Promise<void> {
+  if (menuAudioPreparePromise) {
+    await menuAudioPreparePromise
+    return
+  }
+
+  menuAudioPreparePromise = (async () => {
+    await prefetchMenuAudioBytes()
+    await unlockAudioContext()
+    await Promise.all(MENU_AUDIO_TIERS.map((tier) => preloadAudioTier(tier)))
+  })().catch((error) => {
+    menuAudioPreparePromise = null
+    throw error
+  })
+
+  try {
+    await menuAudioPreparePromise
+  } catch {
+    menuAudioPreparePromise = null
+  }
+}
+
 export function resetAudioEngineForTests(): void {
   audioContext?.close().catch(() => {})
   audioContext = null
@@ -318,8 +397,11 @@ export function resetAudioEngineForTests(): void {
   manifestPromise = null
   iosUnlockPrimed = false
   bufferCache.clear()
+  rawBytesCache.clear()
   clipLoadPromises.clear()
   tierLoadPromises.clear()
+  menuAudioPrefetchPromise = null
+  menuAudioPreparePromise = null
   spriteBuffer = null
   spriteLoadPromise = null
   activeWriteSources.clear()

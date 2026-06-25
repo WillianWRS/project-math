@@ -1,6 +1,8 @@
 import {
   playClip,
   playRandomWriteClip,
+  prefetchMenuAudioBytes,
+  prepareMenuAudio,
   preloadAudioTier,
   preloadAudioTierIdle,
   unlockAudioContext,
@@ -35,6 +37,14 @@ export function preloadAudioGameplay(): Promise<void> {
 
 export function preloadAudioIdle(): void {
   preloadAudioTierIdle('idle')
+}
+
+export function prefetchMenuAudio(): Promise<void> {
+  return prefetchMenuAudioBytes()
+}
+
+export function hydrateMenuAudio(): Promise<void> {
+  return prepareMenuAudio()
 }
 
 export function playSfx(id: SfxId, enabled: boolean): void {

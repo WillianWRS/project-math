@@ -16,7 +16,11 @@ function App() {
       benchmarkMetrics={game.benchmarkMetrics}
       benchmarkVirtualKeypadPress={game.benchmarkVirtualKeypadPress}
       soundEnabled={game.soundEnabled}
+      menuAudioReady={game.menuAudioReady}
+      menuAudioPrefetchComplete={game.menuAudioPrefetchComplete}
       devModeEnabled={game.devModeEnabled}
+      godModeEnabled={game.godModeEnabled}
+      showGodModeToggle={game.showGodModeToggle}
       backgroundTheme={game.backgroundTheme}
       onStart={game.onStart}
       onStartBenchmarkSession={game.onStartBenchmarkSession}
@@ -28,7 +32,9 @@ function App() {
       onInputChange={game.onInputChange}
       onSoundChange={game.toggleSound}
       onDevModeChange={game.toggleDevMode}
+      onGodModeChange={game.toggleGodMode}
       onBackgroundThemeChange={game.setBackgroundTheme}
+      onBuyTheme={game.buyTheme}
       onSaveDisplayName={game.updateDisplayName}
       onWatchRewardedAd={game.watchSimulatedAd}
       rewardedAdsWatched={game.player.daily.rewardedAdsWatched}

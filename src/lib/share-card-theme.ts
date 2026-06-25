@@ -1,8 +1,8 @@
 import type { BackgroundTheme } from '../platform/storage'
 
 export interface ShareCardThemeStyle {
-  rootClass: 'share-card--default' | 'share-card--water'
-  panelClass: 'share-card__panel--default' | 'share-card__panel--water'
+  rootClass: 'share-card--default' | 'share-card--water' | 'share-card--sunset'
+  panelClass: 'share-card__panel--default' | 'share-card__panel--water' | 'share-card__panel--sunset'
   captureBackground: string
 }
 
@@ -12,6 +12,14 @@ export function getShareCardThemeStyle(theme: BackgroundTheme): ShareCardThemeSt
       rootClass: 'share-card--water',
       panelClass: 'share-card__panel--water',
       captureBackground: '#6ec5eb',
+    }
+  }
+
+  if (theme === 'sunset') {
+    return {
+      rootClass: 'share-card--sunset',
+      panelClass: 'share-card__panel--sunset',
+      captureBackground: '#d45b7a',
     }
   }
 

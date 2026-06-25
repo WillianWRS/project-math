@@ -2,12 +2,24 @@ const TOP_SCORES_KEY = 'project-math-top-scores'
 const LEGACY_HIGH_SCORE_KEY = 'project-math-high-score'
 const SOUND_KEY = 'project-math-sound'
 const DEV_MODE_KEY = 'project-math-dev-mode'
+const GOD_MODE_KEY = 'project-math-god-mode'
 const BACKGROUND_THEME_KEY = 'project-math-background-theme'
 const PLAYER_KEY = 'project-math-player'
 
 export const TOP_SCORES_LIMIT = 5
 
-export type BackgroundTheme = 'default' | 'water'
+export type BackgroundTheme =
+  | 'default'
+  | 'water'
+  | 'sunset'
+  | 'forest'
+  | 'violet'
+  | 'ember'
+  | 'neon'
+  | 'midnight'
+  | 'retro'
+  | 'ice'
+  | 'aurora'
 
 export interface ScoreRecord {
   score: number
@@ -47,7 +59,19 @@ function clampNonNegative(value: unknown): number {
 }
 
 function isBackgroundTheme(value: unknown): value is BackgroundTheme {
-  return value === 'default' || value === 'water'
+  return (
+    value === 'default' ||
+    value === 'water' ||
+    value === 'sunset' ||
+    value === 'forest' ||
+    value === 'violet' ||
+    value === 'ember' ||
+    value === 'neon' ||
+    value === 'midnight' ||
+    value === 'retro' ||
+    value === 'ice' ||
+    value === 'aurora'
+  )
 }
 
 function createDailyDefaults(): PlayerDailyData {
@@ -206,6 +230,20 @@ export function loadDevModeEnabled(): boolean {
 
 export function saveDevModeEnabled(enabled: boolean): void {
   localStorage.setItem(DEV_MODE_KEY, String(enabled))
+}
+
+export function loadGodModeEnabled(): boolean {
+  try {
+    const raw = localStorage.getItem(GOD_MODE_KEY)
+    if (raw === null) return false
+    return raw === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function saveGodModeEnabled(enabled: boolean): void {
+  localStorage.setItem(GOD_MODE_KEY, String(enabled))
 }
 
 function parsePlayerData(value: unknown): PlayerData | null {

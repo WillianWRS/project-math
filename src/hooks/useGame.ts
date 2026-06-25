@@ -18,17 +18,22 @@ import type { GameSession } from '../engine/types'
 import { usePlayer } from './usePlayer'
 import { useBenchmark } from './useBenchmark'
 import { ensureDailyFresh } from '../platform/daily-reset'
+import { isIPhone } from '../platform/device'
 import { isAnyGameChangerActive } from '../engine/game-changer-cycles'
+import { THEME_CATALOG, getThemePurchasePrice } from '../cosmetics/theme-catalog'
 import {
   loadDevModeEnabled,
+  loadGodModeEnabled,
   loadSoundEnabled,
   loadTopScores,
   saveDevModeEnabled,
+  saveGodModeEnabled,
   saveSoundEnabled,
   saveTopScore,
+  type BackgroundTheme,
   type ScoreRecord,
 } from '../platform/storage'
-import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, preloadAudioCritical, preloadAudioGameplay, preloadAudioIdle, unlockAudio, unlockAudioSync } from '../platform/audio-service'
+import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, hydrateMenuAudio, prefetchMenuAudio, preloadAudioIdle, unlockAudioSync } from '../platform/audio-service'
 import { gameTimerStore } from '../platform/game-timer-store'
 import type { BenchmarkVirtualKey } from '../engine/benchmark-types'
 
@@ -36,6 +41,8 @@ const TIMER_UI_PUBLISH_MS = 100
 const DAILY_GOAL_SCORE = 1000
 const DAILY_GOAL_XP_REWARD = 1000
 const PERFECT_ANSWER_RATIO = 0.9
+const MENU_AUDIO_PREPARE_TIMEOUT_MS = 12_000
+const SHOW_GOD_MODE_TOGGLE = false
 
 export interface PostGameRewards {
   xpGained: number
@@ -48,14 +55,17 @@ export function useGame() {
   const [inputValue, setInputValueState] = useState(session.inputValue)
   const [topScores, setTopScores] = useState<ScoreRecord[]>(() => loadTopScores())
   const [soundEnabled, setSoundEnabled] = useState(() => loadSoundEnabled())
+  const [menuAudioReady, setMenuAudioReady] = useState(() => !loadSoundEnabled())
+  const [menuAudioPrefetchComplete, setMenuAudioPrefetchComplete] = useState(() => !loadSoundEnabled())
   const [devModeEnabled, setDevModeEnabled] = useState(() => loadDevModeEnabled())
+  const [godModeEnabled, setGodModeEnabled] = useState(() => loadGodModeEnabled())
   const [lastGameRewards, setLastGameRewards] = useState<PostGameRewards>({
     xpGained: 0,
     coinsGained: 0,
     goalCompleted: false,
   })
   const [perfectAnswerToken, setPerfectAnswerToken] = useState(0)
-  const { player, commitPlayer, grantAutoCheck, spendAutoCheck, setEquippedTheme, ...playerActions } =
+  const { player, commitPlayer, grantAutoCheck, spendAutoCheck, setEquippedTheme, purchaseTheme, ...playerActions } =
     usePlayer()
   const sessionRef = useRef(session)
   const playerRef = useRef(player)
@@ -142,22 +152,75 @@ export function useGame() {
   }, [inputValue])
 
   useEffect(() => {
-    const bootstrap = () => {
-      unlockAudioSync()
-      void unlockAudio().then(() => preloadAudioCritical())
-      preloadAudioIdle()
-    }
+    if (!soundEnabled) return
 
-    window.addEventListener('touchstart', bootstrap, { once: true, passive: true, capture: true })
-    window.addEventListener('pointerdown', bootstrap, { once: true, passive: true, capture: true })
-    window.addEventListener('keydown', bootstrap, { once: true })
+    let cancelled = false
+    const timeoutId = window.setTimeout(() => {
+      if (!cancelled) {
+        setMenuAudioPrefetchComplete(true)
+        setMenuAudioReady(true)
+      }
+    }, MENU_AUDIO_PREPARE_TIMEOUT_MS)
+
+    void prefetchMenuAudio()
+      .then(() => {
+        if (cancelled) return
+        setMenuAudioPrefetchComplete(true)
+        if (!isIPhone()) {
+          void hydrateMenuAudio()
+            .then(() => {
+              if (!cancelled) {
+                setMenuAudioReady(true)
+                preloadAudioIdle()
+              }
+            })
+            .catch(() => {
+              if (!cancelled) setMenuAudioReady(true)
+            })
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMenuAudioPrefetchComplete(true)
+          setMenuAudioReady(true)
+        }
+      })
 
     return () => {
-      window.removeEventListener('touchstart', bootstrap, true)
-      window.removeEventListener('pointerdown', bootstrap, true)
-      window.removeEventListener('keydown', bootstrap)
+      cancelled = true
+      window.clearTimeout(timeoutId)
     }
-  }, [])
+  }, [soundEnabled])
+
+  useEffect(() => {
+    if (!soundEnabled || menuAudioReady || !isIPhone()) return
+
+    let cancelled = false
+
+    const prepareFromGesture = () => {
+      void hydrateMenuAudio()
+        .then(() => {
+          if (!cancelled) {
+            setMenuAudioReady(true)
+            preloadAudioIdle()
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setMenuAudioReady(true)
+        })
+    }
+
+    window.addEventListener('touchstart', prepareFromGesture, { once: true, passive: true, capture: true })
+    window.addEventListener('pointerdown', prepareFromGesture, { once: true, passive: true, capture: true })
+    window.addEventListener('keydown', prepareFromGesture, { once: true })
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('touchstart', prepareFromGesture, true)
+      window.removeEventListener('pointerdown', prepareFromGesture, true)
+      window.removeEventListener('keydown', prepareFromGesture)
+    }
+  }, [soundEnabled, menuAudioReady])
 
   useEffect(() => {
     timerMsRef.current = session.timerMs
@@ -305,7 +368,6 @@ export function useGame() {
 
   const onStart = useCallback(() => {
     if (sessionRef.current.phase === 'playing') return
-    void preloadAudioGameplay()
     benchmarkSessionRef.current = false
     setBenchmarkMode(false)
     resetBenchmark()
@@ -319,7 +381,6 @@ export function useGame() {
 
   const onStartBenchmarkSession = useCallback(() => {
     if (sessionRef.current.phase === 'playing') return
-    void preloadAudioGameplay()
     benchmarkSessionRef.current = true
     setBenchmarkMode(true)
     gameOverFxHandledRef.current = false
@@ -439,12 +500,10 @@ export function useGame() {
 
   const playClick = useCallback(() => {
     unlockAudioSync()
-    void preloadAudioCritical()
     playSfx('click', soundEnabledRef.current)
   }, [])
   const playGameStart = useCallback(() => {
     unlockAudioSync()
-    void preloadAudioGameplay()
     playSfx('gameStart', soundEnabledRef.current)
   }, [])
   const playWriteKey = useCallback(() => {
@@ -463,6 +522,27 @@ export function useGame() {
   const toggleSound = useCallback((enabled: boolean) => {
     setSoundEnabled(enabled)
     saveSoundEnabled(enabled)
+    if (!enabled) {
+      setMenuAudioReady(true)
+      setMenuAudioPrefetchComplete(true)
+      return
+    }
+
+    setMenuAudioReady(false)
+    setMenuAudioPrefetchComplete(false)
+    void prefetchMenuAudio()
+      .then(() => {
+        setMenuAudioPrefetchComplete(true)
+        if (!isIPhone()) {
+          return hydrateMenuAudio().then(() => {
+            setMenuAudioReady(true)
+            preloadAudioIdle()
+          })
+        }
+      })
+      .catch(() => {
+        setMenuAudioPrefetchComplete(true)
+      })
   }, [])
 
   const toggleDevMode = useCallback((enabled: boolean) => {
@@ -470,12 +550,47 @@ export function useGame() {
     saveDevModeEnabled(enabled)
   }, [])
 
+  const toggleGodMode = useCallback((enabled: boolean) => {
+    setGodModeEnabled(enabled)
+    saveGodModeEnabled(enabled)
+    if (!enabled) {
+      commitPlayer((current) => {
+        if (current.ownedThemeIds.includes(current.equippedThemeId)) return current
+        return {
+          ...current,
+          equippedThemeId: current.ownedThemeIds[0] ?? 'default',
+        }
+      })
+    }
+  }, [commitPlayer])
+
+  const setBackgroundTheme = useCallback((theme: BackgroundTheme) => {
+    if (!godModeEnabled) {
+      setEquippedTheme(theme)
+      return
+    }
+
+    const availableThemeIds = THEME_CATALOG.flatMap((entry) =>
+      entry.equippableThemeId === undefined ? [] : [entry.equippableThemeId],
+    )
+    if (!availableThemeIds.includes(theme)) return
+    commitPlayer((current) => ({ ...current, equippedThemeId: theme }))
+  }, [commitPlayer, godModeEnabled, setEquippedTheme])
+
+  const buyTheme = useCallback((theme: BackgroundTheme, priceCoins: number): boolean => {
+    return purchaseTheme(theme, getThemePurchasePrice(priceCoins, godModeEnabled))
+  }, [godModeEnabled, purchaseTheme])
+
   return {
     session,
     inputValue,
     topScores,
     soundEnabled,
+    menuAudioReady,
+    menuAudioPrefetchComplete,
     devModeEnabled,
+    godModeEnabled,
+    showGodModeToggle: SHOW_GOD_MODE_TOGGLE,
     backgroundTheme: player.equippedThemeId,
     player,
     lastGameRewards,
@@ -494,7 +609,9 @@ export function useGame() {
     onInputChange,
     toggleSound,
     toggleDevMode,
-    setBackgroundTheme: setEquippedTheme,
+    toggleGodMode,
+    setBackgroundTheme,
+    buyTheme,
     grantAutoCheck,
     spendAutoCheck,
     ...playerActions,

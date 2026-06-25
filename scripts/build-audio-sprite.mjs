@@ -12,6 +12,7 @@ const spritePath = join(audioDir, 'sfx-sprite.mp3')
 const spriteWebmPath = join(audioDir, 'sfx-sprite.webm')
 const CLIP_ORDER = [
   ['click', 'click.mp3', 'critical', 1],
+  ['clickClose', 'click-close.mp3', 'critical', 1],
   ['erase', 'erase.mp3', 'critical', 0.28],
   ['error', 'error.mp3', 'critical', 1],
   ['success', 'success.mp3', 'critical', 1],

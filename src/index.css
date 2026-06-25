@@ -40,6 +40,110 @@ body {
   );
 }
 
+.game-scene--sunset {
+  background: linear-gradient(
+    180deg,
+    #ffd8a8 0%,
+    #ffb477 34%,
+    #ff8c6b 66%,
+    #d45b7a 100%
+  );
+}
+
+.game-scene--forest {
+  background: linear-gradient(
+    180deg,
+    #6b9a5e 0%,
+    #528a52 14%,
+    #3f7349 28%,
+    #2d5a3d 35%,
+    #1e4d32 52%,
+    #163d28 78%,
+    #0d2818 100%
+  );
+}
+
+.game-scene--violet {
+  background:
+    radial-gradient(ellipse 75% 50% at 15% 12%, rgba(232, 121, 249, 0.45) 0%, transparent 55%),
+    radial-gradient(ellipse 65% 45% at 88% 20%, rgba(192, 132, 252, 0.5) 0%, transparent 52%),
+    radial-gradient(ellipse 55% 40% at 50% 88%, rgba(167, 139, 250, 0.32) 0%, transparent 58%),
+    radial-gradient(ellipse 40% 35% at 72% 65%, rgba(244, 114, 255, 0.28) 0%, transparent 50%),
+    linear-gradient(
+      180deg,
+      #1e0a3c 0%,
+      #2e1065 22%,
+      #4c1d95 48%,
+      #312e81 72%,
+      #1e1b4b 100%
+    );
+}
+
+.game-scene--ember {
+  background:
+    radial-gradient(ellipse 78% 52% at 18% 10%, rgba(255, 120, 40, 0.52) 0%, transparent 56%),
+    radial-gradient(ellipse 68% 48% at 88% 16%, rgba(255, 60, 100, 0.38) 0%, transparent 54%),
+    radial-gradient(ellipse 58% 42% at 52% 92%, rgba(255, 170, 0, 0.22) 0%, transparent 60%),
+    radial-gradient(ellipse 42% 36% at 72% 68%, rgba(255, 80, 20, 0.18) 0%, transparent 52%),
+    linear-gradient(
+      165deg,
+      #0c0810 0%,
+      #16101c 28%,
+      #120c14 58%,
+      #080508 100%
+    );
+}
+
+.game-scene--neon {
+  background:
+    radial-gradient(ellipse 78% 54% at 14% 8%, rgba(0, 212, 255, 0.42) 0%, transparent 56%),
+    radial-gradient(ellipse 68% 50% at 90% 14%, rgba(168, 85, 247, 0.38) 0%, transparent 54%),
+    radial-gradient(ellipse 58% 44% at 48% 94%, rgba(59, 130, 246, 0.28) 0%, transparent 60%),
+    radial-gradient(ellipse 44% 38% at 74% 62%, rgba(236, 72, 255, 0.22) 0%, transparent 52%),
+    linear-gradient(
+      155deg,
+      #020818 0%,
+      #0a1635 24%,
+      #0d1f4a 48%,
+      #081428 74%,
+      #030810 100%
+    );
+}
+
+.game-scene--midnight {
+  background: linear-gradient(
+    180deg,
+    #030508 0%,
+    #050810 22%,
+    #0a1018 42%,
+    #122a45 72%,
+    #1a3555 100%
+  );
+}
+
+.game-scene--retro {
+  background:
+    radial-gradient(ellipse 72% 48% at 12% 6%, rgba(254, 240, 138, 0.42) 0%, transparent 54%),
+    radial-gradient(ellipse 64% 44% at 90% 12%, rgba(251, 191, 36, 0.34) 0%, transparent 52%),
+    radial-gradient(ellipse 58% 40% at 48% 88%, rgba(252, 211, 77, 0.28) 0%, transparent 58%),
+    radial-gradient(ellipse 40% 36% at 72% 58%, rgba(253, 224, 71, 0.18) 0%, transparent 50%),
+    linear-gradient(
+      180deg,
+      #0a0804 0%,
+      #141008 26%,
+      #1f1810 52%,
+      #2a2012 100%
+    );
+}
+
+.game-scene--ice {
+  background: linear-gradient(180deg, #ecfeff 0%, #dbeafe 45%, #bae6fd 100%);
+}
+
+.game-scene--aurora {
+  background: linear-gradient(180deg, #e0f2fe 0%, #d1fae5 40%, #f5d0fe 100%);
+}
+
 .game-scene-border-pulse {
   border: 2px solid rgba(251, 191, 36, 0.7);
   box-shadow:
@@ -137,6 +241,172 @@ body {
 .game-scene-header--water .font-mono.text-4xl {
   color: #1a4a6e;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.game-scene-header--sunset p.text-xs {
+  color: #7c2d12;
+}
+
+.game-scene-header--sunset .game-header-score-dock__number {
+  color: #7c2d12;
+  text-shadow: 0 1px 0 rgba(255, 237, 213, 0.55);
+}
+
+.game-scene-header--sunset .font-mono.text-4xl {
+  color: #7c2d12;
+  text-shadow: 0 1px 0 rgba(255, 237, 213, 0.55);
+}
+
+.game-scene-header--sunset .game-player-level-badge {
+  border: 1px solid rgba(251, 146, 60, 0.45);
+  background: linear-gradient(180deg, #fff7ed 0%, #fed7aa 100%);
+  color: #9a3412;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 1px 0 rgba(124, 45, 18, 0.16);
+}
+
+.game-scene-header--forest p.text-xs {
+  color: rgba(245, 235, 220, 0.78);
+}
+
+.game-scene-header--forest .game-header-score-dock__number {
+  color: #f5ebe0;
+  text-shadow: 0 1px 0 rgba(27, 94, 32, 0.35);
+}
+
+.game-scene-header--forest .font-mono.text-4xl {
+  color: #f5ebe0;
+  text-shadow: 0 1px 0 rgba(27, 94, 32, 0.35);
+}
+
+.game-scene-header--forest .game-player-level-badge {
+  border: 1px solid rgba(110, 231, 183, 0.55);
+  background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #166534;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 1px 0 rgba(22, 101, 52, 0.16);
+}
+
+.game-scene-header--violet p.text-xs {
+  color: rgba(237, 233, 254, 0.78);
+}
+
+.game-scene-header--violet .game-header-score-dock__number {
+  color: #ede9fe;
+  text-shadow: 0 1px 0 rgba(46, 16, 101, 0.45);
+}
+
+.game-scene-header--violet .font-mono.text-4xl {
+  color: #ede9fe;
+  text-shadow: 0 1px 0 rgba(46, 16, 101, 0.45);
+}
+
+.game-scene-header--violet .game-player-level-badge {
+  border: 1px solid rgba(196, 181, 253, 0.55);
+  background: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 100%);
+  color: #6d28d9;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 1px 0 rgba(76, 29, 149, 0.18);
+}
+
+.game-scene-header--ember p.text-xs {
+  color: rgba(255, 237, 213, 0.78);
+}
+
+.game-scene-header--ember .game-header-score-dock__number {
+  color: #ffedd5;
+  text-shadow: 0 1px 0 rgba(124, 45, 18, 0.45);
+}
+
+.game-scene-header--ember .font-mono.text-4xl {
+  color: #ffedd5;
+  text-shadow: 0 1px 0 rgba(124, 45, 18, 0.45);
+}
+
+.game-scene-header--ember .game-player-level-badge {
+  border: 1px solid rgba(253, 186, 116, 0.55);
+  background: linear-gradient(180deg, #fff8f4 0%, #ffe8d6 100%);
+  color: #c2410c;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 1px 0 rgba(194, 65, 12, 0.18);
+}
+
+.game-scene-header--neon p.text-xs {
+  color: rgba(186, 230, 253, 0.78);
+}
+
+.game-scene-header--neon .game-header-score-dock__number {
+  color: #e0f2fe;
+  text-shadow: 0 1px 0 rgba(8, 20, 40, 0.55);
+}
+
+.game-scene-header--neon .font-mono.text-4xl {
+  color: #e0f2fe;
+  text-shadow: 0 1px 0 rgba(8, 20, 40, 0.55);
+}
+
+.game-scene-header--neon .game-player-level-badge {
+  border: 1px solid rgba(125, 211, 252, 0.55);
+  background: linear-gradient(180deg, #ecfeff 0%, #cffafe 100%);
+  color: #0369a1;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 1px 0 rgba(3, 105, 161, 0.18);
+}
+
+.game-scene-header--midnight p.text-xs {
+  color: rgba(203, 213, 225, 0.75);
+}
+
+.game-scene-header--midnight .game-header-score-dock__number {
+  color: #e2e8f0;
+  text-shadow: 0 1px 0 rgba(3, 5, 8, 0.55);
+}
+
+.game-scene-header--midnight .font-mono.text-4xl {
+  color: #e2e8f0;
+  text-shadow: 0 1px 0 rgba(3, 5, 8, 0.55);
+}
+
+.game-scene-header--midnight .game-player-level-badge {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: linear-gradient(180deg, #d8e4f0 0%, #c5d4e8 100%);
+  color: #334155;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 1px 0 rgba(15, 23, 42, 0.2);
+}
+
+.game-scene-header--retro p.text-xs {
+  color: rgba(254, 243, 199, 0.78);
+}
+
+.game-scene-header--retro .game-header-score-dock__number {
+  color: #fef3c7;
+  text-shadow:
+    0 0 14px rgba(251, 191, 36, 0.38),
+    0 1px 0 rgba(10, 8, 4, 0.55);
+}
+
+.game-scene-header--retro .font-mono.text-4xl {
+  color: #fef3c7;
+  text-shadow:
+    0 0 14px rgba(251, 191, 36, 0.38),
+    0 1px 0 rgba(10, 8, 4, 0.55);
+}
+
+.game-scene-header--retro .game-player-level-badge {
+  border: 1px solid rgba(252, 211, 77, 0.55);
+  background: linear-gradient(180deg, #fffef5 0%, #fef9c3 100%);
+  color: #92400e;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 1px 0 rgba(146, 64, 14, 0.18),
+    0 0 12px rgba(251, 191, 36, 0.18);
 }
 
 .game-scene-header--water .game-player-level-badge {
@@ -724,8 +994,138 @@ body {
     0 8px 24px rgba(26, 74, 110, 0.12);
 }
 
+.game-play-stack--sunset {
+  background: linear-gradient(
+    180deg,
+    #fff7ed 0%,
+    #ffedd5 52%,
+    #fed7aa 100%
+  );
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    inset 0 -1px 0 rgba(234, 88, 12, 0.14),
+    0 8px 24px rgba(154, 52, 18, 0.16);
+}
+
 .game-play-stack--water .game-play-stack__divider {
   border-color: rgba(180, 155, 110, 0.22);
+}
+
+.game-play-stack--sunset .game-play-stack__divider {
+  border-color: rgba(194, 65, 12, 0.22);
+}
+
+.game-play-stack--forest {
+  background: linear-gradient(
+    180deg,
+    #ede0cc 0%,
+    #e0cfb4 52%,
+    #d4c09a 100%
+  );
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -1px 0 rgba(120, 90, 55, 0.18),
+    0 8px 24px rgba(20, 83, 45, 0.22);
+}
+
+.game-play-stack--forest .game-play-stack__divider {
+  border-color: rgba(120, 90, 55, 0.28);
+}
+
+.game-play-stack--violet {
+  background: linear-gradient(
+    180deg,
+    #ede9fe 0%,
+    #ddd6fe 52%,
+    #c4b5fd 100%
+  );
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    inset 0 -1px 0 rgba(109, 40, 217, 0.16),
+    0 8px 24px rgba(46, 16, 101, 0.28);
+}
+
+.game-play-stack--violet .game-play-stack__divider {
+  border-color: rgba(109, 40, 217, 0.24);
+}
+
+.game-play-stack--ember {
+  background: linear-gradient(
+    180deg,
+    #fff3e0 0%,
+    #ffb74d 38%,
+    #ff9800 68%,
+    #ff6d00 100%
+  );
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -1px 0 rgba(255, 109, 0, 0.35),
+    0 8px 28px rgba(255, 109, 0, 0.32),
+    0 0 24px rgba(255, 152, 0, 0.22);
+}
+
+.game-play-stack--ember .game-play-stack__divider {
+  border-color: rgba(234, 88, 12, 0.32);
+}
+
+.game-play-stack--neon {
+  background: linear-gradient(
+    180deg,
+    #122a5c 0%,
+    #1a3875 48%,
+    #1f4288 100%
+  );
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(125, 211, 252, 0.22),
+    inset 0 -1px 0 rgba(59, 130, 246, 0.28),
+    0 8px 28px rgba(8, 20, 40, 0.45),
+    0 0 20px rgba(0, 212, 255, 0.12);
+}
+
+.game-play-stack--neon .game-play-stack__divider {
+  border-color: rgba(56, 189, 248, 0.28);
+}
+
+.game-play-stack--midnight {
+  background: linear-gradient(
+    180deg,
+    #243f5e 0%,
+    #2a4a72 52%,
+    #355f8f 100%
+  );
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(148, 163, 184, 0.18),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.35),
+    0 8px 24px rgba(3, 5, 8, 0.45);
+}
+
+.game-play-stack--midnight .game-play-stack__divider {
+  border-color: rgba(100, 116, 139, 0.32);
+}
+
+.game-play-stack--retro {
+  background: linear-gradient(
+    180deg,
+    #e8c547 0%,
+    #d4a82a 48%,
+    #c4941f 100%
+  );
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(254, 243, 199, 0.45),
+    inset 0 -1px 0 rgba(146, 64, 14, 0.28),
+    0 8px 28px rgba(42, 32, 18, 0.42),
+    0 0 22px rgba(251, 191, 36, 0.22);
+}
+
+.game-play-stack--retro .game-play-stack__divider {
+  border-color: rgba(254, 243, 199, 0.28);
 }
 
 .game-play-stack:not(.game-play-stack--water) .game-play-stack__divider {
@@ -743,6 +1143,48 @@ body {
 .game-answer-row--water {
   background: linear-gradient(180deg, #fffdf9 0%, #faf4e8 100%);
   border-top: 1px solid rgba(180, 155, 110, 0.2);
+  border-radius: 0 0 1.5rem 1.5rem;
+}
+
+.game-answer-row--sunset {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  border-top: 1px solid rgba(194, 65, 12, 0.2);
+  border-radius: 0 0 1.5rem 1.5rem;
+}
+
+.game-answer-row--forest {
+  background: linear-gradient(180deg, #ede0cc 0%, #e0cfb4 100%);
+  border-top: 1px solid rgba(120, 90, 55, 0.24);
+  border-radius: 0 0 1.5rem 1.5rem;
+}
+
+.game-answer-row--violet {
+  background: linear-gradient(180deg, #ede9fe 0%, #ddd6fe 100%);
+  border-top: 1px solid rgba(109, 40, 217, 0.22);
+  border-radius: 0 0 1.5rem 1.5rem;
+}
+
+.game-answer-row--ember {
+  background: linear-gradient(180deg, #fff3e0 0%, #ffb74d 55%, #ff9800 100%);
+  border-top: 1px solid rgba(234, 88, 12, 0.28);
+  border-radius: 0 0 1.5rem 1.5rem;
+}
+
+.game-answer-row--neon {
+  background: linear-gradient(180deg, #122a5c 0%, #1a3875 55%, #1f4288 100%);
+  border-top: 1px solid rgba(56, 189, 248, 0.26);
+  border-radius: 0 0 1.5rem 1.5rem;
+}
+
+.game-answer-row--midnight {
+  background: linear-gradient(180deg, #243f5e 0%, #2a4a72 55%, #355f8f 100%);
+  border-top: 1px solid rgba(100, 116, 139, 0.3);
+  border-radius: 0 0 1.5rem 1.5rem;
+}
+
+.game-answer-row--retro {
+  background: linear-gradient(180deg, #e8c547 0%, #d4a82a 55%, #c4941f 100%);
+  border-top: 1px solid rgba(254, 243, 199, 0.28);
   border-radius: 0 0 1.5rem 1.5rem;
 }
 
@@ -774,6 +1216,19 @@ body {
     0 8px 22px rgba(26, 74, 110, 0.14);
 }
 
+.game-over-card--sunset {
+  border: 1px solid rgba(251, 146, 60, 0.45);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 247, 237, 0.96) 0%,
+    rgba(255, 237, 213, 0.93) 55%,
+    rgba(254, 215, 170, 0.9) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 8px 22px rgba(154, 52, 18, 0.15);
+}
+
 .game-over-card--water .game-over-card__label {
   color: #3d6f8c;
 }
@@ -788,6 +1243,22 @@ body {
 
 .game-over-card--water .game-over-card__meta {
   color: #4a7a96;
+}
+
+.game-over-card--sunset .game-over-card__label {
+  color: #9a3412;
+}
+
+.game-over-card--sunset .game-over-card__duration {
+  color: #9a3412;
+}
+
+.game-over-card--sunset .game-over-card__score {
+  color: #7c2d12;
+}
+
+.game-over-card--sunset .game-over-card__meta {
+  color: #9a3412;
 }
 
 .game-over-reward-xp {
@@ -814,6 +1285,18 @@ body {
 
 .game-over-card--water .game-over-reward-sep {
   color: #4a7a96;
+}
+
+.game-over-card--sunset .game-over-reward-xp {
+  color: #7e22ce;
+}
+
+.game-over-card--sunset .game-over-reward-coins {
+  color: #c2410c;
+}
+
+.game-over-card--sunset .game-over-reward-sep {
+  color: #9a3412;
 }
 
 .benchmark-overall-result {
@@ -869,6 +1352,10 @@ body {
 
 .share-card--water {
   background: linear-gradient(180deg, #b8e8fa 0%, #8fd4f2 28%, #6ec5eb 58%, #5ab8e6 100%);
+}
+
+.share-card--sunset {
+  background: linear-gradient(180deg, #ffd8a8 0%, #ffb477 34%, #ff8c6b 66%, #d45b7a 100%);
 }
 
 .share-card__glow {
@@ -970,6 +1457,11 @@ body {
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
+.share-card--sunset .share-card__brand {
+  color: rgba(124, 45, 18, 0.88);
+  text-shadow: 0 1px 0 rgba(255, 237, 213, 0.6);
+}
+
 .share-card__panel {
   position: relative;
   z-index: 1;
@@ -1003,6 +1495,19 @@ body {
     0 18px 52px rgba(26, 74, 110, 0.18);
 }
 
+.share-card__panel--sunset {
+  border: 2px solid rgba(251, 146, 60, 0.45);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 247, 237, 0.98) 0%,
+    rgba(255, 237, 213, 0.95) 55%,
+    rgba(254, 215, 170, 0.92) 100%
+  );
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.96),
+    0 18px 52px rgba(154, 52, 18, 0.2);
+}
+
 .share-card__label {
   display: flex;
   margin: 0;
@@ -1027,6 +1532,10 @@ body {
   color: #0e7490;
 }
 
+.share-card__panel--sunset .share-card__icon--primary {
+  color: #c2410c;
+}
+
 .share-card__panel--default .share-card__icon--muted {
   color: #6b6358;
 }
@@ -1035,12 +1544,20 @@ body {
   color: #3d6f8c;
 }
 
+.share-card__panel--sunset .share-card__icon--muted {
+  color: #9a3412;
+}
+
 .share-card__panel--default .share-card__label {
   color: #6b6358;
 }
 
 .share-card__panel--water .share-card__label {
   color: #3d6f8c;
+}
+
+.share-card__panel--sunset .share-card__label {
+  color: #9a3412;
 }
 
 .share-card__score {
@@ -1075,6 +1592,11 @@ body {
   color: #1a4a6e;
 }
 
+.share-card__panel--sunset .share-card__score-value,
+.share-card__panel--sunset .share-card__score-suffix {
+  color: #7c2d12;
+}
+
 .share-card__duration {
   display: flex;
   margin: 22px 0 0;
@@ -1091,6 +1613,10 @@ body {
 
 .share-card__panel--water .share-card__duration {
   color: #3d6f8c;
+}
+
+.share-card__panel--sunset .share-card__duration {
+  color: #9a3412;
 }
 
 .share-card__rewards {
@@ -1123,6 +1649,18 @@ body {
   color: #4a7a96;
 }
 
+.share-card__panel--sunset .share-card__reward-xp {
+  color: #7e22ce;
+}
+
+.share-card__panel--sunset .share-card__reward-coins {
+  color: #c2410c;
+}
+
+.share-card__panel--sunset .share-card__reward-sep {
+  color: #9a3412;
+}
+
 .share-card__highlight {
   margin: 20px 0 0;
   font-size: 30px;
@@ -1137,6 +1675,10 @@ body {
   color: #059669;
 }
 
+.share-card__panel--sunset .share-card__highlight--goal {
+  color: #15803d;
+}
+
 .share-card__player-row {
   display: flex;
   margin-top: 40px;
@@ -1149,6 +1691,10 @@ body {
 
 .share-card__panel--water .share-card__player-row {
   border-top-color: rgba(125, 211, 252, 0.42);
+}
+
+.share-card__panel--sunset .share-card__player-row {
+  border-top-color: rgba(251, 146, 60, 0.4);
 }
 
 .share-card__player-name {
@@ -1194,10 +1740,20 @@ body {
   color: #1a4a6e;
 }
 
+.share-card__panel--sunset .share-card__player-name {
+  color: #7c2d12;
+}
+
 .share-card__panel--water .share-card__player-level {
   border: 1px solid rgba(14, 116, 144, 0.22);
   background: rgba(255, 255, 255, 0.62);
   color: #0e7490;
+}
+
+.share-card__panel--sunset .share-card__player-level {
+  border: 1px solid rgba(194, 65, 12, 0.24);
+  background: rgba(255, 237, 213, 0.72);
+  color: #9a3412;
 }
 
 .game-menu-hud-btn--water-light .game-menu-hud-btn__plate--inline {
@@ -1883,6 +2439,68 @@ body {
 
 .settings-bg-preview--water {
   background: linear-gradient(180deg, #b8e8fa 0%, #8fd4f2 40%, #5ab8e6 100%);
+}
+
+.settings-bg-preview--sunset {
+  background: linear-gradient(180deg, #ffd8a8 0%, #ffb477 40%, #d45b7a 100%);
+}
+
+.settings-bg-preview--forest {
+  background: linear-gradient(
+    180deg,
+    #6b9a5e 0%,
+    #528a52 14%,
+    #3f7349 28%,
+    #2d5a3d 35%,
+    #1e4d32 52%,
+    #163d28 78%,
+    #0d2818 100%
+  );
+}
+
+.settings-bg-preview--violet {
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 15%, rgba(232, 121, 249, 0.4) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 45% at 85% 25%, rgba(192, 132, 252, 0.45) 0%, transparent 50%),
+    linear-gradient(180deg, #2e1065 0%, #4c1d95 45%, #1e1b4b 100%);
+}
+
+.settings-bg-preview--ember {
+  background:
+    radial-gradient(ellipse 72% 50% at 20% 12%, rgba(255, 120, 40, 0.48) 0%, transparent 55%),
+    radial-gradient(ellipse 62% 46% at 86% 18%, rgba(255, 60, 100, 0.34) 0%, transparent 52%),
+    linear-gradient(165deg, #0c0810 0%, #16101c 45%, #080508 100%);
+}
+
+.settings-bg-preview--neon {
+  background:
+    radial-gradient(ellipse 72% 52% at 18% 10%, rgba(0, 212, 255, 0.38) 0%, transparent 55%),
+    radial-gradient(ellipse 62% 48% at 88% 16%, rgba(168, 85, 247, 0.32) 0%, transparent 52%),
+    linear-gradient(155deg, #020818 0%, #0a1635 45%, #030810 100%);
+}
+
+.settings-bg-preview--midnight {
+  background: linear-gradient(
+    180deg,
+    #030508 0%,
+    #0a1018 42%,
+    #1a3555 100%
+  );
+}
+
+.settings-bg-preview--retro {
+  background:
+    radial-gradient(ellipse 68% 46% at 14% 8%, rgba(254, 240, 138, 0.38) 0%, transparent 54%),
+    radial-gradient(ellipse 62% 42% at 88% 14%, rgba(251, 191, 36, 0.3) 0%, transparent 52%),
+    linear-gradient(180deg, #0a0804 0%, #1f1810 52%, #2a2012 100%);
+}
+
+.settings-bg-preview--ice {
+  background: linear-gradient(180deg, #ecfeff 0%, #dbeafe 40%, #bae6fd 100%);
+}
+
+.settings-bg-preview--aurora {
+  background: linear-gradient(180deg, #e0f2fe 0%, #d1fae5 40%, #f5d0fe 100%);
 }
 
 .shop-theme-preview--locked {
@@ -3052,4 +3670,1055 @@ body {
   .game-menu-hud-btn__plate {
     transition: none !important;
   }
+}
+
+/* Sunset theme light controls */
+.game-answer-slot--sunset {
+  caret-color: #c2410c;
+}
+
+.game-answer-slot--sunset::placeholder {
+  color: rgba(124, 45, 18, 0.28);
+}
+
+.game-menu-hud-btn--sunset-light .game-menu-hud-btn__plate--inline {
+  --hud-shadow: rgba(154, 52, 18, 0.28);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.8) 0%, transparent 42%),
+    linear-gradient(165deg, #fffaf4 0%, #fff1e6 45%, #ffe6d1 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    inset 0 -8px 16px rgba(251, 146, 60, 0.08);
+}
+
+.game-menu-hud-btn--sunset-light .game-menu-hud-btn__plate--inline::before {
+  border-color: rgba(251, 146, 60, 0.22);
+}
+
+.game-menu-hud-btn--sunset-light .game-menu-hud-btn__plate--inline::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+}
+
+.game-menu-hud-btn--sunset-light .game-menu-hud-btn__inline-text {
+  color: #9a3412;
+}
+
+.game-menu-hud-btn--sunset-light .game-menu-hud-btn__icon {
+  color: #9a3412;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7));
+}
+
+.game-menu-hud-btn--sunset-light .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 2.4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    inset 0 -4.8px 9.6px rgba(251, 146, 60, 0.08);
+}
+
+.game-menu-hud-btn--sunset-light .game-menu-hud-btn__plate--accent {
+  --hud-shadow: rgba(146, 100, 20, 0.28);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.75) 0%, transparent 42%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 48%, #fcd34d 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -8px 16px rgba(180, 120, 20, 0.1);
+}
+
+.game-menu-hud-btn--sunset-light .game-menu-hud-btn__plate--accent::before {
+  border-color: rgba(180, 120, 20, 0.28);
+}
+
+.game-menu-hud-btn--sunset-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__inline-text,
+.game-menu-hud-btn--sunset-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__icon {
+  color: #78350f;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.45));
+}
+
+.game-menu-hud-btn--sunset-light:active .game-menu-hud-btn__plate--inline {
+  box-shadow:
+    0 1px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 -5px 12px rgba(251, 146, 60, 0.12);
+}
+
+.game-menu-hud-btn--sunset-light:active .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 0.6px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 -3px 7px rgba(251, 146, 60, 0.12);
+}
+
+.game-numeric-keypad--sunset .game-numeric-keypad__auto-icon--prohibited {
+  color: rgba(154, 52, 18, 0.55);
+}
+
+.game-numeric-keypad--sunset .game-numeric-keypad__key {
+  --key-shadow: rgba(154, 52, 18, 0.26);
+  --key-ripple: rgba(251, 146, 60, 0.45);
+  --key-ripple-ghost: rgba(255, 237, 213, 0.6);
+  color: #9a3412;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.8) 0%, transparent 42%),
+    linear-gradient(165deg, #fffaf4 0%, #fff1e6 45%, #ffe6d1 100%);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97);
+}
+
+.game-numeric-keypad--sunset .game-numeric-keypad__key--placeholder {
+  color: rgba(154, 52, 18, 0.35);
+}
+
+.game-numeric-keypad--sunset .game-numeric-keypad__key--enter {
+  --key-shadow: rgba(146, 100, 20, 0.28);
+  color: #78350f;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.75) 0%, transparent 42%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 48%, #fcd34d 100%);
+}
+
+.game-numeric-keypad--sunset .game-numeric-keypad__key--backspace {
+  color: #991b1b;
+  border: 2px solid rgba(239, 68, 68, 0.78);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.62) 0%, transparent 38%),
+    linear-gradient(165deg, #fef2f2 0%, #fecaca 48%, #fca5a5 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 3px 0 0 #b91c1c;
+  --key-shadow: #b91c1c;
+}
+
+.game-numeric-keypad--sunset .game-numeric-keypad__key--backspace:active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 1px 0 0 #b91c1c;
+}
+
+.game-numeric-keypad--sunset .game-numeric-keypad__key.game-numeric-keypad__key--debug {
+  color: #78350f;
+  border-color: rgba(251, 191, 36, 0.82);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.68) 0%, transparent 38%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 36%, #fbbf24 68%, #f59e0b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 10px rgba(251, 191, 36, 0.35),
+    0 3px 0 0 #92400e;
+  --key-shadow: #92400e;
+}
+
+.game-numeric-keypad--sunset .game-numeric-keypad__key--disabled-slot {
+  color: rgba(154, 52, 18, 0.45);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.52) 0%, transparent 42%),
+    linear-gradient(165deg, #fff3e7 0%, #ffe9d6 100%);
+  box-shadow:
+    0 3px 0 0 rgba(154, 52, 18, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+/* Forest theme light controls */
+.game-answer-slot--forest {
+  caret-color: #92400e;
+}
+
+.game-answer-slot--forest::placeholder {
+  color: rgba(92, 64, 51, 0.28);
+}
+
+.game-menu-hud-btn--forest-light .game-menu-hud-btn__plate--inline {
+  --hud-shadow: rgba(22, 101, 52, 0.24);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.72) 0%, transparent 42%),
+    linear-gradient(165deg, #ecfdf5 0%, #d1fae5 45%, #bbf7d0 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    inset 0 -8px 16px rgba(52, 211, 153, 0.1);
+}
+
+.game-menu-hud-btn--forest-light .game-menu-hud-btn__plate--inline::before {
+  border-color: rgba(52, 211, 153, 0.24);
+}
+
+.game-menu-hud-btn--forest-light .game-menu-hud-btn__plate--inline::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.88), transparent);
+}
+
+.game-menu-hud-btn--forest-light .game-menu-hud-btn__inline-text {
+  color: #166534;
+}
+
+.game-menu-hud-btn--forest-light .game-menu-hud-btn__icon {
+  color: #166534;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7));
+}
+
+.game-menu-hud-btn--forest-light .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 2.4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    inset 0 -4.8px 9.6px rgba(52, 211, 153, 0.1);
+}
+
+.game-menu-hud-btn--forest-light .game-menu-hud-btn__plate--accent {
+  --hud-shadow: rgba(21, 128, 61, 0.28);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.68) 0%, transparent 42%),
+    linear-gradient(165deg, #ecfdf5 0%, #a7f3d0 48%, #6ee7b7 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -8px 16px rgba(22, 101, 52, 0.12);
+}
+
+.game-menu-hud-btn--forest-light .game-menu-hud-btn__plate--accent::before {
+  border-color: rgba(22, 101, 52, 0.28);
+}
+
+.game-menu-hud-btn--forest-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__inline-text,
+.game-menu-hud-btn--forest-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__icon {
+  color: #14532d;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.45));
+}
+
+.game-menu-hud-btn--forest-light:active .game-menu-hud-btn__plate--inline {
+  box-shadow:
+    0 1px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 -5px 12px rgba(52, 211, 153, 0.14);
+}
+
+.game-menu-hud-btn--forest-light:active .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 0.6px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 -3px 7px rgba(52, 211, 153, 0.14);
+}
+
+.game-numeric-keypad--forest .game-numeric-keypad__auto-icon--prohibited {
+  color: rgba(22, 101, 52, 0.52);
+}
+
+.game-numeric-keypad--forest .game-numeric-keypad__key {
+  --key-shadow: rgba(22, 101, 52, 0.22);
+  --key-ripple: rgba(52, 211, 153, 0.42);
+  --key-ripple-ghost: rgba(187, 247, 208, 0.62);
+  color: #166534;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.76) 0%, transparent 42%),
+    linear-gradient(165deg, #ecfdf5 0%, #d1fae5 45%, #bbf7d0 100%);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97);
+}
+
+.game-numeric-keypad--forest .game-numeric-keypad__key--placeholder {
+  color: rgba(22, 101, 52, 0.34);
+}
+
+.game-numeric-keypad--forest .game-numeric-keypad__key--enter {
+  --key-shadow: rgba(21, 128, 61, 0.28);
+  color: #14532d;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.72) 0%, transparent 42%),
+    linear-gradient(165deg, #ecfdf5 0%, #a7f3d0 48%, #6ee7b7 100%);
+}
+
+.game-numeric-keypad--forest .game-numeric-keypad__key--backspace {
+  color: #991b1b;
+  border: 2px solid rgba(239, 68, 68, 0.78);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.62) 0%, transparent 38%),
+    linear-gradient(165deg, #fef2f2 0%, #fecaca 48%, #fca5a5 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 3px 0 0 #b91c1c;
+  --key-shadow: #b91c1c;
+}
+
+.game-numeric-keypad--forest .game-numeric-keypad__key--backspace:active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 1px 0 0 #b91c1c;
+}
+
+.game-numeric-keypad--forest .game-numeric-keypad__key.game-numeric-keypad__key--debug {
+  color: #78350f;
+  border-color: rgba(251, 191, 36, 0.82);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.68) 0%, transparent 38%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 36%, #fbbf24 68%, #f59e0b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 10px rgba(251, 191, 36, 0.35),
+    0 3px 0 0 #92400e;
+  --key-shadow: #92400e;
+}
+
+.game-numeric-keypad--forest .game-numeric-keypad__key--disabled-slot {
+  color: rgba(22, 101, 52, 0.4);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.52) 0%, transparent 42%),
+    linear-gradient(165deg, #ecfdf5 0%, #d1fae5 100%);
+  box-shadow:
+    0 3px 0 0 rgba(22, 101, 52, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+/* Violet theme light controls */
+.game-answer-slot--violet {
+  caret-color: #6d28d9;
+}
+
+.game-answer-slot--violet::placeholder {
+  color: rgba(76, 29, 149, 0.28);
+}
+
+.game-menu-hud-btn--violet-light .game-menu-hud-btn__plate--inline {
+  --hud-shadow: rgba(76, 29, 149, 0.22);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.78) 0%, transparent 42%),
+    linear-gradient(165deg, #f5f3ff 0%, #ede9fe 45%, #e9e5ff 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97),
+    inset 0 -8px 16px rgba(167, 139, 250, 0.1);
+}
+
+.game-menu-hud-btn--violet-light .game-menu-hud-btn__plate--inline::before {
+  border-color: rgba(167, 139, 250, 0.24);
+}
+
+.game-menu-hud-btn--violet-light .game-menu-hud-btn__plate--inline::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+}
+
+.game-menu-hud-btn--violet-light .game-menu-hud-btn__inline-text {
+  color: #6d28d9;
+}
+
+.game-menu-hud-btn--violet-light .game-menu-hud-btn__icon {
+  color: #6d28d9;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72));
+}
+
+.game-menu-hud-btn--violet-light .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 2.4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97),
+    inset 0 -4.8px 9.6px rgba(167, 139, 250, 0.1);
+}
+
+.game-menu-hud-btn--violet-light .game-menu-hud-btn__plate--accent {
+  --hud-shadow: rgba(91, 33, 182, 0.26);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.72) 0%, transparent 42%),
+    linear-gradient(165deg, #f5f3ff 0%, #ddd6fe 48%, #c4b5fd 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -8px 16px rgba(109, 40, 217, 0.12);
+}
+
+.game-menu-hud-btn--violet-light .game-menu-hud-btn__plate--accent::before {
+  border-color: rgba(109, 40, 217, 0.26);
+}
+
+.game-menu-hud-btn--violet-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__inline-text,
+.game-menu-hud-btn--violet-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__icon {
+  color: #5b21b6;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.48));
+}
+
+.game-menu-hud-btn--violet-light:active .game-menu-hud-btn__plate--inline {
+  box-shadow:
+    0 1px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -5px 12px rgba(167, 139, 250, 0.14);
+}
+
+.game-menu-hud-btn--violet-light:active .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 0.6px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -3px 7px rgba(167, 139, 250, 0.14);
+}
+
+.game-numeric-keypad--violet .game-numeric-keypad__auto-icon--prohibited {
+  color: rgba(91, 33, 182, 0.52);
+}
+
+.game-numeric-keypad--violet .game-numeric-keypad__key {
+  --key-shadow: rgba(76, 29, 149, 0.22);
+  --key-ripple: rgba(167, 139, 250, 0.45);
+  --key-ripple-ghost: rgba(237, 233, 254, 0.65);
+  color: #6d28d9;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.78) 0%, transparent 42%),
+    linear-gradient(165deg, #f5f3ff 0%, #ede9fe 45%, #e9e5ff 100%);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97);
+}
+
+.game-numeric-keypad--violet .game-numeric-keypad__key--placeholder {
+  color: rgba(91, 33, 182, 0.34);
+}
+
+.game-numeric-keypad--violet .game-numeric-keypad__key--enter {
+  --key-shadow: rgba(91, 33, 182, 0.26);
+  color: #5b21b6;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.74) 0%, transparent 42%),
+    linear-gradient(165deg, #f5f3ff 0%, #ddd6fe 48%, #c4b5fd 100%);
+}
+
+.game-numeric-keypad--violet .game-numeric-keypad__key--backspace {
+  color: #991b1b;
+  border: 2px solid rgba(239, 68, 68, 0.78);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.62) 0%, transparent 38%),
+    linear-gradient(165deg, #fef2f2 0%, #fecaca 48%, #fca5a5 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 3px 0 0 #b91c1c;
+  --key-shadow: #b91c1c;
+}
+
+.game-numeric-keypad--violet .game-numeric-keypad__key--backspace:active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 1px 0 0 #b91c1c;
+}
+
+.game-numeric-keypad--violet .game-numeric-keypad__key.game-numeric-keypad__key--debug {
+  color: #78350f;
+  border-color: rgba(251, 191, 36, 0.82);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.68) 0%, transparent 38%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 36%, #fbbf24 68%, #f59e0b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 10px rgba(251, 191, 36, 0.35),
+    0 3px 0 0 #92400e;
+  --key-shadow: #92400e;
+}
+
+.game-numeric-keypad--violet .game-numeric-keypad__key--disabled-slot {
+  color: rgba(91, 33, 182, 0.4);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.52) 0%, transparent 42%),
+    linear-gradient(165deg, #f5f3ff 0%, #ede9fe 100%);
+  box-shadow:
+    0 3px 0 0 rgba(76, 29, 149, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+}
+
+/* Ember theme light controls */
+.game-answer-slot--ember {
+  caret-color: #c2410c;
+}
+
+.game-answer-slot--ember::placeholder {
+  color: rgba(124, 45, 18, 0.28);
+}
+
+.game-menu-hud-btn--ember-light .game-menu-hud-btn__plate--inline {
+  --hud-shadow: rgba(194, 65, 12, 0.22);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.78) 0%, transparent 42%),
+    linear-gradient(165deg, #fff8f4 0%, #ffe8d6 45%, #ffd4b8 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97),
+    inset 0 -8px 16px rgba(251, 146, 60, 0.1);
+}
+
+.game-menu-hud-btn--ember-light .game-menu-hud-btn__plate--inline::before {
+  border-color: rgba(251, 146, 60, 0.24);
+}
+
+.game-menu-hud-btn--ember-light .game-menu-hud-btn__plate--inline::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+}
+
+.game-menu-hud-btn--ember-light .game-menu-hud-btn__inline-text {
+  color: #c2410c;
+}
+
+.game-menu-hud-btn--ember-light .game-menu-hud-btn__icon {
+  color: #c2410c;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72));
+}
+
+.game-menu-hud-btn--ember-light .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 2.4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97),
+    inset 0 -4.8px 9.6px rgba(251, 146, 60, 0.1);
+}
+
+.game-menu-hud-btn--ember-light .game-menu-hud-btn__plate--accent {
+  --hud-shadow: rgba(194, 65, 12, 0.26);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.74) 0%, transparent 42%),
+    linear-gradient(165deg, #fff8f4 0%, #ffd4b8 48%, #fdba74 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -8px 16px rgba(234, 88, 12, 0.12);
+}
+
+.game-menu-hud-btn--ember-light .game-menu-hud-btn__plate--accent::before {
+  border-color: rgba(234, 88, 12, 0.26);
+}
+
+.game-menu-hud-btn--ember-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__inline-text,
+.game-menu-hud-btn--ember-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__icon {
+  color: #9a3412;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.48));
+}
+
+.game-menu-hud-btn--ember-light:active .game-menu-hud-btn__plate--inline {
+  box-shadow:
+    0 1px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -5px 12px rgba(251, 146, 60, 0.14);
+}
+
+.game-menu-hud-btn--ember-light:active .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 0.6px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -3px 7px rgba(251, 146, 60, 0.14);
+}
+
+.game-numeric-keypad--ember .game-numeric-keypad__auto-icon--prohibited {
+  color: rgba(194, 65, 12, 0.52);
+}
+
+.game-numeric-keypad--ember .game-numeric-keypad__key {
+  --key-shadow: rgba(194, 65, 12, 0.22);
+  --key-ripple: rgba(251, 146, 60, 0.45);
+  --key-ripple-ghost: rgba(255, 237, 213, 0.65);
+  color: #c2410c;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.78) 0%, transparent 42%),
+    linear-gradient(165deg, #fff8f4 0%, #ffe8d6 45%, #ffd4b8 100%);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97);
+}
+
+.game-numeric-keypad--ember .game-numeric-keypad__key--placeholder {
+  color: rgba(194, 65, 12, 0.34);
+}
+
+.game-numeric-keypad--ember .game-numeric-keypad__key--enter {
+  --key-shadow: rgba(194, 65, 12, 0.26);
+  color: #9a3412;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.74) 0%, transparent 42%),
+    linear-gradient(165deg, #fff8f4 0%, #ffd4b8 48%, #fdba74 100%);
+}
+
+.game-numeric-keypad--ember .game-numeric-keypad__key--backspace {
+  color: #991b1b;
+  border: 2px solid rgba(239, 68, 68, 0.78);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.62) 0%, transparent 38%),
+    linear-gradient(165deg, #fef2f2 0%, #fecaca 48%, #fca5a5 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 3px 0 0 #b91c1c;
+  --key-shadow: #b91c1c;
+}
+
+.game-numeric-keypad--ember .game-numeric-keypad__key--backspace:active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 1px 0 0 #b91c1c;
+}
+
+.game-numeric-keypad--ember .game-numeric-keypad__key.game-numeric-keypad__key--debug {
+  color: #78350f;
+  border-color: rgba(251, 191, 36, 0.82);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.68) 0%, transparent 38%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 36%, #fbbf24 68%, #f59e0b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 10px rgba(251, 191, 36, 0.35),
+    0 3px 0 0 #92400e;
+  --key-shadow: #92400e;
+}
+
+.game-numeric-keypad--ember .game-numeric-keypad__key--disabled-slot {
+  color: rgba(194, 65, 12, 0.4);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.52) 0%, transparent 42%),
+    linear-gradient(165deg, #fff8f4 0%, #ffe8d6 100%);
+  box-shadow:
+    0 3px 0 0 rgba(194, 65, 12, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+}
+
+/* Neon theme light controls */
+.game-answer-slot--neon {
+  caret-color: #38bdf8;
+}
+
+.game-answer-slot--neon::placeholder {
+  color: rgba(186, 230, 253, 0.28);
+}
+
+.game-menu-hud-btn--neon-light .game-menu-hud-btn__plate--inline {
+  --hud-shadow: rgba(3, 105, 161, 0.22);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.8) 0%, transparent 42%),
+    linear-gradient(165deg, #ecfeff 0%, #cffafe 45%, #b8ecff 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97),
+    inset 0 -8px 16px rgba(56, 189, 248, 0.1);
+}
+
+.game-menu-hud-btn--neon-light .game-menu-hud-btn__plate--inline::before {
+  border-color: rgba(56, 189, 248, 0.24);
+}
+
+.game-menu-hud-btn--neon-light .game-menu-hud-btn__plate--inline::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.92), transparent);
+}
+
+.game-menu-hud-btn--neon-light .game-menu-hud-btn__inline-text {
+  color: #0369a1;
+}
+
+.game-menu-hud-btn--neon-light .game-menu-hud-btn__icon {
+  color: #0369a1;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72));
+}
+
+.game-menu-hud-btn--neon-light .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 2.4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97),
+    inset 0 -4.8px 9.6px rgba(56, 189, 248, 0.1);
+}
+
+.game-menu-hud-btn--neon-light .game-menu-hud-btn__plate--accent {
+  --hud-shadow: rgba(2, 132, 199, 0.26);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.76) 0%, transparent 42%),
+    linear-gradient(165deg, #ecfeff 0%, #a5f3fc 48%, #7dd3fc 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -8px 16px rgba(14, 165, 233, 0.12);
+}
+
+.game-menu-hud-btn--neon-light .game-menu-hud-btn__plate--accent::before {
+  border-color: rgba(14, 165, 233, 0.26);
+}
+
+.game-menu-hud-btn--neon-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__inline-text,
+.game-menu-hud-btn--neon-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__icon {
+  color: #075985;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.48));
+}
+
+.game-menu-hud-btn--neon-light:active .game-menu-hud-btn__plate--inline {
+  box-shadow:
+    0 1px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -5px 12px rgba(56, 189, 248, 0.14);
+}
+
+.game-menu-hud-btn--neon-light:active .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 0.6px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -3px 7px rgba(56, 189, 248, 0.14);
+}
+
+.game-numeric-keypad--neon .game-numeric-keypad__auto-icon--prohibited {
+  color: rgba(3, 105, 161, 0.52);
+}
+
+.game-numeric-keypad--neon .game-numeric-keypad__key {
+  --key-shadow: rgba(3, 105, 161, 0.22);
+  --key-ripple: rgba(56, 189, 248, 0.45);
+  --key-ripple-ghost: rgba(207, 250, 254, 0.65);
+  color: #0369a1;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.8) 0%, transparent 42%),
+    linear-gradient(165deg, #ecfeff 0%, #cffafe 45%, #b8ecff 100%);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97);
+}
+
+.game-numeric-keypad--neon .game-numeric-keypad__key--placeholder {
+  color: rgba(3, 105, 161, 0.34);
+}
+
+.game-numeric-keypad--neon .game-numeric-keypad__key--enter {
+  --key-shadow: rgba(2, 132, 199, 0.26);
+  color: #075985;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.76) 0%, transparent 42%),
+    linear-gradient(165deg, #ecfeff 0%, #a5f3fc 48%, #7dd3fc 100%);
+}
+
+.game-numeric-keypad--neon .game-numeric-keypad__key--backspace {
+  color: #991b1b;
+  border: 2px solid rgba(239, 68, 68, 0.78);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.62) 0%, transparent 38%),
+    linear-gradient(165deg, #fef2f2 0%, #fecaca 48%, #fca5a5 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 3px 0 0 #b91c1c;
+  --key-shadow: #b91c1c;
+}
+
+.game-numeric-keypad--neon .game-numeric-keypad__key--backspace:active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 1px 0 0 #b91c1c;
+}
+
+.game-numeric-keypad--neon .game-numeric-keypad__key.game-numeric-keypad__key--debug {
+  color: #78350f;
+  border-color: rgba(251, 191, 36, 0.82);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.68) 0%, transparent 38%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 36%, #fbbf24 68%, #f59e0b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 10px rgba(251, 191, 36, 0.35),
+    0 3px 0 0 #92400e;
+  --key-shadow: #92400e;
+}
+
+.game-numeric-keypad--neon .game-numeric-keypad__key--disabled-slot {
+  color: rgba(3, 105, 161, 0.4);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.52) 0%, transparent 42%),
+    linear-gradient(165deg, #ecfeff 0%, #cffafe 100%);
+  box-shadow:
+    0 3px 0 0 rgba(3, 105, 161, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+}
+
+/* Midnight theme light controls */
+.game-answer-slot--midnight {
+  caret-color: #cbd5e1;
+}
+
+.game-answer-slot--midnight::placeholder {
+  color: rgba(203, 213, 225, 0.28);
+}
+
+.game-menu-hud-btn--midnight-light .game-menu-hud-btn__plate--inline {
+  --hud-shadow: rgba(15, 23, 42, 0.28);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.14) 0%, transparent 42%),
+    linear-gradient(165deg, #d8e4f0 0%, #c5d4e8 45%, #b8c9dc 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -8px 16px rgba(51, 65, 85, 0.12);
+}
+
+.game-menu-hud-btn--midnight-light .game-menu-hud-btn__plate--inline::before {
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.game-menu-hud-btn--midnight-light .game-menu-hud-btn__plate--inline::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
+
+.game-menu-hud-btn--midnight-light .game-menu-hud-btn__inline-text {
+  color: #334155;
+}
+
+.game-menu-hud-btn--midnight-light .game-menu-hud-btn__icon {
+  color: #334155;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35));
+}
+
+.game-menu-hud-btn--midnight-light .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 2.4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -4.8px 9.6px rgba(51, 65, 85, 0.12);
+}
+
+.game-menu-hud-btn--midnight-light .game-menu-hud-btn__plate--accent {
+  --hud-shadow: rgba(15, 23, 42, 0.32);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.16) 0%, transparent 42%),
+    linear-gradient(165deg, #d8e4f0 0%, #b8c9dc 48%, #a8bdd4 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -8px 16px rgba(51, 65, 85, 0.14);
+}
+
+.game-menu-hud-btn--midnight-light .game-menu-hud-btn__plate--accent::before {
+  border-color: rgba(100, 116, 139, 0.3);
+}
+
+.game-menu-hud-btn--midnight-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__inline-text,
+.game-menu-hud-btn--midnight-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__icon {
+  color: #1e293b;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.28));
+}
+
+.game-menu-hud-btn--midnight-light:active .game-menu-hud-btn__plate--inline {
+  box-shadow:
+    0 1px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -5px 12px rgba(51, 65, 85, 0.16);
+}
+
+.game-menu-hud-btn--midnight-light:active .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 0.6px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -3px 7px rgba(51, 65, 85, 0.16);
+}
+
+.game-numeric-keypad--midnight .game-numeric-keypad__auto-icon--prohibited {
+  color: rgba(51, 65, 85, 0.55);
+}
+
+.game-numeric-keypad--midnight .game-numeric-keypad__key {
+  --key-shadow: rgba(15, 23, 42, 0.28);
+  --key-ripple: rgba(148, 163, 184, 0.42);
+  --key-ripple-ghost: rgba(216, 228, 240, 0.55);
+  color: #334155;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.14) 0%, transparent 42%),
+    linear-gradient(165deg, #d8e4f0 0%, #c5d4e8 45%, #b8c9dc 100%);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.game-numeric-keypad--midnight .game-numeric-keypad__key--placeholder {
+  color: rgba(51, 65, 85, 0.38);
+}
+
+.game-numeric-keypad--midnight .game-numeric-keypad__key--enter {
+  --key-shadow: rgba(15, 23, 42, 0.32);
+  color: #1e293b;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.16) 0%, transparent 42%),
+    linear-gradient(165deg, #d8e4f0 0%, #b8c9dc 48%, #a8bdd4 100%);
+}
+
+.game-numeric-keypad--midnight .game-numeric-keypad__key--backspace {
+  color: #991b1b;
+  border: 2px solid rgba(239, 68, 68, 0.78);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.62) 0%, transparent 38%),
+    linear-gradient(165deg, #fef2f2 0%, #fecaca 48%, #fca5a5 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 3px 0 0 #b91c1c;
+  --key-shadow: #b91c1c;
+}
+
+.game-numeric-keypad--midnight .game-numeric-keypad__key--backspace:active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 1px 0 0 #b91c1c;
+}
+
+.game-numeric-keypad--midnight .game-numeric-keypad__key.game-numeric-keypad__key--debug {
+  color: #78350f;
+  border-color: rgba(251, 191, 36, 0.82);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.68) 0%, transparent 38%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 36%, #fbbf24 68%, #f59e0b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 10px rgba(251, 191, 36, 0.35),
+    0 3px 0 0 #92400e;
+  --key-shadow: #92400e;
+}
+
+.game-numeric-keypad--midnight .game-numeric-keypad__key--disabled-slot {
+  color: rgba(51, 65, 85, 0.42);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.1) 0%, transparent 42%),
+    linear-gradient(165deg, #d8e4f0 0%, #c5d4e8 100%);
+  box-shadow:
+    0 3px 0 0 rgba(15, 23, 42, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+/* Retro theme light controls */
+.game-answer-slot--retro {
+  caret-color: #451a03;
+}
+
+.game-answer-slot--retro::placeholder {
+  color: rgba(69, 26, 3, 0.28);
+}
+
+.game-menu-hud-btn--retro-light .game-menu-hud-btn__plate--inline {
+  --hud-shadow: rgba(146, 64, 14, 0.26);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.88) 0%, transparent 42%),
+    linear-gradient(165deg, #fffef5 0%, #fef9c3 45%, #fde68a 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97),
+    inset 0 -8px 16px rgba(251, 191, 36, 0.12),
+    0 0 12px rgba(254, 240, 138, 0.22);
+}
+
+.game-menu-hud-btn--retro-light .game-menu-hud-btn__plate--inline::before {
+  border-color: rgba(252, 211, 77, 0.32);
+}
+
+.game-menu-hud-btn--retro-light .game-menu-hud-btn__plate--inline::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.94), transparent);
+}
+
+.game-menu-hud-btn--retro-light .game-menu-hud-btn__inline-text {
+  color: #92400e;
+}
+
+.game-menu-hud-btn--retro-light .game-menu-hud-btn__icon {
+  color: #92400e;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72));
+}
+
+.game-menu-hud-btn--retro-light .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 2.4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97),
+    inset 0 -4.8px 9.6px rgba(251, 191, 36, 0.12),
+    0 0 10px rgba(254, 240, 138, 0.18);
+}
+
+.game-menu-hud-btn--retro-light .game-menu-hud-btn__plate--accent {
+  --hud-shadow: rgba(161, 98, 7, 0.3);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.82) 0%, transparent 42%),
+    linear-gradient(165deg, #fef9c3 0%, #fde68a 48%, #f59e0b 100%);
+  box-shadow:
+    0 4px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -8px 16px rgba(251, 191, 36, 0.16),
+    0 0 14px rgba(254, 240, 138, 0.28);
+}
+
+.game-menu-hud-btn--retro-light .game-menu-hud-btn__plate--accent::before {
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.game-menu-hud-btn--retro-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__inline-text,
+.game-menu-hud-btn--retro-light .game-menu-hud-btn__plate--accent .game-menu-hud-btn__icon {
+  color: #78350f;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.48));
+}
+
+.game-menu-hud-btn--retro-light:active .game-menu-hud-btn__plate--inline {
+  box-shadow:
+    0 1px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -5px 12px rgba(251, 191, 36, 0.16);
+}
+
+.game-menu-hud-btn--retro-light:active .game-menu-hud-btn__plate--back-menu {
+  box-shadow:
+    0 0.6px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -3px 7px rgba(251, 191, 36, 0.16);
+}
+
+.game-numeric-keypad--retro .game-numeric-keypad__auto-icon--prohibited {
+  color: rgba(146, 64, 14, 0.52);
+}
+
+.game-numeric-keypad--retro .game-numeric-keypad__key {
+  --key-shadow: rgba(146, 64, 14, 0.26);
+  --key-ripple: rgba(251, 191, 36, 0.48);
+  --key-ripple-ghost: rgba(254, 243, 199, 0.68);
+  color: #92400e;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.88) 0%, transparent 42%),
+    linear-gradient(165deg, #fffef5 0%, #fef9c3 45%, #fde68a 100%);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.97),
+    0 0 10px rgba(254, 240, 138, 0.2);
+}
+
+.game-numeric-keypad--retro .game-numeric-keypad__key--placeholder {
+  color: rgba(146, 64, 14, 0.34);
+}
+
+.game-numeric-keypad--retro .game-numeric-keypad__key--enter {
+  --key-shadow: rgba(161, 98, 7, 0.3);
+  color: #78350f;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.82) 0%, transparent 42%),
+    linear-gradient(165deg, #fef9c3 0%, #fde68a 48%, #f59e0b 100%);
+  box-shadow:
+    0 3px 0 0 var(--key-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 0 12px rgba(254, 240, 138, 0.28);
+}
+
+.game-numeric-keypad--retro .game-numeric-keypad__key--backspace {
+  color: #991b1b;
+  border: 2px solid rgba(239, 68, 68, 0.78);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.62) 0%, transparent 38%),
+    linear-gradient(165deg, #fef2f2 0%, #fecaca 48%, #fca5a5 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 3px 0 0 #b91c1c;
+  --key-shadow: #b91c1c;
+}
+
+.game-numeric-keypad--retro .game-numeric-keypad__key--backspace:active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 1px 0 0 #b91c1c;
+}
+
+.game-numeric-keypad--retro .game-numeric-keypad__key.game-numeric-keypad__key--debug {
+  color: #78350f;
+  border-color: rgba(245, 158, 11, 0.82);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.68) 0%, transparent 38%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 36%, #fbbf24 68%, #f59e0b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 12px rgba(251, 191, 36, 0.35),
+    0 3px 0 0 #b45309;
+  --key-shadow: #b45309;
+}
+
+.game-numeric-keypad--retro .game-numeric-keypad__key--disabled-slot {
+  color: rgba(146, 64, 14, 0.4);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.58) 0%, transparent 42%),
+    linear-gradient(165deg, #fffef5 0%, #fef9c3 100%);
+  box-shadow:
+    0 3px 0 0 rgba(146, 64, 14, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
 }

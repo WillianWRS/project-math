@@ -8,6 +8,7 @@ export type SfxId =
   | 'gameChanger'
   | 'error'
   | 'click'
+  | 'clickClose'
   | 'gameOver'
   | 'gameStart'
   | 'record'
