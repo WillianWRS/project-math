@@ -1,0 +1,49 @@
+.game-scene-root {
+  --theme-answer-caret: #fbbf24;
+  --theme-answer-placeholder: transparent;
+  --theme-hud-inline-shadow: #080706;
+  --theme-hud-inline-bg:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.07) 0%, transparent 38%),
+    linear-gradient(165deg, #35302b 0%, #221e1a 42%, #12100e 100%);
+  --theme-hud-inline-inset-top: rgba(255, 240, 215, 0.1);
+  --theme-hud-inline-inset-bottom: rgba(0, 0, 0, 0.35);
+  --theme-hud-inline-border: rgba(251, 191, 36, 0.14);
+  --theme-hud-inline-gloss: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.45), transparent);
+  --theme-hud-inline-text: #a8a095;
+  --theme-hud-inline-icon: #d6d0c6;
+  --theme-hud-inline-icon-filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  --theme-hud-inline-active-inset-top: rgba(255, 240, 215, 0.08);
+  --theme-hud-inline-active-inset-bottom: rgba(0, 0, 0, 0.4);
+  --theme-hud-back-inset-top: rgba(255, 240, 215, 0.1);
+  --theme-hud-back-inset-bottom: rgba(0, 0, 0, 0.35);
+  --theme-hud-back-active-inset-top: rgba(255, 240, 215, 0.08);
+  --theme-hud-back-active-inset-bottom: rgba(0, 0, 0, 0.4);
+  --theme-hud-accent-shadow: #080706;
+  --theme-hud-accent-bg:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.09) 0%, transparent 38%),
+    linear-gradient(165deg, #453a28 0%, #2a2318 42%, #16120c 100%);
+  --theme-hud-accent-inset-top: rgba(255, 240, 215, 0.1);
+  --theme-hud-accent-inset-bottom: rgba(0, 0, 0, 0.35);
+  --theme-hud-accent-border: rgba(251, 191, 36, 0.24);
+  --theme-hud-accent-text: #fcd34d;
+  --theme-hud-accent-icon-filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  --theme-key-shadow: #080706;
+  --theme-key-text: #e7e0d4;
+  --theme-key-bg:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.07) 0%, transparent 38%),
+    linear-gradient(165deg, #35302b 0%, #221e1a 42%, #12100e 100%);
+  --theme-key-inset-top: rgba(255, 240, 215, 0.1);
+  --theme-key-placeholder: #6b6358;
+  --theme-key-enter-shadow: #080706;
+  --theme-key-enter-text: #fcd34d;
+  --theme-key-enter-bg:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.09) 0%, transparent 38%),
+    linear-gradient(165deg, #453a28 0%, #2a2318 42%, #16120c 100%);
+  --theme-key-disabled-text: #6b6358;
+  --theme-key-disabled-bg:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.04) 0%, transparent 38%),
+    linear-gradient(165deg, #2a2522 0%, #1a1714 100%);
+  --theme-key-disabled-shadow: #080706;
+  --theme-key-disabled-inset-top: rgba(255, 255, 255, 0.04);
+  --theme-key-auto-prohibited: #6b6358;
+}

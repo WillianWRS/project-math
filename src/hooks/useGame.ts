@@ -127,6 +127,7 @@ export function useGame() {
     resetBenchmark,
   } = useBenchmark({
     session,
+    equippedTheme: player.equippedThemeId,
     setSession: setSessionWithInputSync,
     grantAutoCheck,
     spendAutoCheck,

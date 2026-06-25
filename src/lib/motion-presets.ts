@@ -1,6 +1,6 @@
 import { APP_EASE } from './motion-transitions'
 
-export const CURTAIN_TRANSITION = { duration: 0.42, ease: APP_EASE } as const
+export const CURTAIN_TRANSITION = { duration: 0.32, ease: APP_EASE } as const
 
 export const SLIDE_TRANSITION = { duration: 0.28, ease: APP_EASE } as const
 

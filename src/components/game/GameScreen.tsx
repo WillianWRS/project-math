@@ -92,14 +92,15 @@ type PresentationPhase = 'menu' | 'opening' | 'in-game' | 'theme-test' | 'closin
 
 const slideTransition = SLIDE_TRANSITION
 const sceneEnterTransition = { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const }
-const ENTER_DURATION_MS = 340
-const THEME_TEST_ENTER_DURATION_MS = 120
-const CLOSE_DURATION_MS = 420
-const menuStageTransition = { duration: 0.44, ease: [0.22, 1, 0.36, 1] as const }
+const ENTER_DURATION_MS = 280
+const THEME_TEST_ENTER_DURATION_MS = 100
+const CLOSE_DURATION_MS = 320
+const menuStageTransition = { duration: 0.26, ease: [0.22, 1, 0.36, 1] as const }
 const layerParallaxTransition = { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
 const LIGHT_THEMES: BackgroundTheme[] = ['water', 'sunset', 'ice', 'aurora']
 
 const SCENE_THEME_CLASS: Partial<Record<BackgroundTheme, string>> = {
+  default: 'game-scene--default',
   water: 'game-scene--water',
   sunset: 'game-scene--sunset',
   forest: 'game-scene--forest',
@@ -638,28 +639,12 @@ function MenuHudInlineButton({
   label,
   onClick,
   variant = 'default',
-  waterLight = false,
-  sunsetLight = false,
-  forestLight = false,
-  violetLight = false,
-  emberLight = false,
-  neonLight = false,
-  midnightLight = false,
-  retroLight = false,
   fill = false,
   children,
 }: {
   label: string
   onClick: () => void
   variant?: 'default' | 'accent'
-  waterLight?: boolean
-  sunsetLight?: boolean
-  forestLight?: boolean
-  violetLight?: boolean
-  emberLight?: boolean
-  neonLight?: boolean
-  midnightLight?: boolean
-  retroLight?: boolean
   fill?: boolean
   children: ReactNode
 }) {
@@ -672,7 +657,7 @@ function MenuHudInlineButton({
     <button
       type="button"
       onClick={onClick}
-      className={`game-menu-hud-btn game-menu-hud-btn--inline${fill ? ' game-menu-hud-btn--fill' : ''}${waterLight ? ' game-menu-hud-btn--water-light' : ''}${sunsetLight ? ' game-menu-hud-btn--sunset-light' : ''}${forestLight ? ' game-menu-hud-btn--forest-light' : ''}${violetLight ? ' game-menu-hud-btn--violet-light' : ''}${emberLight ? ' game-menu-hud-btn--ember-light' : ''}${neonLight ? ' game-menu-hud-btn--neon-light' : ''}${midnightLight ? ' game-menu-hud-btn--midnight-light' : ''}${retroLight ? ' game-menu-hud-btn--retro-light' : ''}`}
+      className={`game-menu-hud-btn game-menu-hud-btn--inline${fill ? ' game-menu-hud-btn--fill' : ''}`}
       aria-label={label}
     >
       <span className={plateClass}>
@@ -684,24 +669,8 @@ function MenuHudInlineButton({
 }
 
 function AnimatedGameMenuButton({
-  waterLight,
-  sunsetLight,
-  forestLight,
-  violetLight,
-  emberLight,
-  neonLight,
-  midnightLight,
-  retroLight,
   onClick,
 }: {
-  waterLight: boolean
-  sunsetLight: boolean
-  forestLight: boolean
-  violetLight: boolean
-  emberLight: boolean
-  neonLight: boolean
-  midnightLight: boolean
-  retroLight: boolean
   onClick: () => void
 }) {
   return (
@@ -709,15 +678,7 @@ function AnimatedGameMenuButton({
       <button
         type="button"
         onClick={onClick}
-        className={`game-menu-hud-btn game-menu-hud-btn--inline${
-          waterLight ? ' game-menu-hud-btn--water-light' : ''
-        }${sunsetLight ? ' game-menu-hud-btn--sunset-light' : ''}${
-          forestLight ? ' game-menu-hud-btn--forest-light' : ''
-        }${violetLight ? ' game-menu-hud-btn--violet-light' : ''}${
-          emberLight ? ' game-menu-hud-btn--ember-light' : ''
-        }${neonLight ? ' game-menu-hud-btn--neon-light' : ''}${
-          midnightLight ? ' game-menu-hud-btn--midnight-light' : ''
-        }${retroLight ? ' game-menu-hud-btn--retro-light' : ''}`}
+        className="game-menu-hud-btn game-menu-hud-btn--inline"
         aria-label="Voltar ao menu"
       >
         <span className="game-menu-hud-btn__plate game-menu-hud-btn__plate--inline game-menu-hud-btn__plate--icon-only game-menu-hud-btn__plate--back-menu">
@@ -880,6 +841,17 @@ const BENCHMARK_METRIC_ORDER = [
 
 function gradeForMetric(metrics: BenchmarkMetrics, id: BenchmarkMetricGradeId) {
   return metrics.grades.find((grade) => grade.id === id)
+}
+
+function benchmarkPhaseSeverityTone(severity: 'ok' | 'warn' | 'critical'): string {
+  switch (severity) {
+    case 'critical':
+      return 'text-rose-300'
+    case 'warn':
+      return 'text-amber-300'
+    default:
+      return 'text-stone-300'
+  }
 }
 
 const answerFlashTransition = { duration: 0.52, ease: [0.22, 1, 0.36, 1] as const }
@@ -1065,24 +1037,6 @@ function AnswerDisplay({
           aria-live="polite"
           aria-label={`Resposta: ${value || 'vazio'}`}
           className={`game-answer-slot flex h-16 w-full items-center justify-center bg-transparent text-center font-mono text-4xl font-bold tabular-nums ${
-            waterLight
-              ? 'game-answer-slot--water'
-              : sunsetLight
-                ? 'game-answer-slot--sunset'
-                : forestLight
-                  ? 'game-answer-slot--forest'
-                  : violetLight
-                    ? 'game-answer-slot--violet'
-                    : emberLight
-                      ? 'game-answer-slot--ember'
-                      : neonLight
-                        ? 'game-answer-slot--neon'
-                        : midnightLight
-                          ? 'game-answer-slot--midnight'
-                          : retroLight
-                            ? 'game-answer-slot--retro'
-                            : ''
-          } ${
             answerFlash
               ? 'text-transparent'
               : shake
@@ -1589,25 +1543,7 @@ export function GameScreen({
 
   useEffect(() => {
     if (!showMenuChrome) return
-
-    let cancelled = false
-    const preload = () => {
-      if (!cancelled) preloadGameplayModals()
-    }
-
-    if (window.requestIdleCallback) {
-      const id = window.requestIdleCallback(preload)
-      return () => {
-        cancelled = true
-        window.cancelIdleCallback(id)
-      }
-    }
-
-    const timeoutId = window.setTimeout(preload, 400)
-    return () => {
-      cancelled = true
-      window.clearTimeout(timeoutId)
-    }
+    preloadGameplayModals()
   }, [showMenuChrome])
 
   useEffect(() => {
@@ -1813,14 +1749,6 @@ export function GameScreen({
                       Nível {playerLevel}
                     </span>
                     <AnimatedGameMenuButton
-                      waterLight={useWaterLikeBackground}
-                      sunsetLight={useSunsetUiLight}
-                      forestLight={useForestUiLight}
-                      violetLight={useVioletUiLight}
-                      emberLight={useEmberUiLight}
-                      neonLight={useNeonUiLight}
-                      midnightLight={useMidnightUiLight}
-                      retroLight={useRetroUiLight}
                       onClick={handleReturnToMenu}
                     />
                   </div>
@@ -1855,14 +1783,6 @@ export function GameScreen({
                           label="Jogar novamente"
                           variant="accent"
                           onClick={handlePlayAgain}
-                          waterLight={useWaterLikeBackground}
-                          sunsetLight={useSunsetUiLight}
-                          forestLight={useForestUiLight}
-                          violetLight={useVioletUiLight}
-                          emberLight={useEmberUiLight}
-                          neonLight={useNeonUiLight}
-                          midnightLight={useMidnightUiLight}
-                          retroLight={useRetroUiLight}
                           fill
                         >
                           <span className="scale-75">
@@ -2100,14 +2020,6 @@ export function GameScreen({
                   disabled={false}
                   interactionLocked={false}
                   backspaceDisabled={false}
-                  waterLight={useWaterLikeBackground}
-                  sunsetLight={useSunsetUiLight}
-                  forestLight={useForestUiLight}
-                  violetLight={useVioletUiLight}
-                  emberLight={useEmberUiLight}
-                  neonLight={useNeonUiLight}
-                  midnightLight={useMidnightUiLight}
-                  retroLight={useRetroUiLight}
                   autoCheckCharges={themeTestAutoCheckEnabled ? 1 : 0}
                   virtualPress={null}
                   onDigit={() => handleThemeTestKeypadDigit()}
@@ -2128,14 +2040,6 @@ export function GameScreen({
                   disabled={inputDisabled}
                   interactionLocked={benchmarkMode}
                   backspaceDisabled={inputValue.length === 0}
-                  waterLight={useWaterLikeBackground}
-                  sunsetLight={useSunsetUiLight}
-                  forestLight={useForestUiLight}
-                  violetLight={useVioletUiLight}
-                  emberLight={useEmberUiLight}
-                  neonLight={useNeonUiLight}
-                  midnightLight={useMidnightUiLight}
-                  retroLight={useRetroUiLight}
                   autoCheckCharges={player.walletAutoChecks}
                   virtualPress={benchmarkMode ? benchmarkVirtualKeypadPress : null}
                   onDigit={appendDigit}
@@ -2212,6 +2116,36 @@ export function GameScreen({
                         </ul>
                       </div>
 
+                      <div className="game-modal-card px-3 py-2">
+                        <p className="font-semibold text-stone-200">Diagnóstico</p>
+                        <p className="mt-1 text-charcoal-muted">
+                          Tema:{' '}
+                          <span className="text-stone-300">
+                            {benchmarkMetrics.equippedTheme}
+                            {benchmarkMetrics.themeGpuTier === 'heavy' ? ' (GPU pesado)' : ' (GPU leve)'}
+                          </span>
+                        </p>
+                        {benchmarkMetrics.phaseDiagnosis.length > 0 && (
+                          <ul className="mt-2 space-y-1 text-charcoal-muted">
+                            {benchmarkMetrics.phaseDiagnosis.slice(0, 4).map((phase) => (
+                              <li key={phase.phaseId} className="flex items-center justify-between gap-3">
+                                <span>{phase.label}</span>
+                                <span
+                                  className={`font-mono tabular-nums ${benchmarkPhaseSeverityTone(phase.severity)}`}
+                                >
+                                  p95 {phase.p95FrameMs} ms
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <ul className="mt-2 space-y-1 text-[0.68rem] leading-relaxed text-charcoal-muted">
+                          {benchmarkMetrics.performanceHints.map((hint) => (
+                            <li key={hint}>• {hint}</li>
+                          ))}
+                        </ul>
+                      </div>
+
                       <p className="text-center text-[0.68rem] uppercase tracking-[0.16em] text-emerald-400">
                         {benchmarkMetrics.completed ? 'Benchmark concluído' : 'Benchmark interrompido'}
                       </p>
@@ -2280,13 +2214,13 @@ export function GameScreen({
       {showMenuChrome && (
         <>
           <div className="game-menu-top fixed inset-x-0 top-0 z-[60] flex items-start justify-between gap-3 px-4 pt-[max(0.3rem,env(safe-area-inset-top))] sm:px-6">
-            <motion.div {...menuStageItem(0.06, -12, -10)} className="game-menu-player-header">
+            <motion.div {...menuStageItem(0.03, -12, -10)} className="game-menu-player-header">
               <MenuLevelBadge xp={player.xp} />
               <span className="game-menu-player-header__name">{player.displayName}</span>
             </motion.div>
             <div className="game-menu-top-stats">
               <motion.div
-                {...menuStageItem(0.07, 0, -10)}
+                {...menuStageItem(0.04, 0, -10)}
                 className="game-menu-autocheck"
                 aria-label={`${player.walletAutoChecks} auto-check${player.walletAutoChecks === 1 ? '' : 's'}`}
               >
@@ -2295,7 +2229,7 @@ export function GameScreen({
                 </span>
                 <span className="game-menu-autocheck__value">{player.walletAutoChecks}</span>
               </motion.div>
-              <motion.div {...menuStageItem(0.08, 12, -10)} className="game-menu-coins" aria-label={`${player.coins} moedas`}>
+              <motion.div {...menuStageItem(0.05, 12, -10)} className="game-menu-coins" aria-label={`${player.coins} moedas`}>
                 <span className="game-menu-coins__icon">
                   <IconCoin />
                 </span>
@@ -2307,15 +2241,15 @@ export function GameScreen({
           <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
             {menuAudioReady ? (
               <div className="pointer-events-auto flex flex-col items-center gap-3">
-                <motion.div {...menuStageItem(0.18, 0, 20)}>
+                <motion.div {...menuStageItem(0.06, 0, 20)}>
                   <MenuPlayButton onClick={handlePlay} />
                 </motion.div>
                 {devModeEnabled && (
                   <>
-                    <motion.div {...menuStageItem(0.26, -8, 16)}>
+                    <motion.div {...menuStageItem(0.08, -8, 16)}>
                       <MenuBenchmarkButton onClick={handleBenchmark} />
                     </motion.div>
-                    <motion.div {...menuStageItem(0.32, 9, 18)}>
+                    <motion.div {...menuStageItem(0.1, 9, 18)}>
                       <MenuThemeTestButton onClick={handleThemeTest} />
                     </motion.div>
                   </>
@@ -2338,7 +2272,7 @@ export function GameScreen({
           <div className="game-menu-dock fixed inset-x-0 bottom-0 z-[60]">
             {menuAudioReady ? (
               <footer className="game-menu-footer flex items-end justify-between gap-1 px-3 pb-2 pt-1 sm:gap-2 sm:px-6">
-                <motion.div {...menuStageItem(0.18, -16, 12)}>
+                <motion.div {...menuStageItem(0.06, -16, 12)}>
                   <MenuHudButton
                     label="Jogador"
                     onClick={() => {
@@ -2351,7 +2285,7 @@ export function GameScreen({
                   </MenuHudButton>
                 </motion.div>
 
-                <motion.div {...menuStageItem(0.22, -8, 12)}>
+                <motion.div {...menuStageItem(0.08, -8, 12)}>
                   <MenuHudButton
                     label="Loja"
                     onClick={() => {
@@ -2364,13 +2298,13 @@ export function GameScreen({
                   </MenuHudButton>
                 </motion.div>
 
-                <motion.div {...menuStageItem(0.26, 8, 12)}>
+                <motion.div {...menuStageItem(0.1, 8, 12)}>
                   <MenuHudButton label="Tutorial" disabled>
                     <IconHelp />
                   </MenuHudButton>
                 </motion.div>
 
-                <motion.div {...menuStageItem(0.3, 16, 12)}>
+                <motion.div {...menuStageItem(0.12, 16, 12)}>
                   <MenuHudButton
                     label="Config"
                     onClick={() => {
@@ -2386,7 +2320,7 @@ export function GameScreen({
             ) : null}
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.16</span>
+              <span>v0.0.17</span>
             </div>
           </div>
         </>

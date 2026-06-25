@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   benchmarkCycleForPhase,
+  buildBenchmarkPerformanceHints,
   clearAllSideCycles,
   computeBenchmarkGrades,
   computeFrameStats,
   computeOverallBenchmarkGrade,
+  diagnoseBenchmarkPhases,
   isBenchmarkPhaseComplete,
   nextBenchmarkPhase,
   shouldInjectBenchmarkCycle,
@@ -25,6 +27,8 @@ import {
 } from '../engine/game-state-machine'
 import { isAnyGameChangerActive } from '../engine/game-changer-cycles'
 import type { GameSession } from '../engine/types'
+import type { BackgroundTheme } from '../platform/storage'
+import { getThemeDisplayName, getThemeGpuTier } from '../cosmetics/theme-catalog'
 
 const BENCHMARK_STEP_DELAY_MS = 500
 const BENCHMARK_KEYPRESS_BUDGET_MS = 200
@@ -104,17 +108,27 @@ function markGameChangerStarted(runtime: BenchmarkRuntime, session: GameSession)
   if (session.timesDivGameChangerRemaining > 0) runtime.timesDivGcStarted = true
 }
 
-function finishPhase(runtime: BenchmarkRuntime, now: number) {
+function finishPhase(
+  runtime: BenchmarkRuntime,
+  now: number,
+  phaseFrameSamples: number[],
+) {
   runtime.phaseTimings.push({
     id: runtime.phase,
     label: BENCHMARK_PHASE_LABELS[runtime.phase],
     durationMs: now - runtime.phaseStartedAt,
     answers: runtime.phaseAnswers,
+    frames: phaseFrameSamples.length > 0 ? computeFrameStats(phaseFrameSamples) : undefined,
   })
 }
 
-function advanceBenchmarkPhase(runtime: BenchmarkRuntime, now: number): BenchmarkPhaseId | null {
-  finishPhase(runtime, now)
+function advanceBenchmarkPhase(
+  runtime: BenchmarkRuntime,
+  now: number,
+  phaseFrameSamplesRef: { current: number[] },
+): BenchmarkPhaseId | null {
+  finishPhase(runtime, now, phaseFrameSamplesRef.current)
+  phaseFrameSamplesRef.current = []
   const next = nextBenchmarkPhase(runtime.phase)
   if (!next) return null
 
@@ -127,6 +141,7 @@ function advanceBenchmarkPhase(runtime: BenchmarkRuntime, now: number): Benchmar
 
 interface UseBenchmarkOptions {
   session: GameSession
+  equippedTheme: BackgroundTheme
   setSession: React.Dispatch<React.SetStateAction<GameSession>>
   grantAutoCheck: (amount: number) => void
   spendAutoCheck: () => boolean
@@ -137,6 +152,7 @@ interface UseBenchmarkOptions {
 
 export function useBenchmark({
   session,
+  equippedTheme,
   setSession,
   grantAutoCheck,
   spendAutoCheck,
@@ -154,9 +170,15 @@ export function useBenchmark({
   const benchmarkActiveRef = useRef(false)
   const runtimeRef = useRef<BenchmarkRuntime | null>(null)
   const frameSamplesRef = useRef<number[]>([])
+  const phaseFrameSamplesRef = useRef<number[]>([])
+  const equippedThemeRef = useRef(equippedTheme)
   const stepTimeoutRef = useRef<number | null>(null)
   const keyPressTokenRef = useRef(0)
   const stepRunningRef = useRef(false)
+
+  useEffect(() => {
+    equippedThemeRef.current = equippedTheme
+  }, [equippedTheme])
 
   const pushVirtualKeyPress = useCallback(
     (key: BenchmarkVirtualKey) => {
@@ -173,8 +195,16 @@ export function useBenchmark({
 
     const now = performance.now()
     if (runtime.phaseTimings.every((phase) => phase.id !== runtime.phase)) {
-      finishPhase(runtime, now)
+      finishPhase(runtime, now, phaseFrameSamplesRef.current)
+      phaseFrameSamplesRef.current = []
     }
+
+    const theme = equippedThemeRef.current
+    const themeName = getThemeDisplayName(theme)
+    const themeGpuTier = getThemeGpuTier(theme)
+    const phases = runtime.phaseTimings
+    const phaseDiagnosis = diagnoseBenchmarkPhases(phases)
+    const performanceHints = buildBenchmarkPerformanceHints(phases, themeGpuTier, themeName)
 
     const totalDurationMs = Math.round(now - runtime.startedAt)
     const totalAnswers = runtime.totalAnswers
@@ -191,7 +221,11 @@ export function useBenchmark({
       totalAnswers,
       avgAnswerIntervalMs,
       rhythmLevelReached: session.rhythmLevel,
-      phases: runtime.phaseTimings,
+      equippedTheme: themeName,
+      themeGpuTier,
+      phases,
+      phaseDiagnosis,
+      performanceHints,
       frames,
       grades,
       overallGrade: computeOverallBenchmarkGrade(grades),
@@ -203,6 +237,7 @@ export function useBenchmark({
     setBenchmarkActive(false)
     runtimeRef.current = null
     frameSamplesRef.current = []
+    phaseFrameSamplesRef.current = []
     setBenchmarkVirtualKeypadPress(null)
   }, [session.rhythmLevel])
 
@@ -214,6 +249,7 @@ export function useBenchmark({
     setBenchmarkMetrics(null)
     runtimeRef.current = createBenchmarkRuntime(performance.now())
     frameSamplesRef.current = []
+    phaseFrameSamplesRef.current = []
     keyPressTokenRef.current = 0
     setSession(startGame())
   }, [session.phase, setSession])
@@ -286,7 +322,7 @@ export function useBenchmark({
         registerCorrectAnswer(runtime, next)
 
         if (isBenchmarkPhaseComplete(runtime.phase, next, snapshotFlags(runtime))) {
-          advanceBenchmarkPhase(runtime, performance.now())
+          advanceBenchmarkPhase(runtime, performance.now(), phaseFrameSamplesRef)
         }
       }
     } finally {
@@ -368,7 +404,7 @@ export function useBenchmark({
       registerCorrectAnswer(runtime, next)
 
       if (isBenchmarkPhaseComplete(runtime.phase, next, snapshotFlags(runtime))) {
-        const nextPhase = advanceBenchmarkPhase(runtime, performance.now())
+        const nextPhase = advanceBenchmarkPhase(runtime, performance.now(), phaseFrameSamplesRef)
         if (!nextPhase) {
           setSession((currentSession) =>
             currentSession.phase === 'playing'
@@ -404,7 +440,9 @@ export function useBenchmark({
     let frameId = 0
 
     const loop = (now: number) => {
-      frameSamplesRef.current.push(now - lastFrame)
+      const delta = now - lastFrame
+      frameSamplesRef.current.push(delta)
+      phaseFrameSamplesRef.current.push(delta)
       lastFrame = now
       frameId = requestAnimationFrame(loop)
     }
@@ -474,6 +512,7 @@ export function useBenchmark({
     benchmarkActiveRef.current = false
     runtimeRef.current = null
     frameSamplesRef.current = []
+    phaseFrameSamplesRef.current = []
     keyPressTokenRef.current = 0
     setBenchmarkActive(false)
     setBenchmarkMetrics(null)

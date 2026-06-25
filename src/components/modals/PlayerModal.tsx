@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { xpProgressInLevel } from '../../engine/player-level'
 import { formatDuration } from '../../engine/rewards'
 import { motion } from '../../lib/motion'
+import { modalStageItem } from '../../lib/modal-stage'
 import type { PlayerData, ScoreRecord } from '../../platform/storage'
 import { sanitizeDisplayName, DISPLAY_NAME_MAX_LENGTH } from '../../hooks/usePlayer'
 import { Modal } from '../ui/Modal'
@@ -13,21 +14,6 @@ interface PlayerModalProps {
   onClose: () => void
   onSaveName: (name: string) => void
   onOpenRewardedModal: () => void
-}
-
-const stageTransition = { duration: 0.42, ease: [0.22, 1, 0.36, 1] as const }
-
-function stageItem(delay: number, x: number, y: number) {
-  return {
-    initial: { opacity: 0, x, y, scale: 0.985 },
-    animate: {
-      opacity: 1,
-      x: 0,
-      y: 0,
-      scale: 1,
-      transition: { ...stageTransition, delay },
-    },
-  } as const
 }
 
 function formatDate(iso: string): string {
@@ -111,7 +97,7 @@ export function PlayerModal({
   return (
     <Modal open={open} title="Jogador" titleIcon={<IconPerson />} onClose={onClose}>
       <div className="space-y-4">
-        <motion.section className="game-modal-card p-3" {...stageItem(0.04, -10, 12)}>
+        <motion.section className="game-modal-card p-3" {...modalStageItem(0, -8, 10)}>
           <p className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-charcoal-muted">
             <span className="text-stone-300">
               <IconPerson />
@@ -127,7 +113,7 @@ export function PlayerModal({
           />
         </motion.section>
 
-        <motion.section className="game-modal-card p-3" {...stageItem(0.11, 10, 10)}>
+        <motion.section className="game-modal-card p-3" {...modalStageItem(1, 8, 8)}>
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-stone-100">Nível {progress.level}</p>
             <p className="text-xs text-charcoal-muted">
@@ -142,8 +128,8 @@ export function PlayerModal({
           </div>
         </motion.section>
 
-        <motion.section className="grid grid-cols-2 gap-3" {...stageItem(0.17, 0, 12)}>
-          <motion.div className="game-modal-card p-3" {...stageItem(0.2, -8, 8)}>
+        <motion.section className="grid grid-cols-2 gap-3" {...modalStageItem(2)}>
+          <motion.div className="game-modal-card p-3" {...modalStageItem(3, -6, 6)}>
             <p className="text-xs uppercase tracking-widest text-charcoal-muted">Moedas</p>
             <div className="mt-1 flex items-center gap-2">
               <StatBadge>
@@ -152,7 +138,7 @@ export function PlayerModal({
               <p className="font-mono text-xl font-bold text-amber-100">{player.coins}</p>
             </div>
           </motion.div>
-          <motion.div className="game-modal-card p-3" {...stageItem(0.24, 8, 10)}>
+          <motion.div className="game-modal-card p-3" {...modalStageItem(4, 6, 6)}>
             <p className="text-xs uppercase tracking-widest text-charcoal-muted">Auto-check</p>
             <div className="mt-1 flex items-center gap-2">
               <StatBadge>
@@ -163,7 +149,7 @@ export function PlayerModal({
           </motion.div>
         </motion.section>
 
-        <motion.section className="game-modal-card p-3" {...stageItem(0.3, -8, 10)}>
+        <motion.section className="game-modal-card p-3" {...modalStageItem(5, -6, 8)}>
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-stone-100">Meta diária</p>
             <p className="text-xs text-charcoal-muted">{player.daily.scoreAccumulated}/1000</p>
@@ -179,14 +165,14 @@ export function PlayerModal({
           </p>
         </motion.section>
 
-        <motion.section className="space-y-2" {...stageItem(0.37, 0, 12)}>
+        <motion.section className="space-y-2" {...modalStageItem(6)}>
           <p className="text-xs uppercase tracking-widest text-charcoal-muted">Top 5</p>
           {topScores.length > 0 ? (
             topScores.map((record, index) => (
               <motion.div
                 key={record.id}
                 className="game-modal-card flex items-center justify-between px-3 py-2"
-                {...stageItem(0.42 + index * 0.045, index % 2 === 0 ? -6 : 6, 8)}
+                {...modalStageItem(7 + index, index % 2 === 0 ? -4 : 4, 6)}
               >
                 <div>
                   <p className={`font-mono text-sm font-semibold ${rankTextClass(index)}`}>
@@ -208,7 +194,7 @@ export function PlayerModal({
           type="button"
           onClick={onOpenRewardedModal}
           className="game-btn-push game-btn-push-secondary w-full rounded-xl bg-charcoal-elevated px-4 py-3 text-sm font-semibold text-stone-100"
-          {...stageItem(0.52, 0, 12)}
+          {...modalStageItem(12)}
         >
           Ganhar auto-check
         </motion.button>

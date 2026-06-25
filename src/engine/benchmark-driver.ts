@@ -9,7 +9,9 @@ import type {
   BenchmarkFrameStats,
   BenchmarkGrade,
   BenchmarkMetricGrade,
+  BenchmarkPhaseDiagnosis,
   BenchmarkPhaseId,
+  BenchmarkPhaseTiming,
 } from './benchmark-types'
 import { BENCHMARK_PHASE_ORDER } from './benchmark-types'
 import type { GameSession } from './types'
@@ -220,6 +222,73 @@ export function computeOverallBenchmarkGrade(grades: BenchmarkMetricGrade[]): Be
     grades.reduce((sum, metric) => sum + GRADE_SCORE[metric.grade], 0) / grades.length
   const index = Math.min(GRADE_BY_SCORE.length - 1, Math.max(0, Math.round(average)))
   return GRADE_BY_SCORE[index]
+}
+
+function phaseDiagnosisSeverity(p95FrameMs: number, stutterRate: number): BenchmarkPhaseDiagnosis['severity'] {
+  if (p95FrameMs >= 40 || stutterRate >= 4) return 'critical'
+  if (p95FrameMs >= 28 || stutterRate >= 2) return 'warn'
+  return 'ok'
+}
+
+export function diagnoseBenchmarkPhases(phases: BenchmarkPhaseTiming[]): BenchmarkPhaseDiagnosis[] {
+  return phases
+    .flatMap((phase) => {
+      if (!phase.frames || phase.frames.samples === 0) return []
+      const stutterRate = (phase.frames.jankFrames / phase.frames.samples) * 100
+      return [
+        {
+          phaseId: phase.id,
+          label: phase.label,
+          p95FrameMs: phase.frames.p95FrameMs,
+          stutterRate: Math.round(stutterRate * 10) / 10,
+          severity: phaseDiagnosisSeverity(phase.frames.p95FrameMs, stutterRate),
+        },
+      ]
+    })
+    .sort((left, right) => right.p95FrameMs - left.p95FrameMs)
+}
+
+export function buildBenchmarkPerformanceHints(
+  phases: BenchmarkPhaseTiming[],
+  themeGpuTier: 'light' | 'heavy',
+  themeName: string,
+): string[] {
+  const diagnosis = diagnoseBenchmarkPhases(phases)
+  const hints: string[] = []
+
+  if (themeGpuTier === 'heavy') {
+    hints.push(
+      `Tema "${themeName}" usa múltiplos gradientes radiais e glows — custo alto de pintura no mobile.`,
+    )
+  }
+
+  const worstPhase = diagnosis[0]
+  if (worstPhase && worstPhase.severity !== 'ok') {
+    hints.push(
+      `Fase mais pesada: ${worstPhase.label} (p95 ${worstPhase.p95FrameMs} ms, engasgos ${worstPhase.stutterRate}%).`,
+    )
+  }
+
+  const worstGameChanger = diagnosis.find(
+    (entry) => entry.phaseId.startsWith('gc-') && entry.severity !== 'ok',
+  )
+  if (worstGameChanger) {
+    hints.push('Game changers adicionam animações, sombras e repintura extra na pilha de jogo.')
+  }
+
+  const keypadHeavy = diagnosis.find(
+    (entry) =>
+      (entry.phaseId === 'ritmo-l5' || entry.phaseId === 'auto-check-uso') && entry.severity !== 'ok',
+  )
+  if (keypadHeavy) {
+    hints.push('Teclado virtual com motion pode estar contribuindo para frames lentos.')
+  }
+
+  if (hints.length === 0) {
+    hints.push('Nenhum gargalo claro por fase — compare com tema leve (Padrão/Água) para isolar o tema.')
+  }
+
+  return hints
 }
 
 export function computeBenchmarkGrades(

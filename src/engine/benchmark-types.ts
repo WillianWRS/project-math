@@ -14,6 +14,7 @@ export interface BenchmarkPhaseTiming {
   label: string
   durationMs: number
   answers: number
+  frames?: BenchmarkFrameStats
 }
 
 export interface BenchmarkFrameStats {
@@ -48,12 +49,24 @@ export interface BenchmarkMetricGrade {
 
 export type BenchmarkVirtualKey = `digit-${0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}` | 'auto' | 'enter'
 
+export interface BenchmarkPhaseDiagnosis {
+  phaseId: BenchmarkPhaseId
+  label: string
+  p95FrameMs: number
+  stutterRate: number
+  severity: 'ok' | 'warn' | 'critical'
+}
+
 export interface BenchmarkMetrics {
   totalDurationMs: number
   totalAnswers: number
   avgAnswerIntervalMs: number
   rhythmLevelReached: number
+  equippedTheme: string
+  themeGpuTier: 'light' | 'heavy'
   phases: BenchmarkPhaseTiming[]
+  phaseDiagnosis: BenchmarkPhaseDiagnosis[]
+  performanceHints: string[]
   frames: BenchmarkFrameStats
   grades: BenchmarkMetricGrade[]
   overallGrade: BenchmarkGrade

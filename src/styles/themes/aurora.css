@@ -1,0 +1,49 @@
+.game-scene--aurora {
+  --theme-answer-caret: #2a7ab0;
+  --theme-answer-placeholder: rgba(26, 74, 110, 0.28);
+  --theme-hud-inline-shadow: rgba(26, 74, 110, 0.28);
+  --theme-hud-inline-bg:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.72) 0%, transparent 42%),
+    linear-gradient(165deg, #f0f9ff 0%, #dbeafe 45%, #bfdbfe 100%);
+  --theme-hud-inline-inset-top: rgba(255, 255, 255, 0.95);
+  --theme-hud-inline-inset-bottom: rgba(42, 122, 176, 0.1);
+  --theme-hud-inline-border: rgba(42, 122, 176, 0.22);
+  --theme-hud-inline-gloss: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  --theme-hud-inline-text: #1e5a7a;
+  --theme-hud-inline-icon: #1e5a7a;
+  --theme-hud-inline-icon-filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.65));
+  --theme-hud-inline-active-inset-top: rgba(255, 255, 255, 0.75);
+  --theme-hud-inline-active-inset-bottom: rgba(42, 122, 176, 0.12);
+  --theme-hud-back-inset-top: rgba(255, 255, 255, 0.95);
+  --theme-hud-back-inset-bottom: rgba(42, 122, 176, 0.1);
+  --theme-hud-back-active-inset-top: rgba(255, 255, 255, 0.75);
+  --theme-hud-back-active-inset-bottom: rgba(42, 122, 176, 0.12);
+  --theme-hud-accent-shadow: rgba(146, 100, 20, 0.28);
+  --theme-hud-accent-bg:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.75) 0%, transparent 42%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 48%, #fcd34d 100%);
+  --theme-hud-accent-inset-top: rgba(255, 255, 255, 0.92);
+  --theme-hud-accent-inset-bottom: rgba(180, 120, 20, 0.1);
+  --theme-hud-accent-border: rgba(180, 120, 20, 0.28);
+  --theme-hud-accent-text: #78350f;
+  --theme-hud-accent-icon-filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.45));
+  --theme-key-shadow: rgba(26, 74, 110, 0.28);
+  --theme-key-text: #1e5a7a;
+  --theme-key-bg:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.72) 0%, transparent 42%),
+    linear-gradient(165deg, #f0f9ff 0%, #dbeafe 45%, #bfdbfe 100%);
+  --theme-key-inset-top: rgba(255, 255, 255, 0.95);
+  --theme-key-placeholder: rgba(30, 90, 122, 0.35);
+  --theme-key-enter-shadow: rgba(146, 100, 20, 0.28);
+  --theme-key-enter-text: #78350f;
+  --theme-key-enter-bg:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.75) 0%, transparent 42%),
+    linear-gradient(165deg, #fffbeb 0%, #fde68a 48%, #fcd34d 100%);
+  --theme-key-disabled-text: rgba(30, 90, 122, 0.45);
+  --theme-key-disabled-bg:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.5) 0%, transparent 42%),
+    linear-gradient(165deg, #e8f4fc 0%, #dbeafe 100%);
+  --theme-key-disabled-shadow: rgba(26, 74, 110, 0.15);
+  --theme-key-disabled-inset-top: rgba(255, 255, 255, 0.75);
+  --theme-key-auto-prohibited: rgba(30, 90, 122, 0.55);
+}

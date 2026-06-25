@@ -26,3 +26,25 @@ export function getThemePurchasePrice(priceCoins: number, godModeEnabled: boolea
   if (!godModeEnabled || priceCoins <= 0) return priceCoins
   return 1
 }
+
+const THEME_GPU_TIER: Record<BackgroundTheme, 'light' | 'heavy'> = {
+  default: 'light',
+  water: 'light',
+  sunset: 'light',
+  forest: 'light',
+  midnight: 'light',
+  ice: 'light',
+  aurora: 'light',
+  violet: 'heavy',
+  ember: 'heavy',
+  neon: 'heavy',
+  retro: 'heavy',
+}
+
+export function getThemeGpuTier(theme: BackgroundTheme): 'light' | 'heavy' {
+  return THEME_GPU_TIER[theme] ?? 'light'
+}
+
+export function getThemeDisplayName(theme: BackgroundTheme): string {
+  return THEME_CATALOG.find((entry) => entry.equippableThemeId === theme)?.name ?? theme
+}

@@ -2,6 +2,7 @@ import type { BackgroundTheme } from '../../platform/storage'
 import { THEME_CATALOG } from '../../cosmetics/theme-catalog'
 import { motion, useReducedMotion } from '../../lib/motion'
 import { pulseRepeat } from '../../lib/motion-presets'
+import { modalStageItem } from '../../lib/modal-stage'
 import { Modal } from '../ui/Modal'
 
 interface SettingsModalProps {
@@ -17,21 +18,6 @@ interface SettingsModalProps {
   backgroundTheme: BackgroundTheme
   ownedThemeIds: BackgroundTheme[]
   onBackgroundThemeChange: (theme: BackgroundTheme) => void
-}
-
-const stageTransition = { duration: 0.42, ease: [0.22, 1, 0.36, 1] as const }
-
-function stageItem(delay: number, x: number, y: number) {
-  return {
-    initial: { opacity: 0, x, y, scale: 0.985 },
-    animate: {
-      opacity: 1,
-      x: 0,
-      y: 0,
-      scale: 1,
-      transition: { ...stageTransition, delay },
-    },
-  } as const
 }
 
 function IconGear() {
@@ -88,7 +74,7 @@ export function SettingsModal({
   return (
     <Modal open={open} title="Configurações" titleIcon={<IconGear />} onClose={onClose}>
       <div className="space-y-4">
-        <motion.div {...stageItem(0.04, 0, 14)}>
+        <motion.div {...modalStageItem(0, 0, 14)}>
           <p className="mb-2 text-sm font-medium text-stone-200">Fundo do jogo</p>
           <div className="grid grid-cols-2 gap-3">
             {ownedThemes.map((option, index) => {
@@ -102,7 +88,7 @@ export function SettingsModal({
                   className={`game-modal-card settings-theme-card relative flex flex-col overflow-hidden text-left${
                     selected ? ' settings-theme-card--selected' : ' hover:border-stone-600/50'
                   }`}
-                  {...stageItem(0.12 + index * 0.06, index % 2 === 0 ? -8 : 8, 10)}
+                  {...modalStageItem(index + 1, index % 2 === 0 ? -6 : 6, 8)}
                 >
                   {selected && <ThemeSelectionRing water={themeId === 'water'} />}
                   <div className={`settings-bg-preview ${option.previewClass}`} aria-hidden />
@@ -118,7 +104,7 @@ export function SettingsModal({
 
         <motion.label
           className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3"
-          {...stageItem(0.2, -10, 8)}
+          {...modalStageItem(ownedThemes.length + 1, -8, 8)}
         >
           <div>
             <p className="font-medium text-stone-200">Som</p>
@@ -144,7 +130,7 @@ export function SettingsModal({
 
         <motion.label
           className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3"
-          {...stageItem(0.27, 10, 10)}
+          {...modalStageItem(ownedThemes.length + 2, 8, 8)}
         >
           <div>
             <p className="font-medium text-stone-200">Dev Mode</p>
@@ -171,7 +157,7 @@ export function SettingsModal({
         {showGodModeToggle && (
           <motion.label
             className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3"
-            {...stageItem(0.34, -10, 10)}
+            {...modalStageItem(ownedThemes.length + 3, -8, 8)}
           >
             <div>
               <p className="font-medium text-stone-200">God Mode</p>

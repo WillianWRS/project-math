@@ -4,6 +4,8 @@ import {
   computeBenchmarkGrades,
   computeFrameStats,
   computeOverallBenchmarkGrade,
+  diagnoseBenchmarkPhases,
+  buildBenchmarkPerformanceHints,
   isBenchmarkPhaseComplete,
   nextBenchmarkPhase,
   shouldInjectBenchmarkCycle,
@@ -65,5 +67,32 @@ describe('benchmark-driver', () => {
     expect(grades.some((grade) => grade.id === 'rawMaxFrameMs')).toBe(true)
     expect(grades.some((grade) => grade.label === 'Taxa de engasgos')).toBe(true)
     expect(computeOverallBenchmarkGrade(grades)).toMatch(/^[SABCDEF]$/)
+  })
+
+  it('diagnoses heavy benchmark phases and builds hints', () => {
+    const phases = [
+      {
+        id: 'ritmo-l5' as const,
+        label: 'Ritmo → L5',
+        durationMs: 1000,
+        answers: 5,
+        frames: computeFrameStats([16, 17, 18, 19, 20]),
+      },
+      {
+        id: 'gc-plus' as const,
+        label: 'Game changer ↑99',
+        durationMs: 800,
+        answers: 3,
+        frames: computeFrameStats([16, 18, 45, 50, 48, 19]),
+      },
+    ]
+
+    const diagnosis = diagnoseBenchmarkPhases(phases)
+    expect(diagnosis[0]?.phaseId).toBe('gc-plus')
+    expect(diagnosis[0]?.severity).not.toBe('ok')
+
+    const hints = buildBenchmarkPerformanceHints(phases, 'heavy', 'Neon')
+    expect(hints.some((hint) => hint.includes('Neon'))).toBe(true)
+    expect(hints.some((hint) => hint.includes('Game changer'))).toBe(true)
   })
 })

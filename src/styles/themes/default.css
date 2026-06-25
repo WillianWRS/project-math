@@ -1,0 +1,11 @@
+.game-scene--default {
+  --theme-answer-caret: #fbbf24;
+  --theme-answer-placeholder: transparent;
+  --theme-hud-inline-shadow: #080706;
+  --theme-key-shadow: #080706;
+  --theme-key-text: #e7e0d4;
+  --theme-key-auto-prohibited: #6b6358;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 42%),
+    #141210;
+}

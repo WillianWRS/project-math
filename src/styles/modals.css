@@ -1,0 +1,290 @@
+.game-modal-panel {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(120, 113, 108, 0.35);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, transparent 42%),
+    linear-gradient(180deg, #2a2522 0%, #1f1b18 55%, #141210 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 215, 0.08),
+    0 16px 40px rgba(0, 0, 0, 0.55);
+  contain: layout paint;
+}
+
+.game-modal-panel--sheet {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: none;
+  padding-top: 1.35rem;
+}
+
+.game-modal-panel--sheet-top {
+  top: max(0.75rem, env(safe-area-inset-top));
+  width: calc(100% - 1.5rem);
+  max-width: calc(24rem - 1.5rem);
+  border-radius: 1.25rem;
+  padding-top: 1.35rem;
+  padding-bottom: 1.35rem;
+}
+
+.game-modal-panel--sheet-top::before {
+  top: auto;
+  bottom: 0.5rem;
+  left: 50%;
+  right: auto;
+  width: 2.5rem;
+  height: 0.28rem;
+  transform: translateX(-50%);
+  background: rgba(120, 113, 108, 0.55);
+}
+
+.game-modal-panel--sheet::before {
+  top: 0.5rem;
+  left: 50%;
+  right: auto;
+  width: 2.5rem;
+  height: 0.28rem;
+  transform: translateX(-50%);
+  background: rgba(120, 113, 108, 0.55);
+}
+
+.game-modal-scroll-shell {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.game-modal-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(251, 191, 36, 0.28) transparent;
+}
+
+.game-modal-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+
+.game-modal-scroll::-webkit-scrollbar-track {
+  margin-block: 0.35rem;
+  background: transparent;
+}
+
+.game-modal-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.28);
+}
+
+.game-modal-scroll__content {
+  padding-bottom: 0.35rem;
+}
+
+.game-modal-scroll-fade {
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  height: 1.75rem;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.game-modal-scroll-fade[data-visible] {
+  opacity: 1;
+}
+
+.game-modal-scroll-fade--top {
+  top: 0;
+  background: linear-gradient(to bottom, rgba(31, 27, 24, 0.98) 0%, rgba(31, 27, 24, 0) 100%);
+}
+
+.game-modal-scroll-fade--bottom {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(20, 18, 16, 0.98) 0%, rgba(20, 18, 16, 0) 100%);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .game-modal-scroll {
+    scrollbar-width: none;
+  }
+
+  .game-modal-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.game-modal-backdrop {
+  contain: strict;
+  transform: translateZ(0);
+  -webkit-tap-highlight-color: transparent;
+  cursor: default;
+}
+
+.game-modal-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.5), transparent);
+  pointer-events: none;
+}
+
+.game-modal-card {
+  border-radius: 0.875rem;
+  border: 1px solid rgba(87, 83, 78, 0.35);
+  background: rgba(20, 18, 16, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.game-modal-title__icon {
+  display: flex;
+  color: #fbbf24;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+.settings-bg-preview {
+  position: relative;
+  height: 4.5rem;
+  width: 100%;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(87, 83, 78, 0.25);
+  contain: strict;
+}
+
+.settings-bg-preview--default {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 40%),
+    #25211f;
+}
+
+.settings-bg-preview--default::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 14px,
+    rgba(255, 255, 255, 0.08) 14px 15px
+  );
+  mask-image: linear-gradient(180deg, black 30%, transparent 100%);
+}
+
+.settings-bg-preview--water {
+  background: linear-gradient(180deg, #b8e8fa 0%, #8fd4f2 40%, #5ab8e6 100%);
+}
+
+.settings-bg-preview--sunset {
+  background: linear-gradient(180deg, #ffd8a8 0%, #ffb477 40%, #d45b7a 100%);
+}
+
+.settings-bg-preview--forest {
+  background: linear-gradient(
+    180deg,
+    #6b9a5e 0%,
+    #528a52 14%,
+    #3f7349 28%,
+    #2d5a3d 35%,
+    #1e4d32 52%,
+    #163d28 78%,
+    #0d2818 100%
+  );
+}
+
+.settings-bg-preview--violet {
+  background: linear-gradient(180deg, #4c1d95 0%, #2e1065 52%, #1e1b4b 100%);
+}
+
+.settings-bg-preview--ember {
+  background: linear-gradient(165deg, #ff8c28 0%, #2a1420 48%, #080508 100%);
+}
+
+.settings-bg-preview--neon {
+  background: linear-gradient(155deg, #0d2a5c 0%, #0a1635 48%, #030810 100%);
+}
+
+.settings-bg-preview--midnight {
+  background: linear-gradient(
+    180deg,
+    #030508 0%,
+    #0a1018 42%,
+    #1a3555 100%
+  );
+}
+
+.settings-bg-preview--retro {
+  background: linear-gradient(180deg, #e8c547 0%, #2a2012 52%, #0a0804 100%);
+}
+
+.settings-bg-preview--ice {
+  background: linear-gradient(180deg, #ecfeff 0%, #dbeafe 40%, #bae6fd 100%);
+}
+
+.settings-bg-preview--aurora {
+  background: linear-gradient(180deg, #e0f2fe 0%, #d1fae5 40%, #f5d0fe 100%);
+}
+
+.shop-theme-preview--locked {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.06) 0 8px,
+      rgba(0, 0, 0, 0.08) 8px 16px
+    ),
+    linear-gradient(180deg, #2a2522 0%, #1a1714 100%);
+}
+
+.player-stat-badge {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 0 #b45309;
+  pointer-events: none;
+}
+
+.player-rank-text--gold {
+  color: #fcd34d;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
+}
+
+.player-rank-text--silver {
+  color: #d1d5db;
+  text-shadow: 0 0 10px rgba(209, 213, 219, 0.18);
+}
+
+.player-rank-text--bronze {
+  color: #d97706;
+  text-shadow: 0 0 10px rgba(217, 119, 6, 0.2);
+}
+
+.settings-theme-card {
+  position: relative;
+  border-radius: 0.875rem;
+  isolation: isolate;
+}
+
+.settings-theme-card--selected {
+  border-color: transparent;
+}
+
+.settings-theme-selection-ring {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  box-sizing: border-box;
+  border: 2px solid rgba(251, 191, 36, 0.88);
+  border-radius: inherit;
+}
+
+.settings-theme-selection-ring--water {
+  border-color: rgba(56, 189, 248, 0.9);
+}
