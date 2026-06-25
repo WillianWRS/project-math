@@ -1,8 +1,5 @@
 import type { BackgroundTheme } from '../../platform/storage'
 import { THEME_CATALOG } from '../../cosmetics/theme-catalog'
-import { motion, useReducedMotion } from '../../lib/motion'
-import { pulseRepeat } from '../../lib/motion-presets'
-import { modalStageItem } from '../../lib/modal-stage'
 import { Modal } from '../ui/Modal'
 
 interface SettingsModalProps {
@@ -39,15 +36,36 @@ function IconGear() {
 }
 
 function ThemeSelectionRing({ water }: { water: boolean }) {
-  const reduceMotion = useReducedMotion()
-
   return (
-    <motion.span
+    <span
       className={`settings-theme-selection-ring${water ? ' settings-theme-selection-ring--water' : ''}`}
-      animate={reduceMotion ? undefined : { opacity: [0.45, 1, 0.45] }}
-      transition={pulseRepeat(2.2)}
       aria-hidden
     />
+  )
+}
+
+function SettingsToggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean
+  onChange: (enabled: boolean) => void
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative h-8 w-14 rounded-full ${
+        checked ? 'bg-amber-500' : 'bg-charcoal-elevated ring-1 ring-stone-700/50'
+      }`}
+    >
+      <span
+        className="absolute top-1 h-6 w-6 rounded-full bg-stone-100 shadow transition-[left] duration-200 ease-out"
+        style={{ left: checked ? '1.75rem' : '0.25rem' }}
+      />
+    </button>
   )
 }
 
@@ -65,7 +83,6 @@ export function SettingsModal({
   ownedThemeIds,
   onBackgroundThemeChange,
 }: SettingsModalProps) {
-  const reduceMotion = useReducedMotion()
   const ownedThemes = THEME_CATALOG.filter(
     (theme) =>
       theme.equippableThemeId !== undefined && ownedThemeIds.includes(theme.equippableThemeId),
@@ -74,21 +91,20 @@ export function SettingsModal({
   return (
     <Modal open={open} title="Configurações" titleIcon={<IconGear />} onClose={onClose}>
       <div className="space-y-4">
-        <motion.div {...modalStageItem(0, 0, 14)}>
+        <div>
           <p className="mb-2 text-sm font-medium text-stone-200">Fundo do jogo</p>
           <div className="grid grid-cols-2 gap-3">
-            {ownedThemes.map((option, index) => {
+            {ownedThemes.map((option) => {
               const themeId = option.equippableThemeId as BackgroundTheme
               const selected = backgroundTheme === themeId
               return (
-                <motion.button
+                <button
                   key={option.id}
                   type="button"
                   onClick={() => onBackgroundThemeChange(themeId)}
                   className={`game-modal-card settings-theme-card relative flex flex-col overflow-hidden text-left${
                     selected ? ' settings-theme-card--selected' : ' hover:border-stone-600/50'
                   }`}
-                  {...modalStageItem(index + 1, index % 2 === 0 ? -6 : 6, 8)}
                 >
                   {selected && <ThemeSelectionRing water={themeId === 'water'} />}
                   <div className={`settings-bg-preview ${option.previewClass}`} aria-hidden />
@@ -96,90 +112,36 @@ export function SettingsModal({
                     <p className="text-sm font-medium text-stone-200">{option.name}</p>
                     <p className="text-xs text-charcoal-muted">Tema desbloqueado</p>
                   </div>
-                </motion.button>
+                </button>
               )
             })}
           </div>
-        </motion.div>
+        </div>
 
-        <motion.label
-          className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3"
-          {...modalStageItem(ownedThemes.length + 1, -8, 8)}
-        >
+        <label className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
           <div>
             <p className="font-medium text-stone-200">Som</p>
             <p className="text-xs text-charcoal-muted">Efeitos de acerto, erro e level up</p>
           </div>
-          <motion.button
-            type="button"
-            role="switch"
-            aria-checked={soundEnabled}
-            onClick={() => onSoundChange(!soundEnabled)}
-            className={`relative h-8 w-14 rounded-full ${
-              soundEnabled ? 'bg-amber-500' : 'bg-charcoal-elevated ring-1 ring-stone-700/50'
-            }`}
-            whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-          >
-            <motion.span
-              className="absolute top-1 h-6 w-6 rounded-full bg-stone-100 shadow"
-              animate={{ left: soundEnabled ? '1.75rem' : '0.25rem' }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            />
-          </motion.button>
-        </motion.label>
+          <SettingsToggle checked={soundEnabled} onChange={onSoundChange} />
+        </label>
 
-        <motion.label
-          className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3"
-          {...modalStageItem(ownedThemes.length + 2, 8, 8)}
-        >
+        <label className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
           <div>
             <p className="font-medium text-stone-200">Dev Mode</p>
             <p className="text-xs text-charcoal-muted">Exibe botões Benchmark e Theme Test no menu</p>
           </div>
-          <motion.button
-            type="button"
-            role="switch"
-            aria-checked={devModeEnabled}
-            onClick={() => onDevModeChange(!devModeEnabled)}
-            className={`relative h-8 w-14 rounded-full ${
-              devModeEnabled ? 'bg-amber-500' : 'bg-charcoal-elevated ring-1 ring-stone-700/50'
-            }`}
-            whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-          >
-            <motion.span
-              className="absolute top-1 h-6 w-6 rounded-full bg-stone-100 shadow"
-              animate={{ left: devModeEnabled ? '1.75rem' : '0.25rem' }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            />
-          </motion.button>
-        </motion.label>
+          <SettingsToggle checked={devModeEnabled} onChange={onDevModeChange} />
+        </label>
 
         {showGodModeToggle && (
-          <motion.label
-            className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3"
-            {...modalStageItem(ownedThemes.length + 3, -8, 8)}
-          >
+          <label className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
             <div>
               <p className="font-medium text-stone-200">God Mode</p>
               <p className="text-xs text-charcoal-muted">Libera todos os temas feitos na configuração</p>
             </div>
-            <motion.button
-              type="button"
-              role="switch"
-              aria-checked={godModeEnabled}
-              onClick={() => onGodModeChange(!godModeEnabled)}
-              className={`relative h-8 w-14 rounded-full ${
-                godModeEnabled ? 'bg-amber-500' : 'bg-charcoal-elevated ring-1 ring-stone-700/50'
-              }`}
-              whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-            >
-              <motion.span
-                className="absolute top-1 h-6 w-6 rounded-full bg-stone-100 shadow"
-                animate={{ left: godModeEnabled ? '1.75rem' : '0.25rem' }}
-                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              />
-            </motion.button>
-          </motion.label>
+            <SettingsToggle checked={godModeEnabled} onChange={onGodModeChange} />
+          </label>
         )}
       </div>
     </Modal>

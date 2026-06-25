@@ -36,6 +36,7 @@ import {
 import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, hydrateMenuAudio, prefetchMenuAudio, preloadAudioIdle, unlockAudioSync } from '../platform/audio-service'
 import { gameTimerStore } from '../platform/game-timer-store'
 import type { BenchmarkVirtualKey } from '../engine/benchmark-types'
+import { shouldSyncInputFromSession } from '../lib/session-input-sync'
 
 const TIMER_UI_PUBLISH_MS = 100
 const DAILY_GOAL_SCORE = 1000
@@ -83,7 +84,7 @@ export function useGame() {
     setSession((current) => {
       const next =
         typeof action === 'function' ? (action as (current: GameSession) => GameSession)(current) : action
-      if (next.inputValue !== inputValueRef.current) {
+      if (shouldSyncInputFromSession(current, next, inputValueRef.current)) {
         inputValueRef.current = next.inputValue
         setInputValueState(next.inputValue)
       }
@@ -496,6 +497,7 @@ export function useGame() {
 
   const onInputChange = useCallback((value: string) => {
     const digitsOnly = value.replace(/\D/g, '').slice(0, 2)
+    inputValueRef.current = digitsOnly
     setInputValueState(digitsOnly)
   }, [])
 

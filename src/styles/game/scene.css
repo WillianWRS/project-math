@@ -47,3 +47,21 @@
   --theme-key-disabled-inset-top: rgba(255, 255, 255, 0.04);
   --theme-key-auto-prohibited: #6b6358;
 }
+
+.game-scene-bg-layer {
+  contain: layout paint;
+}
+
+.game-scene-root--ambient-decor-paused .game-play-frame-ring--animated,
+.game-scene-root--ambient-decor-paused .game-play-frame-ring--danger-animated,
+.game-scene-root--ambient-decor-paused .game-scene-border-pulse--danger-animated {
+  animation-play-state: paused !important;
+}
+
+.game-scene-root--modal-decor-paused .game-side-card-pulse--animated,
+.game-scene-root--modal-decor-paused .game-side-card__content--pulse-up,
+.game-scene-root--modal-decor-paused .game-side-card__content--pulse-down,
+.game-scene-root--modal-decor-paused .game-side-card__content--pulse-scale,
+.game-scene-root--modal-decor-paused .game-side-card__content--pulse-glyph {
+  animation-play-state: paused !important;
+}

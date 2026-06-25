@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import type { BackgroundTheme } from '../../platform/storage'
 import { THEME_CATALOG, getThemePurchasePrice, type ThemeCatalogEntry } from '../../cosmetics/theme-catalog'
-import { motion } from '../../lib/motion'
-import { modalStageItem } from '../../lib/modal-stage'
 import type { PlayerData } from '../../platform/storage'
 import { Modal } from '../ui/Modal'
 
@@ -67,16 +65,13 @@ export function ShopModal({ open, onClose, player, godModeEnabled, onBuyTheme }:
         closeOnBackdrop={!pendingTheme}
       >
         <div className="space-y-3">
-          <motion.div
-            className="game-modal-card flex items-center justify-between px-3 py-2"
-            {...modalStageItem(0)}
-          >
+          <div className="game-modal-card flex items-center justify-between px-3 py-2">
             <p className="text-xs uppercase tracking-widest text-charcoal-muted">Saldo</p>
             <p className="font-mono text-lg font-bold text-amber-100">{player.coins} moedas</p>
-          </motion.div>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {THEME_CATALOG.map((theme, index) => {
+            {THEME_CATALOG.map((theme) => {
               const themeId = theme.equippableThemeId
               const canOwn = themeId !== undefined
               const owned = canOwn && player.ownedThemeIds.includes(themeId)
@@ -84,7 +79,7 @@ export function ShopModal({ open, onClose, player, godModeEnabled, onBuyTheme }:
               const priceCoins = getPrice(theme.priceCoins)
               const canBuy = purchasable && player.coins >= priceCoins
               return (
-                <motion.button
+                <button
                   key={theme.id}
                   type="button"
                   disabled={!canBuy}
@@ -93,7 +88,6 @@ export function ShopModal({ open, onClose, player, godModeEnabled, onBuyTheme }:
                     setPendingTheme(theme)
                   }}
                   className="game-modal-card overflow-hidden text-left"
-                  {...modalStageItem(index + 1, index % 2 === 0 ? -6 : 6, 8)}
                 >
                   <div className={`settings-bg-preview ${theme.previewClass}`} aria-hidden />
                   <div className="space-y-1 px-3 py-2">
@@ -109,7 +103,7 @@ export function ShopModal({ open, onClose, player, godModeEnabled, onBuyTheme }:
                     )}
                     {!canOwn && <p className="text-xs text-amber-400">🔒 Em breve</p>}
                   </div>
-                </motion.button>
+                </button>
               )
             })}
           </div>
@@ -117,7 +111,7 @@ export function ShopModal({ open, onClose, player, godModeEnabled, onBuyTheme }:
       </Modal>
 
       <Modal
-        open={open && pendingTheme !== null}
+        open={pendingTheme !== null}
         title="Confirmar compra"
         onClose={() => setPendingTheme(null)}
         stackLevel={1}

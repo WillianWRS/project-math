@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from '../../lib/motion'
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { NumericKeypad } from './NumericKeypad'
 import { PlayFieldsSideLayout } from './SideCardRails'
 import {
@@ -13,6 +13,13 @@ import { SideCardActivateBurst } from '../motion/SideCardActivateBurst'
 import { TimerDangerOverlay } from './TimerDangerOverlay'
 import { WaterSceneLayer } from './WaterSceneLayer'
 import { SLIDE_TRANSITION } from '../../lib/motion-presets'
+import {
+  isSceneAmbientDecorPaused,
+  isSceneModalDecorPaused,
+  SCENE_BG_INGAME,
+  SCENE_BG_MENU,
+  SCENE_BG_STATIC,
+} from '../../lib/scene-decor-pause'
 import { isFourSecondsGameChangerActive, isMinusGameChangerActive, isPlusGameChangerActive, isTimesDivGameChangerActive } from '../../engine/game-changer-cycles'
 import { OPERATOR_COLOR_CLASS } from '../../engine/operation-generator'
 import { SUBMIT_LOCK_MS } from '../../engine/game-state-machine'
@@ -30,23 +37,8 @@ import type { BackgroundTheme, PlayerData, ScoreRecord } from '../../platform/st
 import { THEME_CATALOG } from '../../cosmetics/theme-catalog'
 import type { PostGameRewards } from '../../hooks/useGame'
 import type { BenchmarkMetricGradeId, BenchmarkMetrics, BenchmarkVirtualKey } from '../../engine/benchmark-types'
-import { Modal } from '../ui/Modal'
-
-const RewardedAutoCheckModal = lazy(() =>
-  import('../modals/RewardedAutoCheckModal').then((m) => ({ default: m.RewardedAutoCheckModal })),
-)
-const AutoCheckTimeoutModal = lazy(() =>
-  import('../modals/AutoCheckTimeoutModal').then((m) => ({ default: m.AutoCheckTimeoutModal })),
-)
-const PlayerModal = lazy(() =>
-  import('../modals/PlayerModal').then((m) => ({ default: m.PlayerModal })),
-)
-const ShopModal = lazy(() =>
-  import('../modals/ShopModal').then((m) => ({ default: m.ShopModal })),
-)
-const SettingsModal = lazy(() =>
-  import('../modals/SettingsModal').then((m) => ({ default: m.SettingsModal })),
-)
+import { GameModalLayer } from './GameModalLayer'
+import { playUiClickAfterPaint } from '../../lib/modal-ui'
 
 interface GameScreenProps {
   session: GameSession
@@ -608,12 +600,14 @@ function IconShare() {
 function MenuHudButton({
   label,
   onClick,
+  onPointerDown,
   disabled = false,
   labelClassName,
   children,
 }: {
   label: string
   onClick?: () => void
+  onPointerDown?: () => void
   disabled?: boolean
   labelClassName?: string
   children: ReactNode
@@ -622,6 +616,7 @@ function MenuHudButton({
     <button
       type="button"
       onClick={onClick}
+      onPointerDown={onPointerDown}
       disabled={disabled}
       aria-disabled={disabled}
       className={`game-menu-hud-btn${disabled ? ' opacity-50' : ''}`}
@@ -1217,6 +1212,15 @@ export function GameScreen({
   const currentScore = isThemeTestScene ? themeTestScore : session.score
   const inputDisabled = !isPlaying || session.isSubmitLocked || benchmarkMode
   const timeoutModalOpen = session.awaitingAutoCheckChoice && session.phase === 'playing' && !benchmarkMode
+  const anyModalOpen =
+    playerOpen ||
+    shopOpen ||
+    settingsOpen ||
+    rewardedOpen ||
+    exitConfirmOpen ||
+    timeoutModalOpen
+  const ambientDecorPaused = isSceneAmbientDecorPaused({ anyModalOpen, presentation })
+  const modalDecorPaused = isSceneModalDecorPaused({ anyModalOpen })
   const allImplementedThemeIds = THEME_CATALOG.flatMap((entry) =>
     entry.equippableThemeId === undefined ? [] : [entry.equippableThemeId],
   )
@@ -1410,18 +1414,36 @@ export function GameScreen({
 
   const closePlayerModal = useCallback(() => {
     setPlayerOpen(false)
-    playSfx('clickClose', soundEnabled)
+    playUiClickAfterPaint(() => playSfx('clickClose', soundEnabled))
   }, [soundEnabled])
 
   const closeShopModal = useCallback(() => {
     setShopOpen(false)
-    playSfx('clickClose', soundEnabled)
+    playUiClickAfterPaint(() => playSfx('clickClose', soundEnabled))
   }, [soundEnabled])
 
   const closeSettingsModal = useCallback(() => {
     setSettingsOpen(false)
-    playSfx('clickClose', soundEnabled)
+    playUiClickAfterPaint(() => playSfx('clickClose', soundEnabled))
   }, [soundEnabled])
+
+  const openPlayerModal = useCallback(() => {
+    setExitConfirmOpen(false)
+    setPlayerOpen(true)
+    playUiClickAfterPaint(onPlayClick)
+  }, [onPlayClick])
+
+  const openShopModal = useCallback(() => {
+    setExitConfirmOpen(false)
+    setShopOpen(true)
+    playUiClickAfterPaint(onPlayClick)
+  }, [onPlayClick])
+
+  const openSettingsModal = useCallback(() => {
+    setExitConfirmOpen(false)
+    setSettingsOpen(true)
+    playUiClickAfterPaint(onPlayClick)
+  }, [onPlayClick])
 
   const requestExitAppOrPreviousPage = useCallback(() => {
     const nav = navigator as Navigator & { app?: { exitApp?: () => void } }
@@ -1705,27 +1727,36 @@ export function GameScreen({
                   ? 'game-play-stack--retro'
                   : 'bg-charcoal-field'
 
+  const sceneRootClassName = [
+    'game-scene-root relative flex h-dvh min-h-dvh max-h-dvh flex-col overflow-hidden text-white transition-colors duration-500',
+    sceneThemeClass,
+    ambientDecorPaused ? 'game-scene-root--ambient-decor-paused' : '',
+    modalDecorPaused ? 'game-scene-root--modal-decor-paused' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const sceneBgAnimate = ambientDecorPaused
+    ? SCENE_BG_STATIC
+    : isInGameScene
+      ? SCENE_BG_INGAME
+      : SCENE_BG_MENU
+  const sceneBgTransition = ambientDecorPaused ? { duration: 0 } : layerParallaxTransition
+
   return (
-    <div
-      ref={sceneRootRef}
-      className={`game-scene-root relative flex h-dvh min-h-dvh max-h-dvh flex-col overflow-hidden text-white transition-colors duration-500 ${sceneThemeClass}`}
-    >
+    <div ref={sceneRootRef} className={sceneRootClassName}>
       <TimerDangerOverlay
         isPlaying={isPlaying}
         timerMaxMs={session.timerMaxMs}
         fallbackTimerMs={session.timerMs}
       />
       <motion.div
-        className="pointer-events-none absolute inset-0 z-0"
+        className="game-scene-bg-layer pointer-events-none absolute inset-0 z-0"
         initial={false}
-        animate={
-          isInGameScene
-            ? { x: 0, y: 0, scale: 1, opacity: 1 }
-            : { x: 22, y: -12, scale: 1.04, opacity: 0.9 }
-        }
-        transition={layerParallaxTransition}
+        animate={sceneBgAnimate}
+        transition={sceneBgTransition}
       >
-        {useWaterBackground && <WaterSceneLayer />}
+        {useWaterBackground && <WaterSceneLayer paused={ambientDecorPaused} />}
       </motion.div>
 
       {showGameContent && (
@@ -2275,11 +2306,7 @@ export function GameScreen({
                 <motion.div {...menuStageItem(0.06, -16, 12)}>
                   <MenuHudButton
                     label="Jogador"
-                    onClick={() => {
-                      onPlayClick()
-                      setExitConfirmOpen(false)
-                      setPlayerOpen(true)
-                    }}
+                    onClick={openPlayerModal}
                   >
                     <IconPerson />
                   </MenuHudButton>
@@ -2288,11 +2315,7 @@ export function GameScreen({
                 <motion.div {...menuStageItem(0.08, -8, 12)}>
                   <MenuHudButton
                     label="Loja"
-                    onClick={() => {
-                      onPlayClick()
-                      setExitConfirmOpen(false)
-                      setShopOpen(true)
-                    }}
+                    onClick={openShopModal}
                   >
                     <IconShop />
                   </MenuHudButton>
@@ -2307,11 +2330,7 @@ export function GameScreen({
                 <motion.div {...menuStageItem(0.12, 16, 12)}>
                   <MenuHudButton
                     label="Config"
-                    onClick={() => {
-                      onPlayClick()
-                      setExitConfirmOpen(false)
-                      setSettingsOpen(true)
-                    }}
+                    onClick={openSettingsModal}
                   >
                     <IconGear />
                   </MenuHudButton>
@@ -2320,79 +2339,48 @@ export function GameScreen({
             ) : null}
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.17</span>
+              <span>v0.0.23</span>
             </div>
           </div>
         </>
       )}
 
-      <Suspense fallback={null}>
-        <PlayerModal
-          open={playerOpen}
-          onClose={closePlayerModal}
-          player={player}
-          topScores={topScores}
-          onSaveName={onSaveDisplayName}
-          onOpenRewardedModal={() => {
-            setPlayerOpen(false)
-            setRewardedOpen(true)
-          }}
-        />
-        <ShopModal
-          open={shopOpen}
-          onClose={closeShopModal}
-          player={player}
-          godModeEnabled={godModeEnabled}
-          onBuyTheme={onBuyTheme}
-        />
-        <SettingsModal
-          open={settingsOpen}
-          onClose={closeSettingsModal}
-          soundEnabled={soundEnabled}
-          onSoundChange={onSoundChange}
-          devModeEnabled={devModeEnabled}
-          onDevModeChange={onDevModeChange}
-          godModeEnabled={godModeEnabled}
-          onGodModeChange={onGodModeChange}
-          showGodModeToggle={showGodModeToggle}
-          backgroundTheme={backgroundTheme}
-          ownedThemeIds={settingsThemeIds}
-          onBackgroundThemeChange={onBackgroundThemeChange}
-        />
-        <RewardedAutoCheckModal
-          open={rewardedOpen}
-          onClose={() => setRewardedOpen(false)}
-          watchedToday={rewardedAdsWatched}
-          onWatchAd={onWatchRewardedAd}
-        />
-        <AutoCheckTimeoutModal
-          open={timeoutModalOpen}
-          walletAutoChecks={player.walletAutoChecks}
-          onUse={onUseAutoCheckAtTimeout}
-          onDecline={onDeclineAutoCheckAtTimeout}
-        />
-        <Modal open={exitConfirmOpen} title="Sair do jogo?" onClose={() => setExitConfirmOpen(false)}>
-          <div className="space-y-4">
-            <p className="text-sm leading-relaxed text-stone-200">
-              Deseja sair mesmo ou continuar no menu?
-            </p>
-            <button
-              type="button"
-              onClick={requestExitAppOrPreviousPage}
-              className="game-btn-push game-btn-push-amber w-full rounded-xl bg-gradient-to-b from-amber-300 to-amber-500 px-4 py-3 text-sm font-semibold text-amber-950"
-            >
-              Sair
-            </button>
-            <button
-              type="button"
-              onClick={() => setExitConfirmOpen(false)}
-              className="game-btn-push game-btn-push-secondary w-full rounded-xl bg-charcoal-elevated px-4 py-3 text-sm font-semibold text-stone-100"
-            >
-              Continuar
-            </button>
-          </div>
-        </Modal>
-      </Suspense>
+      <GameModalLayer
+        playerOpen={playerOpen}
+        shopOpen={shopOpen}
+        settingsOpen={settingsOpen}
+        rewardedOpen={rewardedOpen}
+        timeoutModalOpen={timeoutModalOpen}
+        exitConfirmOpen={exitConfirmOpen}
+        player={player}
+        topScores={topScores}
+        godModeEnabled={godModeEnabled}
+        showGodModeToggle={showGodModeToggle}
+        soundEnabled={soundEnabled}
+        devModeEnabled={devModeEnabled}
+        backgroundTheme={backgroundTheme}
+        settingsThemeIds={settingsThemeIds}
+        rewardedAdsWatched={rewardedAdsWatched}
+        onClosePlayer={closePlayerModal}
+        onCloseShop={closeShopModal}
+        onCloseSettings={closeSettingsModal}
+        onCloseRewarded={() => setRewardedOpen(false)}
+        onOpenRewardedFromPlayer={() => {
+          setPlayerOpen(false)
+          setRewardedOpen(true)
+        }}
+        onSaveDisplayName={onSaveDisplayName}
+        onBuyTheme={onBuyTheme}
+        onSoundChange={onSoundChange}
+        onDevModeChange={onDevModeChange}
+        onGodModeChange={onGodModeChange}
+        onBackgroundThemeChange={onBackgroundThemeChange}
+        onWatchRewardedAd={onWatchRewardedAd}
+        onUseAutoCheckAtTimeout={onUseAutoCheckAtTimeout}
+        onDeclineAutoCheckAtTimeout={onDeclineAutoCheckAtTimeout}
+        onCloseExitConfirm={() => setExitConfirmOpen(false)}
+        onConfirmExit={requestExitAppOrPreviousPage}
+      />
       {isGameOver && (
         <ShareCardTemplate
           theme={backgroundTheme}

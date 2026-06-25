@@ -21,19 +21,34 @@ export function ModalScrollArea({ children }: { children: ReactNode }) {
   const syncEdges = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
-    setEdges(readScrollEdges(el))
+    const next = readScrollEdges(el)
+    setEdges((current) =>
+      current.top === next.top && current.bottom === next.bottom ? current : next,
+    )
   }, [])
 
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
 
-    syncEdges()
-    const observer = new ResizeObserver(syncEdges)
+    let frameId = 0
+    const scheduleSync = () => {
+      if (frameId) cancelAnimationFrame(frameId)
+      frameId = requestAnimationFrame(() => {
+        frameId = 0
+        syncEdges()
+      })
+    }
+
+    scheduleSync()
+    const observer = new ResizeObserver(scheduleSync)
     observer.observe(el)
 
-    return () => observer.disconnect()
-  }, [syncEdges, children])
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId)
+      observer.disconnect()
+    }
+  }, [syncEdges])
 
   return (
     <div className="game-modal-scroll-shell">
