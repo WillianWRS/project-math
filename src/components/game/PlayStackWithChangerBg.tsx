@@ -14,12 +14,14 @@ const CHANGER_STACK_CLASS: Record<PlayStackChangerTheme, string> = {
 interface PlayStackWithChangerBgProps {
   baseClassName: string
   activeChangerTheme: PlayStackChangerTheme | null
+  instantSwitch?: boolean
   children: ReactNode
 }
 
 export function PlayStackWithChangerBg({
   baseClassName,
   activeChangerTheme,
+  instantSwitch = false,
   children,
 }: PlayStackWithChangerBgProps) {
   const reduceMotion = useReducedMotion()
@@ -28,6 +30,11 @@ export function PlayStackWithChangerBg({
   const prevThemeRef = useRef(activeChangerTheme)
 
   useEffect(() => {
+    if (instantSwitch) {
+      prevThemeRef.current = activeChangerTheme
+      return
+    }
+
     const prev = prevThemeRef.current
     prevThemeRef.current = activeChangerTheme
 
@@ -86,10 +93,12 @@ export function PlayStackWithChangerBg({
       window.clearTimeout(enterTimeout)
       window.clearTimeout(exitTimeout)
     }
-  }, [activeChangerTheme, reduceMotion])
+  }, [activeChangerTheme, instantSwitch, reduceMotion])
 
   const stackChangerClass = activeChangerTheme ? CHANGER_STACK_CLASS[activeChangerTheme] : ''
-  const overlayChangerClass = overlayTheme ? CHANGER_STACK_CLASS[overlayTheme] : ''
+  const effectiveOverlayTheme = instantSwitch ? activeChangerTheme : overlayTheme
+  const effectiveOverlayPhase = instantSwitch ? (activeChangerTheme ? 'steady' : null) : overlayPhase
+  const overlayChangerClass = effectiveOverlayTheme ? CHANGER_STACK_CLASS[effectiveOverlayTheme] : ''
 
   return (
     <div
@@ -97,7 +106,7 @@ export function PlayStackWithChangerBg({
         stackChangerClass ? ` ${stackChangerClass}` : ''
       }`}
     >
-      {overlayTheme && overlayPhase === 'exit' ? (
+      {effectiveOverlayTheme && effectiveOverlayPhase === 'exit' ? (
         <>
           <div
             className={`game-play-stack__changer-overlay ${overlayChangerClass} game-play-stack__changer-overlay--steady`}
@@ -108,9 +117,9 @@ export function PlayStackWithChangerBg({
             aria-hidden
           />
         </>
-      ) : overlayTheme && overlayPhase ? (
+      ) : effectiveOverlayTheme && effectiveOverlayPhase ? (
         <div
-          className={`game-play-stack__changer-overlay ${overlayChangerClass} game-play-stack__changer-overlay--${overlayPhase}`}
+          className={`game-play-stack__changer-overlay ${overlayChangerClass} game-play-stack__changer-overlay--${effectiveOverlayPhase}`}
           aria-hidden
         />
       ) : null}

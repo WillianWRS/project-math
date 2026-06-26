@@ -44,11 +44,19 @@ const DAILY_GOAL_XP_REWARD = 1000
 const PERFECT_ANSWER_RATIO = 0.9
 const MENU_AUDIO_PREPARE_TIMEOUT_MS = 12_000
 const SHOW_GOD_MODE_TOGGLE = false
+const TUTORIAL_REWARD_XP = 200
+const TUTORIAL_REWARD_COINS = 200
 
 export interface PostGameRewards {
   xpGained: number
   coinsGained: number
   goalCompleted: boolean
+}
+
+export interface TutorialCompletionResult {
+  rewardsGranted: boolean
+  xpGained: number
+  coinsGained: number
 }
 
 export function useGame() {
@@ -584,6 +592,30 @@ export function useGame() {
     return purchaseTheme(theme, getThemePurchasePrice(priceCoins, godModeEnabled))
   }, [godModeEnabled, purchaseTheme])
 
+  const completeTutorial = useCallback((): TutorialCompletionResult => {
+    let rewardsGranted = false
+    let xpGained = 0
+    let coinsGained = 0
+
+    commitPlayer((current) => {
+      rewardsGranted = !current.tutorial.rewardsClaimed
+      xpGained = rewardsGranted ? TUTORIAL_REWARD_XP : 0
+      coinsGained = rewardsGranted ? TUTORIAL_REWARD_COINS : 0
+
+      return {
+        ...current,
+        xp: current.xp + xpGained,
+        coins: current.coins + coinsGained,
+        tutorial: {
+          completed: true,
+          rewardsClaimed: true,
+        },
+      }
+    })
+
+    return { rewardsGranted, xpGained, coinsGained }
+  }, [commitPlayer])
+
   return {
     session,
     inputValue,
@@ -623,5 +655,6 @@ export function useGame() {
     playWriteKey,
     playEraseKey,
     playGoToMenu,
+    completeTutorial,
   }
 }

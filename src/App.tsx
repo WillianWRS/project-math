@@ -43,6 +43,7 @@ function App() {
       onPlayWriteKey={game.playWriteKey}
       onPlayEraseKey={game.playEraseKey}
       onPlayGoToMenu={game.playGoToMenu}
+      onCompleteTutorial={game.completeTutorial}
     />
   )
 }

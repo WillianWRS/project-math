@@ -6,6 +6,7 @@ import type { BenchmarkVirtualKey } from '../../engine/benchmark-types'
 interface NumericKeypadProps {
   disabled?: boolean
   interactionLocked?: boolean
+  autoCheckOnly?: boolean
   backspaceDisabled?: boolean
   autoCheckCharges?: number
   virtualPress?: { key: BenchmarkVirtualKey; token: number } | null
@@ -286,6 +287,7 @@ function BackspaceKey({
 export const NumericKeypad = memo(function NumericKeypad({
   disabled = false,
   interactionLocked = false,
+  autoCheckOnly = false,
   backspaceDisabled = false,
   autoCheckCharges = 0,
   virtualPress = null,
@@ -297,6 +299,7 @@ export const NumericKeypad = memo(function NumericKeypad({
   const isVirtualPressed = (key: BenchmarkVirtualKey) => virtualPress?.key === key
   const digitVirtualKey = (digit: string) => `digit-${digit}` as BenchmarkVirtualKey
   const effectiveDisabled = disabled && !interactionLocked
+  const numericDisabled = effectiveDisabled || autoCheckOnly
 
   return (
     <motion.div
@@ -312,9 +315,9 @@ export const NumericKeypad = memo(function NumericKeypad({
           {row.map((digit) => (
             <PremiumKey
               key={digit}
-              disabled={effectiveDisabled}
+              disabled={numericDisabled}
               variants={keypadReveal.key}
-              whileTap={effectiveDisabled ? undefined : { scale: 0.97, y: 1 }}
+              whileTap={numericDisabled ? undefined : { scale: 0.97, y: 1 }}
               virtualPressed={isVirtualPressed(digitVirtualKey(digit))}
               forceVisible={interactionLocked}
               onClick={() => onDigit(digit)}
@@ -335,9 +338,9 @@ export const NumericKeypad = memo(function NumericKeypad({
         />
         <PremiumKey
           key="digit-0"
-          disabled={effectiveDisabled}
+          disabled={numericDisabled}
           variants={keypadReveal.key}
-          whileTap={effectiveDisabled ? undefined : { scale: 0.97, y: 1 }}
+          whileTap={numericDisabled ? undefined : { scale: 0.97, y: 1 }}
           virtualPressed={isVirtualPressed('digit-0')}
           forceVisible={interactionLocked}
           onClick={() => onDigit('0')}
@@ -346,7 +349,7 @@ export const NumericKeypad = memo(function NumericKeypad({
           0
         </PremiumKey>
         <BackspaceKey
-          disabled={effectiveDisabled || backspaceDisabled}
+          disabled={numericDisabled || backspaceDisabled}
           variants={keypadReveal.key}
           forceVisible={interactionLocked}
           onBackspace={onBackspace}
@@ -355,9 +358,9 @@ export const NumericKeypad = memo(function NumericKeypad({
 
       <PremiumKey
         key="enter"
-        disabled={effectiveDisabled}
+        disabled={numericDisabled}
         variants={keypadReveal.key}
-        whileTap={effectiveDisabled ? undefined : { scale: 0.98, y: 1 }}
+        whileTap={numericDisabled ? undefined : { scale: 0.98, y: 1 }}
         className="game-numeric-keypad__key--enter game-numeric-keypad__key--enter-wide"
         virtualPressed={isVirtualPressed('enter')}
         forceVisible={interactionLocked}

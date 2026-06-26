@@ -22,6 +22,13 @@ import {
 } from '../../lib/scene-decor-pause'
 import { isFourSecondsGameChangerActive, isMinusGameChangerActive, isPlusGameChangerActive, isTimesDivGameChangerActive } from '../../engine/game-changer-cycles'
 import { OPERATOR_COLOR_CLASS } from '../../engine/operation-generator'
+import {
+  generateFourSecondsOperation,
+  generateInitialBase,
+  generateOperation,
+  generatePlusCycleOperation,
+  generateTimesDivOperation,
+} from '../../engine/operation-generator'
 import { SUBMIT_LOCK_MS } from '../../engine/game-state-machine'
 import { RightSideCardCatalog, type RightCardVariant } from './side-card-types'
 import type { Operation } from '../../engine/types'
@@ -35,7 +42,7 @@ import { isIPhone } from '../../platform/device'
 import { playSfx } from '../../platform/audio-service'
 import type { BackgroundTheme, PlayerData, ScoreRecord } from '../../platform/storage'
 import { THEME_CATALOG } from '../../cosmetics/theme-catalog'
-import type { PostGameRewards } from '../../hooks/useGame'
+import type { PostGameRewards, TutorialCompletionResult } from '../../hooks/useGame'
 import type { BenchmarkMetricGradeId, BenchmarkMetrics, BenchmarkVirtualKey } from '../../engine/benchmark-types'
 import { GameModalLayer } from './GameModalLayer'
 import { playUiClickAfterPaint } from '../../lib/modal-ui'
@@ -78,9 +85,10 @@ interface GameScreenProps {
   onPlayWriteKey: () => void
   onPlayEraseKey: () => void
   onPlayGoToMenu: () => void
+  onCompleteTutorial: () => TutorialCompletionResult
 }
 
-type PresentationPhase = 'menu' | 'opening' | 'in-game' | 'theme-test' | 'closing'
+type PresentationPhase = 'menu' | 'opening' | 'in-game' | 'theme-test' | 'tutorial' | 'closing'
 
 const slideTransition = SLIDE_TRANSITION
 const sceneEnterTransition = { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const }
@@ -90,6 +98,50 @@ const CLOSE_DURATION_MS = 320
 const menuStageTransition = { duration: 0.26, ease: [0.22, 1, 0.36, 1] as const }
 const layerParallaxTransition = { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
 const LIGHT_THEMES: BackgroundTheme[] = ['water', 'sunset', 'ice', 'aurora']
+const TUTORIAL_FINAL_TARGET = 10
+
+type TutorialStep =
+  | 0
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6
+  | 7
+  | 8
+  | 9
+  | 10
+  | 11
+  | 12
+  | 13
+  | 14
+  | 15
+  | 16
+  | 17
+  | 18
+
+const TUTORIAL_MESSAGES: Record<TutorialStep, string> = {
+  0: 'Acerte o máximo de cálculos que conseguir.',
+  1: 'Esse é o número base.',
+  2: 'Essa é a operação.',
+  3: 'Aqui é onde os números digitados aparecem.',
+  4: 'Digite a resposta da operação.',
+  5: 'Sua vez: digite o resultado de 5 + 2. Tempo infinito.',
+  6: 'Resolva os cálculos antes que o tempo acabe.',
+  7: 'Durante o jogo podem aparecer alguns modificadores que mudam as regras durante alguns cálculos.',
+  8: 'Modificador de tiro rápido, os cálculos a seguir tem apenas 4 segundos para resolver mas só aparecem operações de + e - .',
+  9: 'Modificador de dividir e multiplicar, os cálculos a seguir serão somente multiplicação ou divisão.',
+  10: 'Modificador de subida ao 99, os cálculos a seguir serão apenas soma até chegar em 99 .',
+  11: 'Modificador de descida ao 1, os cálculos a seguir serão apenas subtrações até chegar a 1.',
+  12: 'Durante o jogo auto checks podem aparecer, utilizá-lo resolve uma conta automaticamente.',
+  13: 'Você pode acumular auto checks ganhos durante o jogo e adquirir mais auto checks no menu de jogador',
+  14: 'Utilize um auto check',
+  15: '',
+  16: 'Mostre o que aprendeu, resolva 10 cálculos e complete o tutorial.',
+  17: '',
+  18: '',
+}
 
 const SCENE_THEME_CLASS: Partial<Record<BackgroundTheme, string>> = {
   default: 'game-scene--default',
@@ -966,6 +1018,7 @@ function AnswerDisplay({
   timesDivLight = false,
   plusLight = false,
   minusLight = false,
+  pulse = false,
   slotRef,
 }: {
   value: string
@@ -988,6 +1041,7 @@ function AnswerDisplay({
   timesDivLight?: boolean
   plusLight?: boolean
   minusLight?: boolean
+  pulse?: boolean
   slotRef?: RefObject<HTMLDivElement | null>
 }) {
   const displayValue = answerFlash ? '' : value || '·'
@@ -1013,7 +1067,9 @@ function AnswerDisplay({
                       : retroLight
                         ? ' game-answer-row--retro'
                         : ''
-      }${gameChangerActive ? ' game-answer-row--game-changer' : ''}`}
+      }${gameChangerActive ? ' game-answer-row--game-changer' : ''}${
+        pulse ? ' game-tutorial-field-pulse' : ''
+      }`}
     >
       {perfectAnswerToken > 0 && <PerfectAnswerBadge token={perfectAnswerToken} />}
       <AnimatePresence>
@@ -1137,6 +1193,7 @@ export function GameScreen({
   onPlayWriteKey,
   onPlayEraseKey,
   onPlayGoToMenu,
+  onCompleteTutorial,
 }: GameScreenProps) {
   const sceneRootRef = useRef<HTMLDivElement>(null)
   const [playerOpen, setPlayerOpen] = useState(false)
@@ -1148,7 +1205,9 @@ export function GameScreen({
   const [presentation, setPresentation] = useState<PresentationPhase>('menu')
   const answerFieldRef = useRef<HTMLDivElement>(null)
   const [sharing, setSharing] = useState(false)
-  const [pendingStartMode, setPendingStartMode] = useState<'play' | 'benchmark' | 'theme-test' | null>(null)
+  const [pendingStartMode, setPendingStartMode] = useState<
+    'play' | 'benchmark' | 'theme-test' | 'tutorial' | null
+  >(null)
   const [themeTestScore, setThemeTestScore] = useState(0)
   const [themeTestBurstFlash, setThemeTestBurstFlash] = useState<number | null>(null)
   const [themeTestBurstToken, setThemeTestBurstToken] = useState(0)
@@ -1156,6 +1215,34 @@ export function GameScreen({
   const [themeTestChangerBurst, setThemeTestChangerBurst] = useState<RightCardVariant | null>(null)
   const [themeTestChangerBurstToken, setThemeTestChangerBurstToken] = useState(0)
   const [themeTestAutoCheckEnabled, setThemeTestAutoCheckEnabled] = useState(true)
+  const [tutorialStep, setTutorialStep] = useState<TutorialStep>(0)
+  const [tutorialInput, setTutorialInput] = useState('')
+  const [tutorialDemoBase, setTutorialDemoBase] = useState(24)
+  const [tutorialDemoOperation, setTutorialDemoOperation] = useState<Operation>({
+    operator: '+',
+    operand: 7,
+    result: 31,
+  })
+  const [tutorialDemoAnswer, setTutorialDemoAnswer] = useState('31')
+  const [tutorialDemoScore, setTutorialDemoScore] = useState(0)
+  const [tutorialDemoChangerRound, setTutorialDemoChangerRound] = useState(0)
+  const [tutorialAutoDemoCharge, setTutorialAutoDemoCharge] = useState(1)
+  const [tutorialAutoDemoResolving, setTutorialAutoDemoResolving] = useState(false)
+  const [tutorialStep5Resolving, setTutorialStep5Resolving] = useState(false)
+  const [tutorialStep5ShakeActive, setTutorialStep5ShakeActive] = useState(false)
+  const [tutorialFinalShakeActive, setTutorialFinalShakeActive] = useState(false)
+  const [tutorialDefeatTimerMs, setTutorialDefeatTimerMs] = useState(4_000)
+  const [tutorialDefeatGameOver, setTutorialDefeatGameOver] = useState(false)
+  const [tutorialFinalBase, setTutorialFinalBase] = useState(7)
+  const [tutorialFinalOperation, setTutorialFinalOperation] = useState<Operation>({
+    operator: '+',
+    operand: 3,
+    result: 10,
+  })
+  const [tutorialFinalInput, setTutorialFinalInput] = useState('')
+  const [tutorialFinalSolved, setTutorialFinalSolved] = useState(0)
+  const [tutorialFinalAutoChecks, setTutorialFinalAutoChecks] = useState(1)
+  const [tutorialCompletionResult, setTutorialCompletionResult] = useState<TutorialCompletionResult | null>(null)
   const onStartRef = useRef(onStart)
   const onStartBenchmarkSessionRef = useRef(onStartBenchmarkSession)
   const onInputChangeRef = useRef(onInputChange)
@@ -1197,6 +1284,7 @@ export function GameScreen({
   const isPlaying = session.phase === 'playing'
   const isGameOver = session.phase === 'game_over'
   const isThemeTestScene = presentation === 'theme-test'
+  const isTutorialScene = presentation === 'tutorial'
   const showBenchmarkResults = benchmarkMode && isGameOver && benchmarkMetrics !== null
   const playerLevel = xpToLevel(player.xp)
   const gameOverElapsedText = formatDuration(session.elapsedMs)
@@ -1263,30 +1351,43 @@ export function GameScreen({
     inputValueRef.current = nextValue
     onInputChange(nextValue)
   }, [inputDisabled, onInputChange, onPlayEraseKey])
-  const showGameContent = presentation === 'opening' || presentation === 'in-game' || presentation === 'theme-test'
+  const showGameContent =
+    presentation === 'opening' ||
+    presentation === 'in-game' ||
+    presentation === 'theme-test' ||
+    presentation === 'tutorial'
   const showMenuChrome = presentation === 'menu'
   const isInGameScene = presentation !== 'menu'
   const parallaxLayerActive =
-    presentation === 'opening' || presentation === 'in-game' || presentation === 'theme-test'
-  const useWaterBackground = isInGameScene && backgroundTheme === 'water'
+    presentation === 'opening' ||
+    presentation === 'in-game' ||
+    presentation === 'theme-test' ||
+    presentation === 'tutorial'
+  const effectiveBackgroundTheme: BackgroundTheme = backgroundTheme
+  const useWaterBackground = isInGameScene && effectiveBackgroundTheme === 'water'
   const useWaterLikeBackground =
-    isInGameScene && (backgroundTheme === 'water' || backgroundTheme === 'ice' || backgroundTheme === 'aurora')
-  const useSunsetBackground = isInGameScene && backgroundTheme === 'sunset'
+    isInGameScene &&
+    (effectiveBackgroundTheme === 'water' ||
+      effectiveBackgroundTheme === 'ice' ||
+      effectiveBackgroundTheme === 'aurora')
+  const useSunsetBackground = isInGameScene && effectiveBackgroundTheme === 'sunset'
   const useSunsetUiLight = useSunsetBackground
-  const useForestBackground = isInGameScene && backgroundTheme === 'forest'
+  const useForestBackground = isInGameScene && effectiveBackgroundTheme === 'forest'
   const useForestUiLight = useForestBackground
-  const useVioletBackground = isInGameScene && backgroundTheme === 'violet'
+  const useVioletBackground = isInGameScene && effectiveBackgroundTheme === 'violet'
   const useVioletUiLight = useVioletBackground
-  const useEmberBackground = isInGameScene && backgroundTheme === 'ember'
+  const useEmberBackground = isInGameScene && effectiveBackgroundTheme === 'ember'
   const useEmberUiLight = useEmberBackground
-  const useNeonBackground = isInGameScene && backgroundTheme === 'neon'
+  const useNeonBackground = isInGameScene && effectiveBackgroundTheme === 'neon'
   const useNeonUiLight = useNeonBackground
-  const useMidnightBackground = isInGameScene && backgroundTheme === 'midnight'
+  const useMidnightBackground = isInGameScene && effectiveBackgroundTheme === 'midnight'
   const useMidnightUiLight = useMidnightBackground
-  const useRetroBackground = isInGameScene && backgroundTheme === 'retro'
+  const useRetroBackground = isInGameScene && effectiveBackgroundTheme === 'retro'
   const useRetroUiLight = useRetroBackground
-  const useLightBackground = isInGameScene && LIGHT_THEMES.includes(backgroundTheme)
-  const sceneThemeClass = isInGameScene ? (SCENE_THEME_CLASS[backgroundTheme] ?? 'bg-charcoal') : 'bg-charcoal'
+  const useLightBackground = isInGameScene && LIGHT_THEMES.includes(effectiveBackgroundTheme)
+  const sceneThemeClass = isInGameScene
+    ? (SCENE_THEME_CLASS[effectiveBackgroundTheme] ?? 'bg-charcoal')
+    : 'bg-charcoal'
   const headerThemeClass = useWaterLikeBackground
     ? 'game-scene-header--water'
     : useSunsetBackground
@@ -1354,7 +1455,7 @@ export function GameScreen({
                         : useRetroUiLight
                           ? 'text-amber-900/45'
                           : 'text-charcoal-muted'
-  const showCurtain = presentation !== 'in-game' && presentation !== 'theme-test'
+  const showCurtain = presentation !== 'in-game' && presentation !== 'theme-test' && presentation !== 'tutorial'
   const curtainOpen = presentation === 'opening'
   const curtainInitialOpen = presentation === 'closing'
 
@@ -1368,6 +1469,101 @@ export function GameScreen({
       setSharing(false)
     }
   }
+
+  const createTutorialFinalOperation = useCallback((base: number, previous: Operation | null = null): Operation => {
+    return generateOperation(base, 5, previous)
+  }, [])
+
+  const createTutorialModifierOperation = useCallback(
+    (step: TutorialStep, base: number, previous: Operation | null = null): Operation => {
+      if (step === 8) return generateFourSecondsOperation(base, previous)
+      if (step === 9) return generateTimesDivOperation(base, 5, previous)
+      if (step === 10) return generatePlusCycleOperation(base, previous)
+      if (step === 11) {
+        const safeBase = Math.max(2, base)
+        const operation: Operation = {
+          operator: '-',
+          operand: Math.min(9, safeBase - 1),
+          result: safeBase - Math.min(9, safeBase - 1),
+        }
+        return operation
+      }
+      return generateOperation(base, 5, previous)
+    },
+    [],
+  )
+
+  const createTutorialMinusToOneOperation = useCallback((base: number, stepsLeft: number): Operation => {
+    const safeBase = Math.max(2, base)
+    const rawOperand =
+      stepsLeft <= 1 ? safeBase - 1 : Math.ceil((safeBase - 1) / Math.max(1, stepsLeft))
+    const operand = Math.max(1, Math.min(9, Math.min(safeBase - 1, rawOperand)))
+    return {
+      operator: '-',
+      operand,
+      result: safeBase - operand,
+    }
+  }, [])
+
+  const prepareTutorialModifierStep = useCallback(
+    (step: TutorialStep) => {
+      const initialBase = step === 8 ? 24 : step === 9 ? 36 : step === 10 ? 70 : 18
+      const initialOperation =
+        step === 11
+          ? createTutorialMinusToOneOperation(initialBase, 5)
+          : createTutorialModifierOperation(step, initialBase, null)
+      setTutorialDemoBase(initialBase)
+      setTutorialDemoOperation(initialOperation)
+      setTutorialDemoAnswer(String(initialOperation.result))
+      setTutorialDemoChangerRound(1)
+    },
+    [createTutorialMinusToOneOperation, createTutorialModifierOperation],
+  )
+
+  const prepareTutorialAutoCheckStep = useCallback(() => {
+    setTutorialDemoBase(98)
+    setTutorialDemoOperation({ operator: '÷', operand: 14, result: 7 })
+    setTutorialDemoAnswer('')
+    setTutorialAutoDemoCharge(1)
+    setTutorialAutoDemoResolving(false)
+  }, [])
+
+  const prepareTutorialFinalChallengeStep = useCallback(() => {
+    const initialBase = generateInitialBase(5)
+    const initialOperation = createTutorialFinalOperation(initialBase, null)
+    setTutorialFinalBase(initialBase)
+    setTutorialFinalOperation(initialOperation)
+    setTutorialFinalInput('')
+    setTutorialFinalSolved(0)
+    setTutorialFinalAutoChecks(0)
+    setTutorialFinalShakeActive(false)
+  }, [createTutorialFinalOperation])
+
+  const resetTutorialState = useCallback(() => {
+    setTutorialStep(0)
+    setTutorialInput('')
+    setTutorialDemoBase(24)
+    setTutorialDemoOperation({ operator: '+', operand: 7, result: 31 })
+    setTutorialDemoAnswer('31')
+    setTutorialDemoScore(0)
+    setTutorialDemoChangerRound(0)
+    setTutorialAutoDemoCharge(1)
+    setTutorialAutoDemoResolving(false)
+    setTutorialStep5Resolving(false)
+    setTutorialStep5ShakeActive(false)
+    setTutorialFinalShakeActive(false)
+    setTutorialDefeatTimerMs(4_000)
+    setTutorialDefeatGameOver(false)
+
+    const initialBase = generateInitialBase(5)
+    const initialOperation = createTutorialFinalOperation(initialBase, null)
+    setTutorialFinalBase(initialBase)
+    setTutorialFinalOperation(initialOperation)
+    setTutorialFinalInput('')
+    setTutorialFinalSolved(0)
+    setTutorialFinalAutoChecks(0)
+    setTutorialCompletionResult(null)
+  }, [createTutorialFinalOperation])
 
   const handlePlay = () => {
     if (presentation !== 'menu') return
@@ -1400,6 +1596,16 @@ export function GameScreen({
     setThemeTestAutoCheckEnabled(true)
     onPlayGameStart()
     setSharing(false)
+    setPresentation('opening')
+  }
+
+  const handleTutorial = () => {
+    if (presentation !== 'menu') return
+    setExitConfirmOpen(false)
+    setPendingStartMode('tutorial')
+    setSharing(false)
+    onPlayGameStart()
+    resetTutorialState()
     setPresentation('opening')
   }
 
@@ -1563,6 +1769,234 @@ export function GameScreen({
     handleThemeTestAutoCheckToggle()
   }
 
+  const resolveTutorialFinalAnswer = useCallback(() => {
+    if (!isTutorialScene || tutorialStep !== 17) return
+    const trimmed = tutorialFinalInput.trim()
+    if (trimmed.length === 0) return
+    const parsed = Number.parseInt(trimmed, 10)
+    if (Number.isNaN(parsed) || parsed !== tutorialFinalOperation.result) {
+      playSfx('error', soundEnabled)
+      setShakeKey((key) => key + 1)
+      setTutorialFinalInput('')
+      setTutorialFinalShakeActive(true)
+      window.setTimeout(() => {
+        setTutorialFinalShakeActive(false)
+      }, SUBMIT_LOCK_MS)
+      return
+    }
+
+    const nextSolved = tutorialFinalSolved + 1
+    setTutorialFinalSolved(nextSolved)
+    setTutorialFinalInput('')
+
+    if (nextSolved >= TUTORIAL_FINAL_TARGET) {
+      playSfx('record', soundEnabled)
+      if (tutorialCompletionResult === null) {
+        setTutorialCompletionResult(onCompleteTutorial())
+      }
+      setTutorialStep(18)
+      return
+    }
+
+    const nextBase = tutorialFinalOperation.result
+    const nextOperation = createTutorialFinalOperation(nextBase, tutorialFinalOperation)
+    setTutorialFinalBase(nextBase)
+    setTutorialFinalOperation(nextOperation)
+  }, [
+    createTutorialFinalOperation,
+    isTutorialScene,
+    onCompleteTutorial,
+    soundEnabled,
+    tutorialCompletionResult,
+    tutorialFinalInput,
+    tutorialFinalOperation,
+    tutorialFinalSolved,
+    tutorialStep,
+  ])
+
+  const handleTutorialDigit = useCallback((digit: string) => {
+    if (!isTutorialScene) return
+    if (tutorialStep === 5) {
+      const next = `${tutorialInput}${digit}`.replace(/\D/g, '').slice(0, 2)
+      setTutorialInput(next)
+      onPlayWriteKey()
+      return
+    }
+    if (tutorialStep !== 17) return
+    const next = `${tutorialFinalInput}${digit}`.replace(/\D/g, '').slice(0, 2)
+    setTutorialFinalInput(next)
+    onPlayWriteKey()
+  }, [isTutorialScene, onPlayWriteKey, tutorialFinalInput, tutorialInput, tutorialStep])
+
+  const handleTutorialBackspace = useCallback(() => {
+    if (!isTutorialScene) return
+    if (tutorialStep === 5) {
+      setTutorialInput((current) => current.slice(0, -1))
+      onPlayEraseKey()
+      return
+    }
+    if (tutorialStep !== 17) return
+    setTutorialFinalInput((current) => current.slice(0, -1))
+    onPlayEraseKey()
+  }, [isTutorialScene, onPlayEraseKey, tutorialStep])
+
+  const handleTutorialAutoCheck = useCallback(() => {
+    if (!isTutorialScene) return
+
+    if (tutorialStep === 15) {
+      if (tutorialAutoDemoCharge <= 0 || tutorialAutoDemoResolving) return
+      setTutorialAutoDemoCharge(0)
+      setTutorialAutoDemoResolving(true)
+      setTutorialDemoAnswer(String(tutorialDemoOperation.result))
+      playSfx('autoCheck', soundEnabled)
+
+      const nextBase = tutorialDemoOperation.result
+      const nextOperation = generateOperation(nextBase, 5, tutorialDemoOperation)
+      window.setTimeout(() => {
+        setTutorialDemoBase(nextBase)
+        setTutorialDemoOperation(nextOperation)
+        setTutorialDemoAnswer('')
+      }, 260)
+
+      window.setTimeout(() => {
+        setTutorialAutoDemoResolving(false)
+        setTutorialStep(16)
+      }, 920)
+      return
+    }
+
+    if (tutorialStep !== 17 || tutorialFinalAutoChecks <= 0) return
+    setTutorialFinalAutoChecks(0)
+    setTutorialFinalInput(String(tutorialFinalOperation.result))
+    playSfx('autoCheck', soundEnabled)
+  }, [
+    isTutorialScene,
+    soundEnabled,
+    tutorialAutoDemoCharge,
+    tutorialAutoDemoResolving,
+    tutorialDemoOperation,
+    tutorialFinalAutoChecks,
+    tutorialFinalOperation.result,
+    tutorialStep,
+  ])
+
+  const handleTutorialEnter = useCallback(() => {
+    if (tutorialStep === 17) {
+      resolveTutorialFinalAnswer()
+      return
+    }
+    if (tutorialStep !== 5 || tutorialStep5Resolving) return
+    if (tutorialInput !== '7') {
+      playSfx('error', soundEnabled)
+      setTutorialInput('')
+      setTutorialStep5ShakeActive(true)
+      setShakeKey((key) => key + 1)
+      window.setTimeout(() => {
+        setTutorialStep5ShakeActive(false)
+      }, SUBMIT_LOCK_MS)
+      return
+    }
+
+    playSfx('success', soundEnabled)
+    const nextBase = 7
+    const nextOperation = generateOperation(nextBase, 1, null)
+    setTutorialDemoBase(nextBase)
+    setTutorialDemoOperation(nextOperation)
+    setTutorialDemoAnswer('')
+    setTutorialInput('')
+    setTutorialStep5ShakeActive(false)
+    setTutorialStep5Resolving(true)
+
+    window.setTimeout(() => {
+      setTutorialStep5Resolving(false)
+      setTutorialDefeatTimerMs(4_000)
+      setTutorialDefeatGameOver(false)
+      setTutorialStep(6)
+    }, 420)
+  }, [
+    resolveTutorialFinalAnswer,
+    soundEnabled,
+    tutorialInput,
+    tutorialStep,
+    tutorialStep5Resolving,
+  ])
+
+  const advanceTutorialStep = useCallback(() => {
+    if (!isTutorialScene) return
+    if (tutorialStep === 17 && tutorialFinalSolved < TUTORIAL_FINAL_TARGET) return
+
+    playSfx('success', soundEnabled)
+
+    if (tutorialStep === 18) {
+      handleReturnToMenu()
+      return
+    }
+
+    const nextStep = Math.min(18, tutorialStep + 1) as TutorialStep
+    if (nextStep >= 8 && nextStep <= 11) {
+      prepareTutorialModifierStep(nextStep)
+    }
+    if (nextStep >= 12 && nextStep <= 15) {
+      prepareTutorialAutoCheckStep()
+    }
+    if (nextStep === 17) {
+      prepareTutorialFinalChallengeStep()
+    }
+    setTutorialStep(nextStep)
+  }, [
+    handleReturnToMenu,
+    isTutorialScene,
+    prepareTutorialAutoCheckStep,
+    prepareTutorialFinalChallengeStep,
+    prepareTutorialModifierStep,
+    soundEnabled,
+    tutorialFinalSolved,
+    tutorialStep,
+  ])
+
+  useEffect(() => {
+    if (!isTutorialScene || tutorialStep !== 6 || tutorialDefeatGameOver) return
+
+    const timeout = window.setTimeout(() => {
+      const next = Math.max(0, tutorialDefeatTimerMs - 100)
+      setTutorialDefeatTimerMs(next)
+      if (next <= 0) {
+        playSfx('gameOver', soundEnabled)
+        setTutorialDefeatGameOver(true)
+      }
+    }, 100)
+
+    return () => window.clearTimeout(timeout)
+  }, [isTutorialScene, soundEnabled, tutorialDefeatGameOver, tutorialDefeatTimerMs, tutorialStep])
+
+  useEffect(() => {
+    if (!isTutorialScene || tutorialStep < 8 || tutorialStep > 11) return
+    if (tutorialDemoChangerRound >= 5) return
+
+    const timeout = window.setTimeout(() => {
+      const nextRound = tutorialDemoChangerRound + 1
+      const nextBase = tutorialDemoOperation.result
+      const nextOperation =
+        tutorialStep === 11
+          ? createTutorialMinusToOneOperation(nextBase, 6 - nextRound)
+          : createTutorialModifierOperation(tutorialStep, nextBase, tutorialDemoOperation)
+      setTutorialDemoBase(nextBase)
+      setTutorialDemoOperation(nextOperation)
+      setTutorialDemoAnswer(String(nextOperation.result))
+      setTutorialDemoScore((score) => score + 10)
+      setTutorialDemoChangerRound(nextRound)
+    }, 650)
+
+    return () => window.clearTimeout(timeout)
+  }, [
+    createTutorialMinusToOneOperation,
+    createTutorialModifierOperation,
+    isTutorialScene,
+    tutorialDemoChangerRound,
+    tutorialDemoOperation,
+    tutorialStep,
+  ])
+
   useEffect(() => {
     if (!showMenuChrome) return
     preloadGameplayModals()
@@ -1591,6 +2025,8 @@ export function GameScreen({
       if (mode === 'benchmark') {
         onStartBenchmarkSessionRef.current()
         setPresentation('in-game')
+      } else if (mode === 'tutorial') {
+        setPresentation('tutorial')
       } else if (mode === 'theme-test') {
         setPresentation('theme-test')
       } else {
@@ -1700,6 +2136,16 @@ export function GameScreen({
   }, [handleBackRequest, requestExitAppOrPreviousPage])
 
   const themeTestOperation: Operation = { operator: '+', operand: 7, result: 31 }
+  const tutorialChangerVariant: RightCardVariant | null =
+    tutorialStep === 8
+      ? 'timer'
+      : tutorialStep === 9
+        ? 'mult-div'
+        : tutorialStep === 10
+          ? 'cap-up'
+          : tutorialStep === 11
+            ? 'cap-down'
+            : null
   const activeChangerTheme: PlayStackChangerTheme | null = fourSecondsActive
     ? 'four-seconds'
     : timesDivActive
@@ -1709,6 +2155,60 @@ export function GameScreen({
         : minusActive
           ? 'minus-cycle'
           : null
+  const tutorialActiveChangerTheme: PlayStackChangerTheme | null =
+    tutorialChangerVariant === 'timer'
+      ? 'four-seconds'
+      : tutorialChangerVariant === 'mult-div'
+        ? 'times-div'
+        : tutorialChangerVariant === 'cap-up'
+          ? 'plus-cycle'
+          : tutorialChangerVariant === 'cap-down'
+            ? 'minus-cycle'
+            : null
+  const tutorialNextDisabled = tutorialStep === 17 && tutorialFinalSolved < TUTORIAL_FINAL_TARGET
+  const tutorialNextLabel = tutorialStep === 18 ? 'Concluir' : 'OK'
+  const tutorialStatusLine =
+    tutorialStep === 17
+      ? `${tutorialFinalSolved}/${TUTORIAL_FINAL_TARGET} contas`
+      : null
+  const tutorialDefeatRatio = Math.max(0, Math.min(1, tutorialDefeatTimerMs / 4_000))
+  const tutorialDisplayTimerRatio = tutorialStep === 6 ? tutorialDefeatRatio : 1
+  const tutorialDefeatUrgent = tutorialDefeatRatio < 0.25
+  const tutorialDefeatNearDeath = tutorialDefeatRatio < 0.2
+  const tutorialDisplayBase =
+    tutorialStep === 17
+      ? tutorialFinalBase
+      : tutorialStep === 0
+        ? ''
+        : tutorialStep <= 4
+        ? 5
+        : tutorialStep === 5
+          ? tutorialStep5Resolving
+            ? tutorialDemoBase
+            : 5
+          : tutorialDemoBase
+  const tutorialDisplayOperation: Operation | null =
+    tutorialStep === 17
+      ? tutorialFinalOperation
+      : tutorialStep === 0
+        ? null
+        : tutorialStep <= 4
+        ? ({ operator: '+', operand: 2, result: 7 } as Operation)
+        : tutorialStep === 5
+          ? tutorialStep5Resolving
+            ? tutorialDemoOperation
+            : ({ operator: '+', operand: 2, result: 7 } as Operation)
+          : tutorialDemoOperation
+  const tutorialDisplayAnswer =
+    tutorialStep === 17
+      ? tutorialFinalInput
+      : tutorialStep <= 4
+        ? ''
+        : tutorialStep === 5
+          ? tutorialStep5Resolving
+            ? ''
+            : tutorialInput
+          : tutorialDemoAnswer
   const basePlayStackClass = useWaterLikeBackground
     ? 'game-play-stack--water'
     : useSunsetBackground
@@ -1776,9 +2276,11 @@ export function GameScreen({
             <div className="game-scene-header-bar relative">
                 {isInGameScene ? (
                   <div className="game-header-left-dock">
-                    <span className="game-player-level-badge rounded-md bg-charcoal-elevated px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-200">
-                      Nível {playerLevel}
-                    </span>
+                    {!isTutorialScene && (
+                      <span className="game-player-level-badge rounded-md bg-charcoal-elevated px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-200">
+                        Nível {playerLevel}
+                      </span>
+                    )}
                     <AnimatedGameMenuButton
                       onClick={handleReturnToMenu}
                     />
@@ -1826,7 +2328,7 @@ export function GameScreen({
                 </div>
 
                 <div className="game-header-score-dock">
-                  {!isGameOver && (
+                  {!isGameOver && !isTutorialScene && (
                     <>
                       <p className="text-xs uppercase tracking-widest text-charcoal-muted">Pontuação</p>
                       <div className="game-header-score-dock__value">
@@ -1855,7 +2357,263 @@ export function GameScreen({
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ ...layerParallaxTransition, delay: 0.08 }}
           >
-            {isThemeTestScene ? (
+            {isTutorialScene ? (
+              <>
+                {tutorialStep === 6 && tutorialDefeatGameOver ? (
+                  <div className="w-full max-w-xs">
+                    <div
+                      className={`game-over-card flex h-[calc(14.5rem+3px)] w-full items-center justify-center rounded-2xl p-4 text-center ${
+                        useWaterLikeBackground
+                          ? 'game-over-card--water'
+                          : useSunsetBackground
+                            ? 'game-over-card--sunset'
+                            : 'game-over-card--default'
+                      }`}
+                    >
+                      <p className="game-over-card__score text-center text-xl font-bold">Fim de jogo</p>
+                    </div>
+                  </div>
+                ) : tutorialStep === 18 ? (
+                  <div className="w-full max-w-xs">
+                    <div
+                      className={`game-over-card flex h-[calc(14.5rem+3px)] w-full flex-col items-center justify-center rounded-2xl p-4 text-center ${
+                        useWaterLikeBackground
+                          ? 'game-over-card--water'
+                          : useSunsetBackground
+                            ? 'game-over-card--sunset'
+                            : 'game-over-card--default'
+                      }`}
+                    >
+                      <p className="game-over-card__score text-center font-mono text-2xl font-bold">
+                        Tutorial completado.
+                      </p>
+                      <div className="mt-2 text-sm font-semibold">
+                        {tutorialCompletionResult?.rewardsGranted ? (
+                          <>
+                            <span className="game-over-reward-xp">+{tutorialCompletionResult.xpGained} XP</span>
+                            <span className="game-over-reward-sep mx-2">•</span>
+                            <span className="game-over-reward-coins">+{tutorialCompletionResult.coinsGained} moedas</span>
+                          </>
+                        ) : (
+                          <span className="game-over-card__meta">Recompensas coletadas.</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <PlayFieldsSideLayout
+                    autoCheckCycleStep={tutorialStep >= 12 && tutorialStep <= 15 ? 0 : null}
+                    fourSecondsCycleStep={tutorialStep === 8 ? 0 : null}
+                    fourSecondsGameChangerRemaining={tutorialStep === 8 ? Math.max(0, 5 - tutorialDemoChangerRound) : 0}
+                    timesDivCycleStep={tutorialStep === 9 ? 0 : null}
+                    timesDivGameChangerRemaining={tutorialStep === 9 ? Math.max(0, 5 - tutorialDemoChangerRound) : 0}
+                    plusCycleStep={tutorialStep === 10 ? 0 : null}
+                    plusGameChangerActive={tutorialStep === 10}
+                    minusCycleStep={tutorialStep === 11 ? 0 : null}
+                    minusGameChangerActive={tutorialStep === 11}
+                    answerFieldRef={answerFieldRef}
+                    parallaxActive={parallaxLayerActive}
+                  >
+                    <PlayFieldsFrame
+                      level={tutorialStep === 17 ? 5 : 1}
+                      levelUpFlash={null}
+                      burstScore={tutorialStep === 17 ? tutorialFinalSolved * 10 : tutorialDemoScore}
+                      waterLight
+                      borderActive
+                    >
+                      <div className="relative">
+                        <PlayStackWithChangerBg
+                          baseClassName="game-play-stack--water"
+                          activeChangerTheme={tutorialActiveChangerTheme}
+                          instantSwitch={tutorialStep >= 8 && tutorialStep <= 11}
+                        >
+                          <div
+                            className={`game-play-stack__divider border-b px-3 py-4 text-center ${
+                              tutorialStep === 1 ? 'game-tutorial-field-pulse' : ''
+                            }`}
+                          >
+                            <SlideValue
+                              value={tutorialDisplayBase}
+                              slotClassName="h-14"
+                              className={`text-5xl font-bold ${
+                                tutorialActiveChangerTheme === 'four-seconds'
+                                  ? 'text-orange-950'
+                                  : tutorialActiveChangerTheme === 'times-div'
+                                    ? 'text-blue-950'
+                                    : tutorialActiveChangerTheme === 'plus-cycle'
+                                      ? 'text-emerald-950'
+                                      : tutorialActiveChangerTheme === 'minus-cycle'
+                                        ? 'text-rose-950'
+                                        : 'text-sky-900'
+                              }`}
+                              shakeActive={false}
+                              shakeKey={shakeKey}
+                            />
+                          </div>
+                          <div
+                            className={`game-play-stack__divider border-b px-3 py-3 text-center ${
+                              tutorialStep === 2 ? 'game-tutorial-field-pulse' : ''
+                            }`}
+                          >
+                            {tutorialDisplayOperation ? (
+                              <OperationValue
+                                operation={tutorialDisplayOperation}
+                                slotClassName="h-10"
+                                waterLight
+                                fourSecondsLight={tutorialActiveChangerTheme === 'four-seconds'}
+                                timesDivLight={tutorialActiveChangerTheme === 'times-div'}
+                                plusLight={tutorialActiveChangerTheme === 'plus-cycle'}
+                                minusLight={tutorialActiveChangerTheme === 'minus-cycle'}
+                              />
+                            ) : (
+                              <div className="h-10" />
+                            )}
+                          </div>
+                          <AnswerDisplay
+                            value={tutorialDisplayAnswer}
+                            disabled={false}
+                          shake={
+                            (tutorialStep === 5 && tutorialStep5ShakeActive) ||
+                            (tutorialStep === 17 && tutorialFinalShakeActive)
+                          }
+                            shakeKey={shakeKey}
+                            answerFlash={null}
+                            answerFlashAuto={false}
+                            flashKey={tutorialDemoScore + tutorialFinalSolved}
+                            perfectAnswerToken={0}
+                            waterLight
+                            fourSecondsLight={tutorialActiveChangerTheme === 'four-seconds'}
+                            timesDivLight={tutorialActiveChangerTheme === 'times-div'}
+                            plusLight={tutorialActiveChangerTheme === 'plus-cycle'}
+                            minusLight={tutorialActiveChangerTheme === 'minus-cycle'}
+                            pulse={tutorialStep === 3}
+                            slotRef={answerFieldRef}
+                          />
+                        </PlayStackWithChangerBg>
+                        {tutorialStep === 0 ? <div className="game-tutorial-fields-disabled-overlay" aria-hidden /> : null}
+                      </div>
+                    </PlayFieldsFrame>
+                  </PlayFieldsSideLayout>
+                )}
+
+                <div className="game-play-controls flex w-full max-w-xs flex-col gap-3">
+                  {tutorialStep !== 18 ? (
+                    <div
+                      className={`h-2 w-full overflow-hidden rounded-full bg-charcoal-elevated${
+                        !tutorialDefeatGameOver && tutorialStep === 6 && tutorialDefeatNearDeath
+                          ? ' timer-bar-shell--near-death'
+                          : ''
+                      }`}
+                      style={
+                        !tutorialDefeatGameOver && tutorialStep === 6 && tutorialDefeatNearDeath
+                          ? {
+                              boxShadow:
+                                '0 0 0 1px rgba(251,113,133,0.22), 0 0 14px -4px rgba(251,113,133,0.58), 0 0 24px -10px rgba(251,113,133,0.7)',
+                            }
+                          : undefined
+                      }
+                    >
+                      <div
+                        className="timer-bar-fill relative h-full rounded-full"
+                        style={{ width: `${tutorialDisplayTimerRatio * 100}%` }}
+                      >
+                        <div
+                          className={`h-full w-full rounded-full ${
+                            tutorialStep === 6 && tutorialDefeatUrgent
+                              ? 'bg-gradient-to-r from-rose-700 via-rose-500 to-rose-300'
+                              : 'bg-gradient-to-r from-neutral-600 via-neutral-400 to-neutral-200'
+                          }`}
+                        />
+                        {tutorialStep === 6 && tutorialDefeatRatio > 0.015 && !tutorialDefeatGameOver ? (
+                          <>
+                            <span
+                              className={`timer-spark-trail pointer-events-none absolute right-1 top-0 h-full w-5 bg-gradient-to-l to-transparent ${
+                                tutorialDefeatUrgent ? 'from-rose-200/70' : 'from-white/45'
+                              }${tutorialDefeatNearDeath ? ' timer-spark--near-death' : ' timer-spark--urgent'}`}
+                              aria-hidden
+                            />
+                            <span
+                              className={`timer-spark-dot pointer-events-none absolute right-0 top-1/2 z-10 h-2 w-2 rounded-full ${
+                                tutorialDefeatUrgent ? 'bg-rose-50' : 'bg-white'
+                              }${tutorialDefeatNearDeath ? ' timer-spark--near-death' : ' timer-spark--urgent'}`}
+                              aria-hidden
+                            />
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                  {(tutorialStep === 5 && !tutorialStep5Resolving) ||
+                  tutorialStep === 15 ||
+                  tutorialStep === 17 ? (
+                    <NumericKeypad
+                      disabled={!(tutorialStep === 5 || tutorialStep === 15 || tutorialStep === 17)}
+                      interactionLocked={!(tutorialStep === 5 || tutorialStep === 15 || tutorialStep === 17)}
+                      autoCheckOnly={tutorialStep === 15}
+                      backspaceDisabled={
+                        tutorialStep === 5
+                          ? tutorialInput.length === 0
+                          : tutorialStep === 17
+                            ? tutorialFinalInput.length === 0
+                            : true
+                      }
+                      autoCheckCharges={
+                        tutorialStep === 17
+                          ? tutorialFinalAutoChecks
+                          : tutorialStep === 15
+                            ? tutorialAutoDemoCharge
+                            : 0
+                      }
+                      virtualPress={null}
+                      onDigit={handleTutorialDigit}
+                      onBackspace={handleTutorialBackspace}
+                      onAutoCorrect={handleTutorialAutoCheck}
+                      onEnter={handleTutorialEnter}
+                    />
+                  ) : null}
+                  {tutorialStep !== 5 && tutorialStep !== 15 && tutorialStep !== 17 && tutorialStep !== 18 ? (
+                    <div className="game-tutorial-balloon rounded-xl border border-sky-200/60 bg-white/90 p-3 text-sky-950 shadow-lg">
+                    <p className="text-sm font-semibold">{TUTORIAL_MESSAGES[tutorialStep]}</p>
+                    {tutorialStatusLine ? (
+                      <p className="mt-1 text-xs text-sky-800/80">{tutorialStatusLine}</p>
+                    ) : null}
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={advanceTutorialStep}
+                        disabled={tutorialNextDisabled}
+                        className="game-btn-push game-btn-push-secondary rounded-lg bg-sky-700 px-3 py-2 text-xs font-semibold tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {tutorialNextLabel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleReturnToMenu}
+                        className="game-btn-push game-btn-push-secondary rounded-lg bg-charcoal-elevated px-3 py-2 text-xs font-semibold tracking-wide text-stone-100"
+                      >
+                        Pular tutorial
+                      </button>
+                    </div>
+                  </div>
+                  ) : null}
+                  {tutorialStep === 18 ? (
+                    <button
+                      type="button"
+                      onClick={handleReturnToMenu}
+                      className={`game-btn-push game-btn-push-secondary rounded-lg px-3 py-2 text-xs font-semibold tracking-wide ${
+                        useWaterLikeBackground
+                          ? 'bg-sky-700 text-white'
+                          : useSunsetBackground
+                            ? 'bg-orange-700 text-orange-50'
+                            : 'bg-charcoal-elevated text-stone-100'
+                      }`}
+                    >
+                      Concluir
+                    </button>
+                  ) : null}
+                </div>
+              </>
+            ) : isThemeTestScene ? (
               <ThemeTestSideLayout
                 activeChanger={themeTestChanger}
                 changerBurst={themeTestChangerBurst}
@@ -2322,7 +3080,10 @@ export function GameScreen({
                 </motion.div>
 
                 <motion.div {...menuStageItem(0.1, 8, 12)}>
-                  <MenuHudButton label="Tutorial" disabled>
+                  <MenuHudButton
+                    label={player.tutorial.completed ? 'Tutorial ✓' : 'Tutorial'}
+                    onClick={handleTutorial}
+                  >
                     <IconHelp />
                   </MenuHudButton>
                 </motion.div>
@@ -2339,7 +3100,7 @@ export function GameScreen({
             ) : null}
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.23</span>
+              <span>v0.0.24</span>
             </div>
           </div>
         </>

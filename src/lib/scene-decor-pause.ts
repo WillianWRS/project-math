@@ -1,4 +1,4 @@
-export type ScenePresentation = 'menu' | 'opening' | 'in-game' | 'theme-test' | 'closing'
+export type ScenePresentation = 'menu' | 'opening' | 'in-game' | 'theme-test' | 'tutorial' | 'closing'
 
 export interface SceneDecorPauseInput {
   anyModalOpen: boolean
@@ -7,7 +7,7 @@ export interface SceneDecorPauseInput {
 
 /** Pausa camada de fundo (parallax, água) e decoração ambiente do campo de jogo. */
 export function isSceneAmbientDecorPaused({ anyModalOpen, presentation }: SceneDecorPauseInput): boolean {
-  return anyModalOpen || presentation === 'in-game'
+  return anyModalOpen || presentation === 'in-game' || presentation === 'tutorial'
 }
 
 /** Pausa decorações extras visíveis no menu (side cards, etc.) quando um modal cobre a cena. */

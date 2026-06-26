@@ -43,6 +43,10 @@ export interface PlayerData {
   ownedThemeIds: BackgroundTheme[]
   equippedThemeId: BackgroundTheme
   daily: PlayerDailyData
+  tutorial: {
+    completed: boolean
+    rewardsClaimed: boolean
+  }
 }
 
 /** @deprecated Use ScoreRecord */
@@ -92,6 +96,10 @@ export function createDefaultPlayerData(): PlayerData {
     ownedThemeIds: ['default', 'water'],
     equippedThemeId: 'default',
     daily: createDailyDefaults(),
+    tutorial: {
+      completed: false,
+      rewardsClaimed: false,
+    },
   }
 }
 
@@ -271,6 +279,18 @@ function parsePlayerData(value: unknown): PlayerData | null {
         }
       : createDailyDefaults()
 
+  const tutorialRaw = raw.tutorial
+  const tutorial =
+    tutorialRaw && typeof tutorialRaw === 'object'
+      ? {
+          completed: Boolean(tutorialRaw.completed),
+          rewardsClaimed: Boolean(tutorialRaw.rewardsClaimed),
+        }
+      : {
+          completed: false,
+          rewardsClaimed: false,
+        }
+
   return {
     displayName:
       typeof raw.displayName === 'string' && raw.displayName.trim().length > 0
@@ -286,6 +306,7 @@ function parsePlayerData(value: unknown): PlayerData | null {
         ? raw.equippedThemeId
         : defaults.equippedThemeId,
     daily,
+    tutorial,
   }
 }
 
