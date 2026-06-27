@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from '../../lib/motion'
-import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import { NumericKeypad } from './NumericKeypad'
 import { PlayFieldsSideLayout } from './SideCardRails'
 import {
@@ -40,12 +40,12 @@ import { formatDuration } from '../../engine/rewards'
 import { preloadGameplayModals } from '../../platform/preload-modals'
 import { isIPhone } from '../../platform/device'
 import { playSfx } from '../../platform/audio-service'
-import type { BackgroundTheme, PlayerData, ScoreRecord } from '../../platform/storage'
-import { THEME_CATALOG } from '../../cosmetics/theme-catalog'
+import type { BackgroundTheme, BadgeVariant, PlayerData, ScoreRecord } from '../../platform/storage'
 import type { PostGameRewards, TutorialCompletionResult } from '../../hooks/useGame'
 import type { BenchmarkMetricGradeId, BenchmarkMetrics, BenchmarkVirtualKey } from '../../engine/benchmark-types'
 import { GameModalLayer } from './GameModalLayer'
 import { playUiClickAfterPaint } from '../../lib/modal-ui'
+import { Modal } from '../ui/Modal'
 
 interface GameScreenProps {
   session: GameSession
@@ -77,7 +77,10 @@ interface GameScreenProps {
   onGodModeChange: (enabled: boolean) => void
   onBackgroundThemeChange: (theme: BackgroundTheme) => void
   onBuyTheme: (theme: BackgroundTheme, priceCoins: number) => boolean
+  onEquipBadge: (badge: BadgeVariant) => void
+  onBuyBadge: (badge: BadgeVariant, priceCoins: number) => boolean
   onSaveDisplayName: (name: string) => void
+  onSaveAvatarPhoto: (avatarDataUrl: string | null) => void
   onWatchRewardedAd: () => Promise<'completed' | 'dismissed' | 'limit'>
   rewardedAdsWatched: number
   onPlayClick: () => void
@@ -98,7 +101,37 @@ const CLOSE_DURATION_MS = 320
 const menuStageTransition = { duration: 0.26, ease: [0.22, 1, 0.36, 1] as const }
 const layerParallaxTransition = { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }
 const LIGHT_THEMES: BackgroundTheme[] = ['water', 'sunset', 'ice', 'aurora']
+const REWARD_ODOMETER_DURATION_MS = 3_000
+const POST_GAME_PRIMARY_FALLBACK_MS = 1_800
+const COIN_PAYOUT_SFX_SRC = '/audio/coin.mp3'
 const TUTORIAL_FINAL_TARGET = 10
+const AVATAR_CROP_VIEWPORT_SIZE = 230
+const AVATAR_EXPORT_SIZE = 512
+const DAILY_GOAL_SCORE_TARGET = 500
+
+function avatarBorderLevelFromPlayerLevel(level: number): 1 | 2 | 3 | 4 | 5 {
+  if (level >= 50) return 5
+  if (level >= 30) return 4
+  if (level >= 20) return 3
+  if (level >= 10) return 2
+  return 1
+}
+
+async function getAudioDurationMs(src: string): Promise<number> {
+  return new Promise((resolve) => {
+    const audio = new Audio(src)
+    const settle = (durationMs: number) => {
+      audio.onloadedmetadata = null
+      audio.onerror = null
+      resolve(durationMs)
+    }
+    audio.onloadedmetadata = () => {
+      const duration = Number.isFinite(audio.duration) ? audio.duration : 0
+      settle(duration > 0 ? Math.round(duration * 1000) : POST_GAME_PRIMARY_FALLBACK_MS)
+    }
+    audio.onerror = () => settle(POST_GAME_PRIMARY_FALLBACK_MS)
+  })
+}
 
 type TutorialStep =
   | 0
@@ -128,7 +161,7 @@ const TUTORIAL_MESSAGES: Record<TutorialStep, string> = {
   3: 'Aqui é onde os números digitados aparecem.',
   4: 'Digite a resposta da operação.',
   5: 'Sua vez: digite o resultado de 5 + 2. Tempo infinito.',
-  6: 'Resolva os cálculos antes que o tempo acabe.',
+  6: 'O tempo restante para cada cálculo é exibido na barra acima, quando o tempo se esgota a partida acaba.',
   7: 'Durante o jogo podem aparecer alguns modificadores que mudam as regras durante alguns cálculos.',
   8: 'Modificador de tiro rápido, os cálculos a seguir tem apenas 4 segundos para resolver mas só aparecem operações de + e - .',
   9: 'Modificador de dividir e multiplicar, os cálculos a seguir serão somente multiplicação ou divisão.',
@@ -738,50 +771,95 @@ function AnimatedGameMenuButton({
   )
 }
 
-function MenuLevelBadge({ xp }: { xp: number }) {
+function IconMenuAvatar() {
+  return (
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="8.2" r="4.1" fill="currentColor" />
+      <path
+        d="M4.5 20.2c0-3.95 3.36-6.15 7.5-6.15s7.5 2.2 7.5 6.15"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function MenuLevelBadge({
+  xp,
+  avatarDataUrl,
+  onAvatarClick,
+  borderLevel,
+}: {
+  xp: number
+  avatarDataUrl: string | null
+  onAvatarClick: () => void
+  borderLevel: 1 | 2 | 3 | 4 | 5
+}) {
   const progress = xpProgressInLevel(xp)
   const ratio = progress.needed > 0 ? progress.current / progress.needed : 0
-  const size = 68
-  const stroke = 3.5
+  const size = 36
+  const stroke = 2.8
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius
   const dashOffset = circumference * (1 - Math.min(1, Math.max(0, ratio)))
 
   return (
-    <div
+    <button
+      type="button"
       className="game-menu-level-badge"
       aria-label={`Nível ${progress.level}, ${progress.current} de ${progress.needed} XP`}
+      onClick={onAvatarClick}
     >
-      <svg
-        className="game-menu-level-badge__ring"
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        aria-hidden
-      >
-        <circle
-          className="game-menu-level-badge__track"
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          strokeWidth={stroke}
-        />
-        <circle
-          className="game-menu-level-badge__progress"
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          strokeWidth={stroke}
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </svg>
-      <span className="game-menu-level-badge__value">{progress.level}</span>
-    </div>
+      <div className={`game-menu-level-badge__avatar game-menu-level-badge__avatar--lvl-${borderLevel}`} aria-hidden>
+        {avatarDataUrl ? (
+          <img src={avatarDataUrl} alt="" className="game-menu-level-badge__avatar-photo" draggable={false} />
+        ) : (
+          <span className="game-menu-level-badge__avatar-icon">
+            <IconMenuAvatar />
+          </span>
+        )}
+      </div>
+      <div className="game-menu-level-badge__level-chip" aria-hidden>
+        <svg
+          className="game-menu-level-badge__ring"
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+        >
+          <circle
+            className="game-menu-level-badge__track"
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            strokeWidth={stroke}
+          />
+          <circle
+            className="game-menu-level-badge__progress"
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            strokeWidth={stroke}
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+          <text
+            className="game-menu-level-badge__ring-text"
+            x="50%"
+            y="50%"
+            textAnchor="middle"
+            dominantBaseline="central"
+          >
+            {progress.level}
+          </text>
+        </svg>
+      </div>
+    </button>
   )
 }
 
@@ -1185,7 +1263,10 @@ export function GameScreen({
   backgroundTheme,
   onBackgroundThemeChange,
   onBuyTheme,
+  onEquipBadge,
+  onBuyBadge,
   onSaveDisplayName,
+  onSaveAvatarPhoto,
   onWatchRewardedAd,
   rewardedAdsWatched,
   onPlayClick,
@@ -1201,6 +1282,13 @@ export function GameScreen({
   const [rewardedOpen, setRewardedOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false)
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
+  const [avatarCropOpen, setAvatarCropOpen] = useState(false)
+  const [avatarDraftUrl, setAvatarDraftUrl] = useState<string | null>(null)
+  const [avatarDraftNaturalSize, setAvatarDraftNaturalSize] = useState({ width: 0, height: 0 })
+  const [avatarScale, setAvatarScale] = useState(1)
+  const [avatarOffset, setAvatarOffset] = useState({ x: 0, y: 0 })
+  const [avatarDragging, setAvatarDragging] = useState(false)
   const [shakeKey, setShakeKey] = useState(0)
   const [presentation, setPresentation] = useState<PresentationPhase>('menu')
   const answerFieldRef = useRef<HTMLDivElement>(null)
@@ -1243,6 +1331,7 @@ export function GameScreen({
   const [tutorialFinalSolved, setTutorialFinalSolved] = useState(0)
   const [tutorialFinalAutoChecks, setTutorialFinalAutoChecks] = useState(1)
   const [tutorialCompletionResult, setTutorialCompletionResult] = useState<TutorialCompletionResult | null>(null)
+  const [gameOverRewardDisplay, setGameOverRewardDisplay] = useState({ xp: 0, coins: 0 })
   const onStartRef = useRef(onStart)
   const onStartBenchmarkSessionRef = useRef(onStartBenchmarkSession)
   const onInputChangeRef = useRef(onInputChange)
@@ -1256,6 +1345,12 @@ export function GameScreen({
   const submitLockedRef = useRef(session.isSubmitLocked)
   const backNavigationBypassRef = useRef(false)
   const backTrapInitializedRef = useRef(false)
+  const gameOverRewardSequenceKeyRef = useRef<string | null>(null)
+  const avatarGalleryInputRef = useRef<HTMLInputElement>(null)
+  const avatarCameraInputRef = useRef<HTMLInputElement>(null)
+  const avatarPreviewRef = useRef<HTMLDivElement>(null)
+  const avatarImageRef = useRef<HTMLImageElement>(null)
+  const avatarDragRef = useRef<{ pointerId: number; startX: number; startY: number; originX: number; originY: number } | null>(null)
 
   useEffect(() => {
     onStartRef.current = onStart
@@ -1287,6 +1382,8 @@ export function GameScreen({
   const isTutorialScene = presentation === 'tutorial'
   const showBenchmarkResults = benchmarkMode && isGameOver && benchmarkMetrics !== null
   const playerLevel = xpToLevel(player.xp)
+  const avatarBorderLevel = avatarBorderLevelFromPlayerLevel(playerLevel)
+  const dailyGoalRatio = Math.min(1, player.daily.scoreAccumulated / DAILY_GOAL_SCORE_TARGET)
   const gameOverElapsedText = formatDuration(session.elapsedMs)
   const liveFourSecondsActive = isFourSecondsGameChangerActive(session)
   const topScore = topScores[0] ?? null
@@ -1305,16 +1402,12 @@ export function GameScreen({
     shopOpen ||
     settingsOpen ||
     rewardedOpen ||
+    avatarPickerOpen ||
+    avatarCropOpen ||
     exitConfirmOpen ||
     timeoutModalOpen
   const ambientDecorPaused = isSceneAmbientDecorPaused({ anyModalOpen, presentation })
   const modalDecorPaused = isSceneModalDecorPaused({ anyModalOpen })
-  const allImplementedThemeIds = THEME_CATALOG.flatMap((entry) =>
-    entry.equippableThemeId === undefined ? [] : [entry.equippableThemeId],
-  )
-  const settingsThemeIds = godModeEnabled
-    ? Array.from(new Set<BackgroundTheme>(allImplementedThemeIds))
-    : player.ownedThemeIds
 
   useEffect(() => {
     inputValueRef.current = inputValue
@@ -1332,6 +1425,96 @@ export function GameScreen({
     phaseRef.current = session.phase
     submitLockedRef.current = session.isSubmitLocked
   }, [session.phase, session.isSubmitLocked])
+
+  useEffect(() => {
+    if (!isGameOver || benchmarkMode) {
+      gameOverRewardSequenceKeyRef.current = null
+      const frame = window.requestAnimationFrame(() => {
+        setGameOverRewardDisplay({ xp: lastGameRewards.xpGained, coins: lastGameRewards.coinsGained })
+      })
+      return () => window.cancelAnimationFrame(frame)
+    }
+
+    const sequenceKey = [
+      session.score,
+      session.elapsedMs,
+      session.beatRecord ? 1 : 0,
+      lastGameRewards.xpGained,
+      lastGameRewards.coinsGained,
+    ].join(':')
+    if (gameOverRewardSequenceKeyRef.current === sequenceKey) return
+    gameOverRewardSequenceKeyRef.current = sequenceKey
+
+    const targetXp = Math.max(0, lastGameRewards.xpGained)
+    const targetCoins = Math.max(0, lastGameRewards.coinsGained)
+    if (targetCoins < 3) {
+      const frame = window.requestAnimationFrame(() => {
+        setGameOverRewardDisplay({ xp: targetXp, coins: targetCoins })
+      })
+      return () => window.cancelAnimationFrame(frame)
+    }
+
+    let cancelled = false
+    let revealTimeout = 0
+    let rafId = 0
+    let zeroFrame = 0
+    let coinAudio: HTMLAudioElement | null = null
+
+    zeroFrame = window.requestAnimationFrame(() => {
+      setGameOverRewardDisplay({ xp: 0, coins: 0 })
+    })
+
+    const primarySfxSrc = session.beatRecord ? '/audio/record.mp3' : '/audio/game-over.mp3'
+    void (async () => {
+      const waitMs = soundEnabled ? await getAudioDurationMs(primarySfxSrc) : 0
+      if (cancelled) return
+
+      revealTimeout = window.setTimeout(() => {
+        if (cancelled) return
+
+        if (soundEnabled) {
+          coinAudio = new Audio(COIN_PAYOUT_SFX_SRC)
+          coinAudio.currentTime = 0
+          void coinAudio.play().catch(() => {
+            // Ignora bloqueios de autoplay neste efeito visual.
+          })
+        }
+
+        const startedAt = performance.now()
+        const animate = (now: number) => {
+          if (cancelled) return
+          const progress = Math.max(0, Math.min(1, (now - startedAt) / REWARD_ODOMETER_DURATION_MS))
+          setGameOverRewardDisplay({
+            xp: Math.round(targetXp * progress),
+            coins: Math.round(targetCoins * progress),
+          })
+          if (progress >= 1) return
+          rafId = window.requestAnimationFrame(animate)
+        }
+        rafId = window.requestAnimationFrame(animate)
+      }, waitMs)
+    })()
+
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(zeroFrame)
+      window.clearTimeout(revealTimeout)
+      window.cancelAnimationFrame(rafId)
+      if (coinAudio) {
+        coinAudio.pause()
+        coinAudio.currentTime = 0
+      }
+    }
+  }, [
+    benchmarkMode,
+    isGameOver,
+    lastGameRewards.coinsGained,
+    lastGameRewards.xpGained,
+    session.beatRecord,
+    session.elapsedMs,
+    session.score,
+    soundEnabled,
+  ])
 
   const appendDigit = useCallback(
     (digit: string) => {
@@ -1633,11 +1816,172 @@ export function GameScreen({
     playUiClickAfterPaint(() => playSfx('clickClose', soundEnabled))
   }, [soundEnabled])
 
+  const closeRewardedModal = useCallback(() => {
+    setRewardedOpen(false)
+    playUiClickAfterPaint(() => playSfx('clickClose', soundEnabled))
+  }, [soundEnabled])
+
+  const resetAvatarDraft = useCallback(() => {
+    avatarDragRef.current = null
+    setAvatarDragging(false)
+    setAvatarDraftUrl(null)
+    setAvatarDraftNaturalSize({ width: 0, height: 0 })
+    setAvatarScale(1)
+    setAvatarOffset({ x: 0, y: 0 })
+  }, [])
+
+  const clampAvatarOffset = useCallback((nextOffset: { x: number; y: number }, scaleValue: number) => {
+    const viewport = avatarPreviewRef.current
+    const image = avatarImageRef.current
+    if (!viewport || !image) return nextOffset
+    if (image.naturalWidth <= 0 || image.naturalHeight <= 0) return nextOffset
+
+    const viewportSize = viewport.clientWidth
+    if (viewportSize <= 0) return nextOffset
+
+    const baseScale = Math.max(viewportSize / image.naturalWidth, viewportSize / image.naturalHeight)
+    const drawWidth = image.naturalWidth * baseScale * scaleValue
+    const drawHeight = image.naturalHeight * baseScale * scaleValue
+    const maxX = Math.max(0, (drawWidth - viewportSize) / 2)
+    const maxY = Math.max(0, (drawHeight - viewportSize) / 2)
+    return {
+      x: Math.min(maxX, Math.max(-maxX, nextOffset.x)),
+      y: Math.min(maxY, Math.max(-maxY, nextOffset.y)),
+    }
+  }, [])
+
+  const closeAvatarPicker = useCallback(() => {
+    setAvatarPickerOpen(false)
+    playUiClickAfterPaint(() => playSfx('clickClose', soundEnabled))
+  }, [soundEnabled])
+
+  const closeAvatarCrop = useCallback(() => {
+    avatarDragRef.current = null
+    setAvatarDragging(false)
+    setAvatarCropOpen(false)
+    setAvatarScale(1)
+    setAvatarOffset({ x: 0, y: 0 })
+    playUiClickAfterPaint(() => playSfx('clickClose', soundEnabled))
+  }, [soundEnabled])
+
   const openPlayerModal = useCallback(() => {
     setExitConfirmOpen(false)
     setPlayerOpen(true)
     playUiClickAfterPaint(onPlayClick)
   }, [onPlayClick])
+
+  const openAvatarPicker = useCallback(() => {
+    setExitConfirmOpen(false)
+    setAvatarPickerOpen(true)
+    playUiClickAfterPaint(onPlayClick)
+  }, [onPlayClick])
+
+  const requestAvatarSource = useCallback((source: 'gallery' | 'camera') => {
+    setAvatarPickerOpen(false)
+    const input = source === 'camera' ? avatarCameraInputRef.current : avatarGalleryInputRef.current
+    if (!input) return
+    input.value = ''
+    window.setTimeout(() => input.click(), 0)
+  }, [])
+
+  const handleAvatarFilePicked = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0]
+    event.currentTarget.value = ''
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : null
+      if (!dataUrl) return
+      setAvatarDraftUrl(dataUrl)
+      setAvatarDraftNaturalSize({ width: 0, height: 0 })
+      setAvatarScale(1)
+      setAvatarOffset({ x: 0, y: 0 })
+      setAvatarCropOpen(true)
+    }
+    reader.readAsDataURL(file)
+  }, [])
+
+  const removeAvatarPhoto = useCallback(() => {
+    onSaveAvatarPhoto(null)
+    setAvatarPickerOpen(false)
+    resetAvatarDraft()
+    playUiClickAfterPaint(onPlayClick)
+  }, [onPlayClick, onSaveAvatarPhoto, resetAvatarDraft])
+
+  const onAvatarPreviewPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    if (!avatarDraftUrl) return
+    const target = event.currentTarget
+    target.setPointerCapture(event.pointerId)
+    avatarDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: avatarOffset.x,
+      originY: avatarOffset.y,
+    }
+    setAvatarDragging(true)
+  }, [avatarDraftUrl, avatarOffset.x, avatarOffset.y])
+
+  const onAvatarPreviewPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    const drag = avatarDragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    const next = {
+      x: drag.originX + (event.clientX - drag.startX),
+      y: drag.originY + (event.clientY - drag.startY),
+    }
+    setAvatarOffset(clampAvatarOffset(next, avatarScale))
+  }, [avatarScale, clampAvatarOffset])
+
+  const onAvatarPreviewPointerEnd = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    const drag = avatarDragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    event.currentTarget.releasePointerCapture(event.pointerId)
+    avatarDragRef.current = null
+    setAvatarDragging(false)
+  }, [])
+
+  const saveAvatarCrop = useCallback(() => {
+    const image = avatarImageRef.current
+    const viewport = avatarPreviewRef.current
+    if (!image || !viewport || !avatarDraftUrl) return
+    if (image.naturalWidth <= 0 || image.naturalHeight <= 0) return
+
+    const viewportSize = viewport.clientWidth
+    if (viewportSize <= 0) return
+
+    const canvas = document.createElement('canvas')
+    canvas.width = AVATAR_EXPORT_SIZE
+    canvas.height = AVATAR_EXPORT_SIZE
+    const context = canvas.getContext('2d')
+    if (!context) return
+
+    const baseScale = Math.max(AVATAR_EXPORT_SIZE / image.naturalWidth, AVATAR_EXPORT_SIZE / image.naturalHeight)
+    const drawWidth = image.naturalWidth * baseScale * avatarScale
+    const drawHeight = image.naturalHeight * baseScale * avatarScale
+    const previewToCanvas = AVATAR_EXPORT_SIZE / viewportSize
+    const drawX = (AVATAR_EXPORT_SIZE - drawWidth) / 2 + avatarOffset.x * previewToCanvas
+    const drawY = (AVATAR_EXPORT_SIZE - drawHeight) / 2 + avatarOffset.y * previewToCanvas
+
+    context.fillStyle = '#000'
+    context.fillRect(0, 0, AVATAR_EXPORT_SIZE, AVATAR_EXPORT_SIZE)
+    context.drawImage(image, drawX, drawY, drawWidth, drawHeight)
+
+    const avatarDataUrl = canvas.toDataURL('image/jpeg', 0.9)
+    onSaveAvatarPhoto(avatarDataUrl)
+    resetAvatarDraft()
+    setAvatarCropOpen(false)
+    playUiClickAfterPaint(onPlayClick)
+  }, [avatarDraftUrl, avatarOffset.x, avatarOffset.y, avatarScale, onPlayClick, onSaveAvatarPhoto, resetAvatarDraft])
+
+  const avatarPreviewBaseScale =
+    avatarDraftNaturalSize.width > 0 && avatarDraftNaturalSize.height > 0
+      ? Math.max(
+          AVATAR_CROP_VIEWPORT_SIZE / avatarDraftNaturalSize.width,
+          AVATAR_CROP_VIEWPORT_SIZE / avatarDraftNaturalSize.height,
+        )
+      : 1
+  const avatarPreviewDrawWidth = avatarDraftNaturalSize.width * avatarPreviewBaseScale * avatarScale
+  const avatarPreviewDrawHeight = avatarDraftNaturalSize.height * avatarPreviewBaseScale * avatarScale
 
   const openShopModal = useCallback(() => {
     setExitConfirmOpen(false)
@@ -1665,6 +2009,14 @@ export function GameScreen({
   }, [])
 
   const handleBackRequest = useCallback((): 'consumed' | 'exit' => {
+    if (avatarCropOpen) {
+      closeAvatarCrop()
+      return 'consumed'
+    }
+    if (avatarPickerOpen) {
+      closeAvatarPicker()
+      return 'consumed'
+    }
     if (playerOpen) {
       closePlayerModal()
       return 'consumed'
@@ -1678,7 +2030,7 @@ export function GameScreen({
       return 'consumed'
     }
     if (rewardedOpen) {
-      setRewardedOpen(false)
+      closeRewardedModal()
       return 'consumed'
     }
     if (timeoutModalOpen) {
@@ -1695,6 +2047,8 @@ export function GameScreen({
     }
     return 'exit'
   }, [
+    avatarCropOpen,
+    avatarPickerOpen,
     playerOpen,
     shopOpen,
     settingsOpen,
@@ -1702,9 +2056,12 @@ export function GameScreen({
     timeoutModalOpen,
     presentation,
     exitConfirmOpen,
+    closeAvatarCrop,
+    closeAvatarPicker,
     closePlayerModal,
     closeShopModal,
     closeSettingsModal,
+    closeRewardedModal,
     onDeclineAutoCheckAtTimeout,
     handleReturnToMenu,
   ])
@@ -1798,6 +2155,7 @@ export function GameScreen({
       return
     }
 
+    playSfx('success', soundEnabled)
     const nextBase = tutorialFinalOperation.result
     const nextOperation = createTutorialFinalOperation(nextBase, tutorialFinalOperation)
     setTutorialFinalBase(nextBase)
@@ -2277,7 +2635,7 @@ export function GameScreen({
                 {isInGameScene ? (
                   <div className="game-header-left-dock">
                     {!isTutorialScene && (
-                      <span className="game-player-level-badge rounded-md bg-charcoal-elevated px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-200">
+                      <span className={`game-player-level-badge game-player-level-badge--${player.equippedBadgeId}`}>
                         Nível {playerLevel}
                       </span>
                     )}
@@ -2951,14 +3309,14 @@ export function GameScreen({
                   ) : (
                     <>
                   <p className="mt-1 text-xs">
-                    <span className="game-over-reward-xp">+{lastGameRewards.xpGained} XP</span>
+                    <span className="game-over-reward-xp">+{gameOverRewardDisplay.xp} XP</span>
                     <span className="game-over-reward-sep"> • </span>
-                    <span className="game-over-reward-coins">+{lastGameRewards.coinsGained} moedas</span>
+                    <span className="game-over-reward-coins">+{gameOverRewardDisplay.coins} moedas</span>
                   </p>
                   {lastGameRewards.goalCompleted && (
                     <p className="mt-1 text-xs text-emerald-400">
                       Meta diária completa!{' '}
-                      <span className="game-over-reward-xp">+1000 XP</span> e +1 auto-check
+                      <span className="game-over-reward-xp">+200 XP</span> e +10 moedas
                     </p>
                   )}
                   {session.beatRecord ? (
@@ -3004,25 +3362,62 @@ export function GameScreen({
         <>
           <div className="game-menu-top fixed inset-x-0 top-0 z-[60] flex items-start justify-between gap-3 px-4 pt-[max(0.3rem,env(safe-area-inset-top))] sm:px-6">
             <motion.div {...menuStageItem(0.03, -12, -10)} className="game-menu-player-header">
-              <MenuLevelBadge xp={player.xp} />
+              <MenuLevelBadge
+                xp={player.xp}
+                avatarDataUrl={player.avatarDataUrl}
+                onAvatarClick={openAvatarPicker}
+                borderLevel={avatarBorderLevel}
+              />
               <span className="game-menu-player-header__name">{player.displayName}</span>
             </motion.div>
             <div className="game-menu-top-stats">
+              <div className="game-menu-top-stats__row">
+                <motion.div
+                  {...menuStageItem(0.04, 0, -10)}
+                  className="game-menu-autocheck"
+                  aria-label={`${player.walletAutoChecks} auto-check${player.walletAutoChecks === 1 ? '' : 's'}`}
+                >
+                  <span className="game-menu-autocheck__icon">
+                    <IconAutoCheck />
+                  </span>
+                  <span className="game-menu-autocheck__value">{player.walletAutoChecks}</span>
+                </motion.div>
+                <motion.div {...menuStageItem(0.05, 12, -10)} className="game-menu-coins" aria-label={`${player.coins} moedas`}>
+                  <span className="game-menu-coins__icon">
+                    <IconCoin />
+                  </span>
+                  <span className="game-menu-coins__value">{player.coins}</span>
+                </motion.div>
+              </div>
               <motion.div
-                {...menuStageItem(0.04, 0, -10)}
-                className="game-menu-autocheck"
-                aria-label={`${player.walletAutoChecks} auto-check${player.walletAutoChecks === 1 ? '' : 's'}`}
+                {...menuStageItem(0.06, 14, -8)}
+                className="game-menu-daily-card"
+                aria-label={`Meta diária ${player.daily.scoreAccumulated} de ${DAILY_GOAL_SCORE_TARGET}`}
               >
-                <span className="game-menu-autocheck__icon">
-                  <IconAutoCheck />
-                </span>
-                <span className="game-menu-autocheck__value">{player.walletAutoChecks}</span>
-              </motion.div>
-              <motion.div {...menuStageItem(0.05, 12, -10)} className="game-menu-coins" aria-label={`${player.coins} moedas`}>
-                <span className="game-menu-coins__icon">
-                  <IconCoin />
-                </span>
-                <span className="game-menu-coins__value">{player.coins}</span>
+                <div className="game-menu-daily-card__top">
+                  <span className="game-menu-daily-card__label">Meta diária</span>
+                  <span className="game-menu-daily-card__value">
+                    {player.daily.scoreAccumulated}/{DAILY_GOAL_SCORE_TARGET}
+                  </span>
+                </div>
+                <div className="game-menu-daily-card__track">
+                  <span
+                    className={`game-menu-daily-card__fill${player.daily.goalClaimed ? ' game-menu-daily-card__fill--claimed' : ''}`}
+                    style={{ width: `${dailyGoalRatio * 100}%` }}
+                  />
+                </div>
+                <p className={`game-menu-daily-card__reward${player.daily.goalClaimed ? ' game-menu-daily-card__reward--claimed' : ''}`}>
+                  {player.daily.goalClaimed ? (
+                    'Recompensa coletada'
+                  ) : (
+                    <>
+                      +200 XP • +10{' '}
+                      <span className="game-menu-daily-card__coin-icon" aria-hidden>
+                        <IconCoin />
+                      </span>
+                    </>
+                  )}
+                </p>
               </motion.div>
             </div>
           </div>
@@ -3090,7 +3485,7 @@ export function GameScreen({
 
                 <motion.div {...menuStageItem(0.12, 16, 12)}>
                   <MenuHudButton
-                    label="Config"
+                    label="Configurações"
                     onClick={openSettingsModal}
                   >
                     <IconGear />
@@ -3100,11 +3495,134 @@ export function GameScreen({
             ) : null}
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.24</span>
+              <span>v0.0.25</span>
             </div>
           </div>
         </>
       )}
+
+      <Modal
+        open={avatarPickerOpen}
+        title="Trocar foto"
+        onClose={closeAvatarPicker}
+        closeOnBackdrop={!avatarCropOpen}
+        sheetAnchor="top"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-stone-200">Escolha uma origem para sua foto de perfil.</p>
+          <button
+            type="button"
+            onClick={() => requestAvatarSource('gallery')}
+            className="game-btn-push game-btn-push-secondary w-full rounded-xl bg-charcoal-elevated px-4 py-3 text-sm font-semibold text-stone-100"
+          >
+            Fotos da galeria
+          </button>
+          <button
+            type="button"
+            onClick={() => requestAvatarSource('camera')}
+            className="game-btn-push game-btn-push-secondary w-full rounded-xl bg-charcoal-elevated px-4 py-3 text-sm font-semibold text-stone-100"
+          >
+            Tirar com a câmera
+          </button>
+          {player.avatarDataUrl ? (
+            <button
+              type="button"
+              onClick={removeAvatarPhoto}
+              className="game-btn-push w-full rounded-xl bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-200 ring-1 ring-rose-400/40"
+            >
+              Remover foto atual
+            </button>
+          ) : null}
+        </div>
+      </Modal>
+
+      <Modal open={avatarCropOpen} title="Enquadrar foto" onClose={closeAvatarCrop} stackLevel={1}>
+        <div className="space-y-4">
+          <p className="text-sm text-stone-200">Arraste e ajuste o zoom para enquadrar no molde.</p>
+          <div
+            ref={avatarPreviewRef}
+            className={`avatar-crop-preview${avatarDragging ? ' avatar-crop-preview--dragging' : ''}`}
+            style={{ width: AVATAR_CROP_VIEWPORT_SIZE, height: AVATAR_CROP_VIEWPORT_SIZE }}
+            onPointerDown={onAvatarPreviewPointerDown}
+            onPointerMove={onAvatarPreviewPointerMove}
+            onPointerUp={onAvatarPreviewPointerEnd}
+            onPointerCancel={onAvatarPreviewPointerEnd}
+          >
+            {avatarDraftUrl ? (
+              <img
+                ref={avatarImageRef}
+                src={avatarDraftUrl}
+                alt="Prévia da foto do avatar"
+                className="avatar-crop-preview__image"
+                draggable={false}
+                onLoad={(event) => {
+                  const loaded = event.currentTarget
+                  const naturalWidth = loaded.naturalWidth
+                  const naturalHeight = loaded.naturalHeight
+                  if (naturalWidth <= 0 || naturalHeight <= 0) return
+                  setAvatarDraftNaturalSize({ width: naturalWidth, height: naturalHeight })
+                  setAvatarOffset((current) => clampAvatarOffset(current, avatarScale))
+                }}
+                style={{
+                  width: `${avatarPreviewDrawWidth}px`,
+                  height: `${avatarPreviewDrawHeight}px`,
+                  transform: `translate(-50%, -50%) translate(${avatarOffset.x}px, ${avatarOffset.y}px)`,
+                }}
+              />
+            ) : null}
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-charcoal-muted">
+              <span>Zoom</span>
+              <span className="font-mono text-stone-300">{avatarScale.toFixed(2)}x</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="3"
+              step="0.01"
+              value={avatarScale}
+              onChange={(event) => {
+                const nextScale = Number(event.currentTarget.value)
+                setAvatarScale(nextScale)
+                setAvatarOffset((current) => clampAvatarOffset(current, nextScale))
+              }}
+              className="avatar-crop-preview__slider w-full"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={saveAvatarCrop}
+            disabled={!avatarDraftUrl}
+            className="game-btn-push game-btn-push-amber w-full rounded-xl bg-gradient-to-b from-amber-300 to-amber-500 px-4 py-3 text-sm font-semibold text-amber-950 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Salvar foto
+          </button>
+          <button
+            type="button"
+            onClick={closeAvatarCrop}
+            className="game-btn-push game-btn-push-secondary w-full rounded-xl bg-charcoal-elevated px-4 py-3 text-sm font-semibold text-stone-100"
+          >
+            Cancelar
+          </button>
+        </div>
+      </Modal>
+
+      <input
+        ref={avatarGalleryInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleAvatarFilePicked}
+      />
+      <input
+        ref={avatarCameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleAvatarFilePicked}
+      />
 
       <GameModalLayer
         playerOpen={playerOpen}
@@ -3119,19 +3637,19 @@ export function GameScreen({
         showGodModeToggle={showGodModeToggle}
         soundEnabled={soundEnabled}
         devModeEnabled={devModeEnabled}
-        backgroundTheme={backgroundTheme}
-        settingsThemeIds={settingsThemeIds}
         rewardedAdsWatched={rewardedAdsWatched}
         onClosePlayer={closePlayerModal}
         onCloseShop={closeShopModal}
         onCloseSettings={closeSettingsModal}
-        onCloseRewarded={() => setRewardedOpen(false)}
+        onCloseRewarded={closeRewardedModal}
         onOpenRewardedFromPlayer={() => {
           setPlayerOpen(false)
           setRewardedOpen(true)
         }}
         onSaveDisplayName={onSaveDisplayName}
         onBuyTheme={onBuyTheme}
+        onEquipBadge={onEquipBadge}
+        onBuyBadge={onBuyBadge}
         onSoundChange={onSoundChange}
         onDevModeChange={onDevModeChange}
         onGodModeChange={onGodModeChange}
@@ -3147,6 +3665,8 @@ export function GameScreen({
           theme={backgroundTheme}
           playerName={player.displayName}
           level={playerLevel}
+          xp={player.xp}
+          avatarDataUrl={player.avatarDataUrl}
           score={session.score}
           durationText={gameOverElapsedText}
           xpGained={lastGameRewards.xpGained}

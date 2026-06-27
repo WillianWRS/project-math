@@ -5,6 +5,8 @@ const DEV_MODE_KEY = 'project-math-dev-mode'
 const GOD_MODE_KEY = 'project-math-god-mode'
 const BACKGROUND_THEME_KEY = 'project-math-background-theme'
 const PLAYER_KEY = 'project-math-player'
+const BADGE_OWNERSHIP_MIGRATED_KEY = 'project-math-badge-ownership-migrated-v1'
+const DAILY_REWARDED_ADS_LIMIT = 2
 
 export const TOP_SCORES_LIMIT = 5
 
@@ -20,6 +22,8 @@ export type BackgroundTheme =
   | 'retro'
   | 'ice'
   | 'aurora'
+
+export type BadgeVariant = 'default-ring' | 'double-ring' | 'shield'
 
 export interface ScoreRecord {
   score: number
@@ -37,11 +41,14 @@ export interface PlayerDailyData {
 
 export interface PlayerData {
   displayName: string
+  avatarDataUrl: string | null
   xp: number
   coins: number
   walletAutoChecks: number
   ownedThemeIds: BackgroundTheme[]
   equippedThemeId: BackgroundTheme
+  ownedBadgeIds: BadgeVariant[]
+  equippedBadgeId: BadgeVariant
   daily: PlayerDailyData
   tutorial: {
     completed: boolean
@@ -78,6 +85,10 @@ function isBackgroundTheme(value: unknown): value is BackgroundTheme {
   )
 }
 
+function isBadgeVariant(value: unknown): value is BadgeVariant {
+  return value === 'default-ring' || value === 'double-ring' || value === 'shield'
+}
+
 function createDailyDefaults(): PlayerDailyData {
   return {
     dateKey: '',
@@ -90,11 +101,14 @@ function createDailyDefaults(): PlayerDailyData {
 export function createDefaultPlayerData(): PlayerData {
   return {
     displayName: 'Jogador',
+    avatarDataUrl: null,
     xp: 0,
     coins: 0,
     walletAutoChecks: 0,
     ownedThemeIds: ['default', 'water'],
     equippedThemeId: 'default',
+    ownedBadgeIds: ['default-ring'],
+    equippedBadgeId: 'default-ring',
     daily: createDailyDefaults(),
     tutorial: {
       completed: false,
@@ -268,6 +282,20 @@ function parsePlayerData(value: unknown): PlayerData | null {
       ? Array.from(new Set<BackgroundTheme>(['default', 'water', ...ownedThemeIds]))
       : defaults.ownedThemeIds
 
+  const ownedBadgeIds = Array.isArray(raw.ownedBadgeIds)
+    ? raw.ownedBadgeIds.filter(isBadgeVariant)
+    : defaults.ownedBadgeIds
+
+  const normalizedOwnedBadgeIds =
+    ownedBadgeIds.length > 0
+      ? Array.from(
+          new Set<BadgeVariant>([
+            'default-ring',
+            ...ownedBadgeIds,
+          ]),
+        )
+      : defaults.ownedBadgeIds
+
   const dailyRaw = raw.daily
   const daily =
     dailyRaw && typeof dailyRaw === 'object'
@@ -275,7 +303,7 @@ function parsePlayerData(value: unknown): PlayerData | null {
           dateKey: typeof dailyRaw.dateKey === 'string' ? dailyRaw.dateKey : '',
           scoreAccumulated: clampNonNegative(dailyRaw.scoreAccumulated),
           goalClaimed: Boolean(dailyRaw.goalClaimed),
-          rewardedAdsWatched: Math.min(5, clampNonNegative(dailyRaw.rewardedAdsWatched)),
+          rewardedAdsWatched: Math.min(DAILY_REWARDED_ADS_LIMIT, clampNonNegative(dailyRaw.rewardedAdsWatched)),
         }
       : createDailyDefaults()
 
@@ -296,6 +324,7 @@ function parsePlayerData(value: unknown): PlayerData | null {
       typeof raw.displayName === 'string' && raw.displayName.trim().length > 0
         ? raw.displayName
         : defaults.displayName,
+    avatarDataUrl: typeof raw.avatarDataUrl === 'string' && raw.avatarDataUrl.length > 0 ? raw.avatarDataUrl : null,
     xp: clampNonNegative(raw.xp),
     coins: clampNonNegative(raw.coins),
     walletAutoChecks: clampNonNegative(raw.walletAutoChecks),
@@ -305,6 +334,11 @@ function parsePlayerData(value: unknown): PlayerData | null {
       normalizedOwnedThemeIds.includes(raw.equippedThemeId)
         ? raw.equippedThemeId
         : defaults.equippedThemeId,
+    ownedBadgeIds: normalizedOwnedBadgeIds,
+    equippedBadgeId:
+      isBadgeVariant(raw.equippedBadgeId) && normalizedOwnedBadgeIds.includes(raw.equippedBadgeId)
+        ? raw.equippedBadgeId
+        : defaults.equippedBadgeId,
     daily,
     tutorial,
   }
@@ -321,18 +355,34 @@ function migrateLegacyPlayerData(defaults: PlayerData): PlayerData {
   return migrated
 }
 
+function migrateBadgeOwnershipOnce(player: PlayerData): PlayerData {
+  try {
+    const migrated = localStorage.getItem(BADGE_OWNERSHIP_MIGRATED_KEY) === 'true'
+    if (migrated) return player
+    localStorage.setItem(BADGE_OWNERSHIP_MIGRATED_KEY, 'true')
+  } catch {
+    // no-op: keep migration conservative if storage is unavailable
+  }
+
+  return {
+    ...player,
+    ownedBadgeIds: ['default-ring'],
+    equippedBadgeId: 'default-ring',
+  }
+}
+
 export function loadPlayerData(): PlayerData {
   try {
     const raw = localStorage.getItem(PLAYER_KEY)
     if (raw) {
       const parsed = parsePlayerData(JSON.parse(raw))
-      if (parsed) return parsed
+      if (parsed) return migrateBadgeOwnershipOnce(parsed)
     }
   } catch {
     // no-op
   }
 
-  const migrated = migrateLegacyPlayerData(createDefaultPlayerData())
+  const migrated = migrateBadgeOwnershipOnce(migrateLegacyPlayerData(createDefaultPlayerData()))
   savePlayerData(migrated)
   return migrated
 }

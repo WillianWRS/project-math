@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type SetStateAction } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type SetStateAction,
+} from "react";
 import {
   clearLevelUpFlash,
   clearAnswerFlash,
@@ -12,15 +18,18 @@ import {
   SUBMIT_LOCK_MS,
   tickTimer,
   unlockSubmit,
-} from '../engine/game-state-machine'
-import { PERFECT_ANSWER_COINS, scoreToCoins } from '../engine/rewards'
-import type { GameSession } from '../engine/types'
-import { usePlayer } from './usePlayer'
-import { useBenchmark } from './useBenchmark'
-import { ensureDailyFresh } from '../platform/daily-reset'
-import { isIPhone } from '../platform/device'
-import { isAnyGameChangerActive } from '../engine/game-changer-cycles'
-import { THEME_CATALOG, getThemePurchasePrice } from '../cosmetics/theme-catalog'
+} from "../engine/game-state-machine";
+import { PERFECT_ANSWER_COINS, scoreToCoins } from "../engine/rewards";
+import type { GameSession } from "../engine/types";
+import { usePlayer } from "./usePlayer";
+import { useBenchmark } from "./useBenchmark";
+import { ensureDailyFresh } from "../platform/daily-reset";
+import { isIPhone } from "../platform/device";
+import { isAnyGameChangerActive } from "../engine/game-changer-cycles";
+import {
+  THEME_CATALOG,
+  getThemePurchasePrice,
+} from "../cosmetics/theme-catalog";
 import {
   loadDevModeEnabled,
   loadGodModeEnabled,
@@ -32,101 +41,132 @@ import {
   saveTopScore,
   type BackgroundTheme,
   type ScoreRecord,
-} from '../platform/storage'
-import { playCorrectAnswerSfx, playRandomWriteSfx, playSfx, hydrateMenuAudio, prefetchMenuAudio, preloadAudioIdle, unlockAudioSync } from '../platform/audio-service'
-import { gameTimerStore } from '../platform/game-timer-store'
-import type { BenchmarkVirtualKey } from '../engine/benchmark-types'
-import { shouldSyncInputFromSession } from '../lib/session-input-sync'
+} from "../platform/storage";
+import {
+  playCorrectAnswerSfx,
+  playRandomWriteSfx,
+  playSfx,
+  hydrateMenuAudio,
+  prefetchMenuAudio,
+  preloadAudioIdle,
+  unlockAudioSync,
+} from "../platform/audio-service";
+import { gameTimerStore } from "../platform/game-timer-store";
+import type { BenchmarkVirtualKey } from "../engine/benchmark-types";
+import { shouldSyncInputFromSession } from "../lib/session-input-sync";
 
-const TIMER_UI_PUBLISH_MS = 100
-const DAILY_GOAL_SCORE = 1000
-const DAILY_GOAL_XP_REWARD = 1000
-const PERFECT_ANSWER_RATIO = 0.9
-const MENU_AUDIO_PREPARE_TIMEOUT_MS = 12_000
-const SHOW_GOD_MODE_TOGGLE = false
-const TUTORIAL_REWARD_XP = 200
-const TUTORIAL_REWARD_COINS = 200
+const TIMER_UI_PUBLISH_MS = 100;
+const DAILY_GOAL_SCORE = 500;
+const DAILY_GOAL_XP_REWARD = 200;
+const DAILY_GOAL_COINS_REWARD = 10;
+const PERFECT_ANSWER_RATIO = 0.9;
+const MENU_AUDIO_PREPARE_TIMEOUT_MS = 12_000;
+const SHOW_GOD_MODE_TOGGLE = false;
+const TUTORIAL_REWARD_XP = 200;
+const TUTORIAL_REWARD_COINS = 200;
+const AUTO_CHECK_TIMEOUT_DANGER_SFX_SRC = "/audio/danger.mp3";
 
 export interface PostGameRewards {
-  xpGained: number
-  coinsGained: number
-  goalCompleted: boolean
+  xpGained: number;
+  coinsGained: number;
+  goalCompleted: boolean;
 }
 
 export interface TutorialCompletionResult {
-  rewardsGranted: boolean
-  xpGained: number
-  coinsGained: number
+  rewardsGranted: boolean;
+  xpGained: number;
+  coinsGained: number;
 }
 
 export function useGame() {
-  const [session, setSession] = useState<GameSession>(createInitialSession)
-  const [inputValue, setInputValueState] = useState(session.inputValue)
-  const [topScores, setTopScores] = useState<ScoreRecord[]>(() => loadTopScores())
-  const [soundEnabled, setSoundEnabled] = useState(() => loadSoundEnabled())
-  const [menuAudioReady, setMenuAudioReady] = useState(() => !loadSoundEnabled())
-  const [menuAudioPrefetchComplete, setMenuAudioPrefetchComplete] = useState(() => !loadSoundEnabled())
-  const [devModeEnabled, setDevModeEnabled] = useState(() => loadDevModeEnabled())
-  const [godModeEnabled, setGodModeEnabled] = useState(() => loadGodModeEnabled())
+  const [session, setSession] = useState<GameSession>(createInitialSession);
+  const [inputValue, setInputValueState] = useState(session.inputValue);
+  const [topScores, setTopScores] = useState<ScoreRecord[]>(() =>
+    loadTopScores(),
+  );
+  const [soundEnabled, setSoundEnabled] = useState(() => loadSoundEnabled());
+  const [menuAudioReady, setMenuAudioReady] = useState(
+    () => !loadSoundEnabled(),
+  );
+  const [menuAudioPrefetchComplete, setMenuAudioPrefetchComplete] = useState(
+    () => !loadSoundEnabled(),
+  );
+  const [devModeEnabled, setDevModeEnabled] = useState(() =>
+    loadDevModeEnabled(),
+  );
+  const [godModeEnabled, setGodModeEnabled] = useState(() =>
+    loadGodModeEnabled(),
+  );
   const [lastGameRewards, setLastGameRewards] = useState<PostGameRewards>({
     xpGained: 0,
     coinsGained: 0,
     goalCompleted: false,
-  })
-  const [perfectAnswerToken, setPerfectAnswerToken] = useState(0)
-  const { player, commitPlayer, grantAutoCheck, spendAutoCheck, setEquippedTheme, purchaseTheme, ...playerActions } =
-    usePlayer()
-  const sessionRef = useRef(session)
-  const playerRef = useRef(player)
-  const soundEnabledRef = useRef(soundEnabled)
-  const gameOverFxHandledRef = useRef(false)
-  const lastPersistedScoreRef = useRef<number | null>(null)
-  const timerMsRef = useRef(session.timerMs)
-  const elapsedMsRef = useRef(session.elapsedMs)
-  const cycleStartedAtRef = useRef(0)
-  const cycleTimerMaxRef = useRef(session.timerMaxMs)
-  const cycleScoreRef = useRef(session.score)
-  const prevPhaseRef = useRef(session.phase)
-  const inputValueRef = useRef(inputValue)
-  const setSessionWithInputSync = useCallback((action: SetStateAction<GameSession>) => {
-    setSession((current) => {
-      const next =
-        typeof action === 'function' ? (action as (current: GameSession) => GameSession)(current) : action
-      if (shouldSyncInputFromSession(current, next, inputValueRef.current)) {
-        inputValueRef.current = next.inputValue
-        setInputValueState(next.inputValue)
-      }
-      return next
-    })
-  }, [])
-
-  const benchmarkSessionRef = useRef(false)
-  const [benchmarkMode, setBenchmarkMode] = useState(false)
-  const onBenchmarkVirtualKeyPress = useCallback(
-    (key: BenchmarkVirtualKey) => {
-      if (key.startsWith('digit-')) {
-        playRandomWriteSfx(soundEnabledRef.current)
-      }
+  });
+  const [perfectAnswerToken, setPerfectAnswerToken] = useState(0);
+  const {
+    player,
+    commitPlayer,
+    grantAutoCheck,
+    spendAutoCheck,
+    setEquippedTheme,
+    purchaseTheme,
+    ...playerActions
+  } = usePlayer();
+  const sessionRef = useRef(session);
+  const playerRef = useRef(player);
+  const soundEnabledRef = useRef(soundEnabled);
+  const gameOverFxHandledRef = useRef(false);
+  const lastPersistedScoreRef = useRef<number | null>(null);
+  const timerMsRef = useRef(session.timerMs);
+  const elapsedMsRef = useRef(session.elapsedMs);
+  const timeoutDangerAudioRef = useRef<HTMLAudioElement | null>(null);
+  const timeoutDangerPlayedRef = useRef(false);
+  const cycleStartedAtRef = useRef(0);
+  const cycleTimerMaxRef = useRef(session.timerMaxMs);
+  const cycleScoreRef = useRef(session.score);
+  const prevPhaseRef = useRef(session.phase);
+  const inputValueRef = useRef(inputValue);
+  const setSessionWithInputSync = useCallback(
+    (action: SetStateAction<GameSession>) => {
+      setSession((current) => {
+        const next =
+          typeof action === "function"
+            ? (action as (current: GameSession) => GameSession)(current)
+            : action;
+        if (shouldSyncInputFromSession(current, next, inputValueRef.current)) {
+          inputValueRef.current = next.inputValue;
+          setInputValueState(next.inputValue);
+        }
+        return next;
+      });
     },
     [],
-  )
+  );
+
+  const benchmarkSessionRef = useRef(false);
+  const [benchmarkMode, setBenchmarkMode] = useState(false);
+  const onBenchmarkVirtualKeyPress = useCallback((key: BenchmarkVirtualKey) => {
+    if (key.startsWith("digit-")) {
+      playRandomWriteSfx(soundEnabledRef.current);
+    }
+  }, []);
   const onBenchmarkCorrectAnswer = useCallback(
     (sessionBeforeSubmit: GameSession, fromAutoCheck: boolean) => {
       playCorrectAnswerSfx(
         isAnyGameChangerActive(sessionBeforeSubmit),
         soundEnabledRef.current,
         fromAutoCheck,
-      )
+      );
     },
     [],
-  )
+  );
   const onBenchmarkPerfectAnswer = useCallback((timerMaxMs: number) => {
-    if (timerMaxMs <= 0) return
-    const liveTimerRatio = Math.max(0, timerMsRef.current) / timerMaxMs
+    if (timerMaxMs <= 0) return;
+    const liveTimerRatio = Math.max(0, timerMsRef.current) / timerMaxMs;
     if (liveTimerRatio >= PERFECT_ANSWER_RATIO) {
-      setPerfectAnswerToken((token) => token + 1)
+      setPerfectAnswerToken((token) => token + 1);
     }
-  }, [])
+  }, []);
   const {
     benchmarkActive,
     benchmarkMetrics,
@@ -143,464 +183,580 @@ export function useGame() {
     onVirtualKeyPress: onBenchmarkVirtualKeyPress,
     onBenchmarkPerfectAnswer,
     onBenchmarkCorrectAnswer,
-  })
+  });
 
   useEffect(() => {
-    sessionRef.current = session
-  }, [session])
+    sessionRef.current = session;
+  }, [session]);
 
   useEffect(() => {
-    playerRef.current = player
-  }, [player])
+    playerRef.current = player;
+  }, [player]);
 
   useEffect(() => {
-    soundEnabledRef.current = soundEnabled
-  }, [soundEnabled])
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
 
   useEffect(() => {
-    inputValueRef.current = inputValue
-  }, [inputValue])
+    inputValueRef.current = inputValue;
+  }, [inputValue]);
 
   useEffect(() => {
-    if (!soundEnabled) return
+    if (!soundEnabled) return;
 
-    let cancelled = false
+    let cancelled = false;
     const timeoutId = window.setTimeout(() => {
       if (!cancelled) {
-        setMenuAudioPrefetchComplete(true)
-        setMenuAudioReady(true)
+        setMenuAudioPrefetchComplete(true);
+        setMenuAudioReady(true);
       }
-    }, MENU_AUDIO_PREPARE_TIMEOUT_MS)
+    }, MENU_AUDIO_PREPARE_TIMEOUT_MS);
 
     void prefetchMenuAudio()
       .then(() => {
-        if (cancelled) return
-        setMenuAudioPrefetchComplete(true)
+        if (cancelled) return;
+        setMenuAudioPrefetchComplete(true);
         if (!isIPhone()) {
           void hydrateMenuAudio()
             .then(() => {
               if (!cancelled) {
-                setMenuAudioReady(true)
-                preloadAudioIdle()
+                setMenuAudioReady(true);
+                preloadAudioIdle();
               }
             })
             .catch(() => {
-              if (!cancelled) setMenuAudioReady(true)
-            })
+              if (!cancelled) setMenuAudioReady(true);
+            });
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setMenuAudioPrefetchComplete(true)
-          setMenuAudioReady(true)
+          setMenuAudioPrefetchComplete(true);
+          setMenuAudioReady(true);
         }
-      })
+      });
 
     return () => {
-      cancelled = true
-      window.clearTimeout(timeoutId)
-    }
-  }, [soundEnabled])
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [soundEnabled]);
 
   useEffect(() => {
-    if (!soundEnabled || menuAudioReady || !isIPhone()) return
+    if (!soundEnabled || menuAudioReady || !isIPhone()) return;
 
-    let cancelled = false
+    let cancelled = false;
 
     const prepareFromGesture = () => {
       void hydrateMenuAudio()
         .then(() => {
           if (!cancelled) {
-            setMenuAudioReady(true)
-            preloadAudioIdle()
+            setMenuAudioReady(true);
+            preloadAudioIdle();
           }
         })
         .catch(() => {
-          if (!cancelled) setMenuAudioReady(true)
-        })
-    }
+          if (!cancelled) setMenuAudioReady(true);
+        });
+    };
 
-    window.addEventListener('touchstart', prepareFromGesture, { once: true, passive: true, capture: true })
-    window.addEventListener('pointerdown', prepareFromGesture, { once: true, passive: true, capture: true })
-    window.addEventListener('keydown', prepareFromGesture, { once: true })
+    window.addEventListener("touchstart", prepareFromGesture, {
+      once: true,
+      passive: true,
+      capture: true,
+    });
+    window.addEventListener("pointerdown", prepareFromGesture, {
+      once: true,
+      passive: true,
+      capture: true,
+    });
+    window.addEventListener("keydown", prepareFromGesture, { once: true });
 
     return () => {
-      cancelled = true
-      window.removeEventListener('touchstart', prepareFromGesture, true)
-      window.removeEventListener('pointerdown', prepareFromGesture, true)
-      window.removeEventListener('keydown', prepareFromGesture)
-    }
-  }, [soundEnabled, menuAudioReady])
+      cancelled = true;
+      window.removeEventListener("touchstart", prepareFromGesture, true);
+      window.removeEventListener("pointerdown", prepareFromGesture, true);
+      window.removeEventListener("keydown", prepareFromGesture);
+    };
+  }, [soundEnabled, menuAudioReady]);
 
   useEffect(() => {
-    timerMsRef.current = session.timerMs
+    timerMsRef.current = session.timerMs;
 
-    if (session.phase !== 'playing') {
-      elapsedMsRef.current = session.elapsedMs
-      gameTimerStore.sync(session.timerMs, session.elapsedMs)
-      return
+    if (session.phase !== "playing") {
+      elapsedMsRef.current = session.elapsedMs;
+      gameTimerStore.sync(session.timerMs, session.elapsedMs);
+      return;
     }
 
     if (session.score === 0 && session.elapsedMs === 0) {
-      elapsedMsRef.current = 0
+      elapsedMsRef.current = 0;
     }
 
-    gameTimerStore.set(timerMsRef.current, elapsedMsRef.current)
-  }, [session.phase, session.score, session.timerMs, session.elapsedMs, session.awaitingAutoCheckChoice])
+    gameTimerStore.set(timerMsRef.current, elapsedMsRef.current);
+  }, [
+    session.phase,
+    session.score,
+    session.timerMs,
+    session.elapsedMs,
+    session.awaitingAutoCheckChoice,
+  ]);
 
   useEffect(() => {
-    const phaseChanged = prevPhaseRef.current !== session.phase
-    if (session.phase === 'playing' && (phaseChanged || session.score !== cycleScoreRef.current)) {
-      cycleStartedAtRef.current = performance.now()
-      cycleTimerMaxRef.current = session.timerMaxMs
-      cycleScoreRef.current = session.score
+    const phaseChanged = prevPhaseRef.current !== session.phase;
+    if (
+      session.phase === "playing" &&
+      (phaseChanged || session.score !== cycleScoreRef.current)
+    ) {
+      cycleStartedAtRef.current = performance.now();
+      cycleTimerMaxRef.current = session.timerMaxMs;
+      cycleScoreRef.current = session.score;
     }
 
-    if (session.phase !== 'playing') {
-      cycleScoreRef.current = session.score
-      cycleTimerMaxRef.current = session.timerMaxMs
+    if (session.phase !== "playing") {
+      cycleScoreRef.current = session.score;
+      cycleTimerMaxRef.current = session.timerMaxMs;
     }
 
-    prevPhaseRef.current = session.phase
-  }, [session.phase, session.score, session.timerMaxMs])
+    prevPhaseRef.current = session.phase;
+  }, [session.phase, session.score, session.timerMaxMs]);
 
   useEffect(() => {
-    if (session.phase !== 'playing') return
-    if (benchmarkActive) return
+    const shouldShowTimeoutChoice =
+      session.phase === "playing" &&
+      session.awaitingAutoCheckChoice &&
+      !benchmarkSessionRef.current;
 
-    let lastTick = performance.now()
-    let lastPublish = lastTick
-    let frameId = 0
+    if (!shouldShowTimeoutChoice) {
+      timeoutDangerPlayedRef.current = false;
+      if (timeoutDangerAudioRef.current) {
+        timeoutDangerAudioRef.current.pause();
+        timeoutDangerAudioRef.current.currentTime = 0;
+        timeoutDangerAudioRef.current = null;
+      }
+      return;
+    }
+
+    if (timeoutDangerPlayedRef.current) return;
+    timeoutDangerPlayedRef.current = true;
+    if (!soundEnabledRef.current) return;
+
+    const dangerAudio = new Audio(AUTO_CHECK_TIMEOUT_DANGER_SFX_SRC);
+    dangerAudio.currentTime = 0;
+    timeoutDangerAudioRef.current = dangerAudio;
+    void dangerAudio.play().catch(() => {
+      // Ignora bloqueios de autoplay; o fluxo visual continua.
+    });
+  }, [session.phase, session.awaitingAutoCheckChoice]);
+
+  useEffect(() => {
+    if (session.phase !== "playing") return;
+    if (benchmarkActive) return;
+
+    let lastTick = performance.now();
+    let lastPublish = lastTick;
+    let frameId = 0;
 
     const loop = (now: number) => {
-      const delta = now - lastTick
-      lastTick = now
+      const delta = now - lastTick;
+      lastTick = now;
 
       if (!sessionRef.current.awaitingAutoCheckChoice) {
-        timerMsRef.current = Math.max(0, timerMsRef.current - delta)
-        elapsedMsRef.current += delta
+        timerMsRef.current = Math.max(0, timerMsRef.current - delta);
+        elapsedMsRef.current += delta;
       }
 
-      if (timerMsRef.current <= 0 && !sessionRef.current.awaitingAutoCheckChoice) {
+      if (
+        timerMsRef.current <= 0 &&
+        !sessionRef.current.awaitingAutoCheckChoice
+      ) {
         setSessionWithInputSync((current) => {
-          if (current.phase !== 'playing') return current
-          if (current.awaitingAutoCheckChoice) return current
+          if (current.phase !== "playing") return current;
+          if (current.awaitingAutoCheckChoice) return current;
           if (playerRef.current.walletAutoChecks > 0) {
-            return { ...current, timerMs: 0, awaitingAutoCheckChoice: true }
+            return { ...current, timerMs: 0, awaitingAutoCheckChoice: true };
           }
-          const timedOut = tickTimer({ ...current, timerMs: 0 }, 0)
-          return timedOut.phase === 'game_over'
+          const timedOut = tickTimer({ ...current, timerMs: 0 }, 0);
+          return timedOut.phase === "game_over"
             ? { ...timedOut, elapsedMs: elapsedMsRef.current }
-            : timedOut
-        })
+            : timedOut;
+        });
       }
 
-      if (now - lastPublish >= TIMER_UI_PUBLISH_MS && !sessionRef.current.awaitingAutoCheckChoice) {
-        lastPublish = now
-        gameTimerStore.set(timerMsRef.current, elapsedMsRef.current)
+      if (
+        now - lastPublish >= TIMER_UI_PUBLISH_MS &&
+        !sessionRef.current.awaitingAutoCheckChoice
+      ) {
+        lastPublish = now;
+        gameTimerStore.set(timerMsRef.current, elapsedMsRef.current);
       }
 
-      frameId = requestAnimationFrame(loop)
-    }
+      frameId = requestAnimationFrame(loop);
+    };
 
-    frameId = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(frameId)
-  }, [session.phase, benchmarkActive, setSessionWithInputSync])
+    frameId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frameId);
+  }, [session.phase, benchmarkActive, setSessionWithInputSync]);
 
   useEffect(() => {
-    if (session.phase !== 'game_over') return
-    if (benchmarkSessionRef.current) return
-    if (gameOverFxHandledRef.current && lastPersistedScoreRef.current === session.score) return
+    if (session.phase !== "game_over") return;
+    if (benchmarkSessionRef.current) return;
+    if (
+      gameOverFxHandledRef.current &&
+      lastPersistedScoreRef.current === session.score
+    )
+      return;
 
-    gameOverFxHandledRef.current = true
-    lastPersistedScoreRef.current = session.score
+    gameOverFxHandledRef.current = true;
+    lastPersistedScoreRef.current = session.score;
 
-    const coinsGained = scoreToCoins(session.score)
-    let goalCompleted = false
-    let xpGained = session.score
+    let coinsGained = scoreToCoins(session.score);
+    let goalCompleted = false;
+    let xpGained = session.score;
 
     commitPlayer((current) => {
-      const fresh = ensureDailyFresh(current)
-      const dailyScore = fresh.daily.scoreAccumulated + session.score
-      goalCompleted = !fresh.daily.goalClaimed && dailyScore >= DAILY_GOAL_SCORE
+      const fresh = ensureDailyFresh(current);
+      const dailyScore = fresh.daily.scoreAccumulated + session.score;
+      goalCompleted =
+        !fresh.daily.goalClaimed && dailyScore >= DAILY_GOAL_SCORE;
       if (goalCompleted) {
-        xpGained += DAILY_GOAL_XP_REWARD
+        xpGained += DAILY_GOAL_XP_REWARD;
+        coinsGained += DAILY_GOAL_COINS_REWARD;
       }
 
       return {
         ...fresh,
         xp: fresh.xp + xpGained,
         coins: fresh.coins + coinsGained,
-        walletAutoChecks: fresh.walletAutoChecks + (goalCompleted ? 1 : 0),
+        walletAutoChecks: fresh.walletAutoChecks,
         daily: {
           ...fresh.daily,
           scoreAccumulated: dailyScore,
           goalClaimed: fresh.daily.goalClaimed || goalCompleted,
         },
-      }
-    })
+      };
+    });
 
-    setLastGameRewards({ xpGained, coinsGained, goalCompleted })
+    setLastGameRewards({ xpGained, coinsGained, goalCompleted });
 
-    const result = saveTopScore(session.score, session.elapsedMs)
-    setTopScores(result.scores)
+    const result = saveTopScore(session.score, session.elapsedMs);
+    setTopScores(result.scores);
     setSessionWithInputSync((current) =>
-      current.phase === 'game_over' && current.beatRecord === result.isTop1
+      current.phase === "game_over" && current.beatRecord === result.isTop1
         ? current
         : markBeatRecord(current, result.isTop1),
-    )
-    playSfx(result.isTop1 ? 'record' : 'gameOver', soundEnabledRef.current)
-  }, [session.phase, session.score, session.elapsedMs, commitPlayer, setSessionWithInputSync])
+    );
+    playSfx(result.isTop1 ? "record" : "gameOver", soundEnabledRef.current);
+  }, [
+    session.phase,
+    session.score,
+    session.elapsedMs,
+    commitPlayer,
+    setSessionWithInputSync,
+  ]);
 
   useEffect(() => {
-    if (!session.isSubmitLocked) return
+    if (!session.isSubmitLocked) return;
     const timeout = window.setTimeout(() => {
-      setSessionWithInputSync((current) => unlockSubmit(current))
-    }, SUBMIT_LOCK_MS)
-    return () => window.clearTimeout(timeout)
-  }, [session.isSubmitLocked, setSessionWithInputSync])
+      setSessionWithInputSync((current) => unlockSubmit(current));
+    }, SUBMIT_LOCK_MS);
+    return () => window.clearTimeout(timeout);
+  }, [session.isSubmitLocked, setSessionWithInputSync]);
 
   useEffect(() => {
-    if (session.answerFlash === null) return
+    if (session.answerFlash === null) return;
     const timeout = window.setTimeout(() => {
-      setSessionWithInputSync((current) => clearAnswerFlash(current))
-    }, 560)
-    return () => window.clearTimeout(timeout)
-  }, [session.answerFlash, setSessionWithInputSync])
+      setSessionWithInputSync((current) => clearAnswerFlash(current));
+    }, 560);
+    return () => window.clearTimeout(timeout);
+  }, [session.answerFlash, setSessionWithInputSync]);
 
   useEffect(() => {
-    if (session.rhythmLevelUpFlash === null) return
+    if (session.rhythmLevelUpFlash === null) return;
     const timeout = window.setTimeout(() => {
-      setSessionWithInputSync((current) => clearLevelUpFlash(current))
-    }, 1200)
-    return () => window.clearTimeout(timeout)
-  }, [session.rhythmLevelUpFlash, setSessionWithInputSync])
+      setSessionWithInputSync((current) => clearLevelUpFlash(current));
+    }, 1200);
+    return () => window.clearTimeout(timeout);
+  }, [session.rhythmLevelUpFlash, setSessionWithInputSync]);
 
   const onStart = useCallback(() => {
-    if (sessionRef.current.phase === 'playing') return
-    benchmarkSessionRef.current = false
-    setBenchmarkMode(false)
-    resetBenchmark()
-    gameOverFxHandledRef.current = false
-    lastPersistedScoreRef.current = null
-    setLastGameRewards({ xpGained: 0, coinsGained: 0, goalCompleted: false })
-    setPerfectAnswerToken(0)
-    setInputValueState('')
-    setSessionWithInputSync(startGame())
-  }, [resetBenchmark, setSessionWithInputSync])
+    if (sessionRef.current.phase === "playing") return;
+    benchmarkSessionRef.current = false;
+    setBenchmarkMode(false);
+    resetBenchmark();
+    gameOverFxHandledRef.current = false;
+    lastPersistedScoreRef.current = null;
+    setLastGameRewards({ xpGained: 0, coinsGained: 0, goalCompleted: false });
+    setPerfectAnswerToken(0);
+    setInputValueState("");
+    setSessionWithInputSync(startGame());
+  }, [resetBenchmark, setSessionWithInputSync]);
 
   const onStartBenchmarkSession = useCallback(() => {
-    if (sessionRef.current.phase === 'playing') return
-    benchmarkSessionRef.current = true
-    setBenchmarkMode(true)
-    gameOverFxHandledRef.current = false
-    lastPersistedScoreRef.current = null
-    setLastGameRewards({ xpGained: 0, coinsGained: 0, goalCompleted: false })
-    setPerfectAnswerToken(0)
-    setInputValueState('')
-    onStartBenchmark()
-  }, [onStartBenchmark])
+    if (sessionRef.current.phase === "playing") return;
+    benchmarkSessionRef.current = true;
+    setBenchmarkMode(true);
+    gameOverFxHandledRef.current = false;
+    lastPersistedScoreRef.current = null;
+    setLastGameRewards({ xpGained: 0, coinsGained: 0, goalCompleted: false });
+    setPerfectAnswerToken(0);
+    setInputValueState("");
+    onStartBenchmark();
+  }, [onStartBenchmark]);
 
   const onReturnToMenu = useCallback(() => {
-    onInterruptBenchmark()
-    benchmarkSessionRef.current = false
-    setBenchmarkMode(false)
-    resetBenchmark()
-    gameOverFxHandledRef.current = false
-    lastPersistedScoreRef.current = null
-    setPerfectAnswerToken(0)
-    setInputValueState('')
-    setSessionWithInputSync(returnToMenu())
-  }, [onInterruptBenchmark, resetBenchmark, setSessionWithInputSync])
+    onInterruptBenchmark();
+    benchmarkSessionRef.current = false;
+    setBenchmarkMode(false);
+    resetBenchmark();
+    gameOverFxHandledRef.current = false;
+    lastPersistedScoreRef.current = null;
+    setPerfectAnswerToken(0);
+    setInputValueState("");
+    setSessionWithInputSync(returnToMenu());
+  }, [onInterruptBenchmark, resetBenchmark, setSessionWithInputSync]);
 
   const applyAnswerResult = useCallback(
     (current: GameSession, fromAutoCheck = false) => {
-      const sessionWithInput = setInputValue(current, inputValueRef.current)
-      const { session: next, result, autoCheckGranted } = submitAnswer(sessionWithInput, {
+      const sessionWithInput = setInputValue(current, inputValueRef.current);
+      const {
+        session: next,
+        result,
+        autoCheckGranted,
+      } = submitAnswer(sessionWithInput, {
         autoCheck: fromAutoCheck,
-      })
-      setSessionWithInputSync(next)
+      });
+      setSessionWithInputSync(next);
 
       if (autoCheckGranted) {
-        grantAutoCheck(1)
+        grantAutoCheck(1);
       }
 
-      if (result === 'correct') {
-        const elapsedInCycleMs = Math.max(0, performance.now() - cycleStartedAtRef.current)
-        const cycleTimerMaxMs = Math.max(1, cycleTimerMaxRef.current)
-        const liveTimerRatio = Math.max(0, 1 - elapsedInCycleMs / cycleTimerMaxMs)
+      if (result === "correct") {
+        const elapsedInCycleMs = Math.max(
+          0,
+          performance.now() - cycleStartedAtRef.current,
+        );
+        const cycleTimerMaxMs = Math.max(1, cycleTimerMaxRef.current);
+        const liveTimerRatio = Math.max(
+          0,
+          1 - elapsedInCycleMs / cycleTimerMaxMs,
+        );
         if (
           !fromAutoCheck &&
           !benchmarkSessionRef.current &&
           liveTimerRatio >= PERFECT_ANSWER_RATIO
         ) {
-          setPerfectAnswerToken((token) => token + 1)
+          setPerfectAnswerToken((token) => token + 1);
           commitPlayer((fresh) => ({
             ...fresh,
             coins: fresh.coins + PERFECT_ANSWER_COINS,
-          }))
+          }));
         }
-        playCorrectAnswerSfx(isAnyGameChangerActive(current), soundEnabledRef.current, fromAutoCheck)
-      } else if (result === 'wrong') {
-        playSfx('error', soundEnabledRef.current)
+        playCorrectAnswerSfx(
+          isAnyGameChangerActive(current),
+          soundEnabledRef.current,
+          fromAutoCheck,
+        );
+      } else if (result === "wrong") {
+        playSfx("error", soundEnabledRef.current);
       }
     },
     [commitPlayer, grantAutoCheck, setSessionWithInputSync],
-  )
+  );
 
   const onConfirm = useCallback(() => {
-    applyAnswerResult(sessionRef.current)
-  }, [applyAnswerResult])
+    applyAnswerResult(sessionRef.current);
+  }, [applyAnswerResult]);
 
-  const runAutoCorrect = useCallback((consumeWallet: boolean) => {
-    const current = sessionRef.current
-    if (current.phase !== 'playing' || current.isSubmitLocked || !current.operation) return
+  const runAutoCorrect = useCallback(
+    (consumeWallet: boolean) => {
+      const current = sessionRef.current;
+      if (
+        current.phase !== "playing" ||
+        current.isSubmitLocked ||
+        !current.operation
+      )
+        return;
 
-    let spent = false
-    if (!DEBUG_AUTO_CHECK_ALWAYS_ENABLED && consumeWallet) {
-      spent = spendAutoCheck()
-      if (!spent) return
-    }
+      let spent = false;
+      if (!DEBUG_AUTO_CHECK_ALWAYS_ENABLED && consumeWallet) {
+        spent = spendAutoCheck();
+        if (!spent) return;
+      }
 
-    const forcedAnswer = setInputValue(current, String(current.operation.result))
-    const { session: next, result, autoCheckGranted } = submitAnswer(forcedAnswer, { autoCheck: true })
-    setSessionWithInputSync(next)
+      const forcedAnswer = setInputValue(
+        current,
+        String(current.operation.result),
+      );
+      const {
+        session: next,
+        result,
+        autoCheckGranted,
+      } = submitAnswer(forcedAnswer, { autoCheck: true });
+      setSessionWithInputSync(next);
 
-    if (result === 'locked' && spent && consumeWallet) {
-      grantAutoCheck(1)
-      return
-    }
-    if (autoCheckGranted) {
-      grantAutoCheck(1)
-    }
-    if (result === 'correct') {
-      playCorrectAnswerSfx(isAnyGameChangerActive(current), soundEnabledRef.current, true)
-    } else if (result === 'wrong') {
-      playSfx('error', soundEnabledRef.current)
-    }
-  }, [grantAutoCheck, spendAutoCheck, setSessionWithInputSync])
+      if (result === "locked" && spent && consumeWallet) {
+        grantAutoCheck(1);
+        return;
+      }
+      if (autoCheckGranted) {
+        grantAutoCheck(1);
+      }
+      if (result === "correct") {
+        playCorrectAnswerSfx(
+          isAnyGameChangerActive(current),
+          soundEnabledRef.current,
+          true,
+        );
+      } else if (result === "wrong") {
+        playSfx("error", soundEnabledRef.current);
+      }
+    },
+    [grantAutoCheck, spendAutoCheck, setSessionWithInputSync],
+  );
 
   const onAutoCorrect = useCallback(() => {
-    runAutoCorrect(true)
-  }, [runAutoCorrect])
+    runAutoCorrect(true);
+  }, [runAutoCorrect]);
 
   const onUseAutoCheckAtTimeout = useCallback(() => {
-    const current = sessionRef.current
-    if (current.phase !== 'playing' || !current.awaitingAutoCheckChoice) return
-    runAutoCorrect(true)
-  }, [runAutoCorrect])
+    const current = sessionRef.current;
+    if (current.phase !== "playing" || !current.awaitingAutoCheckChoice) return;
+    runAutoCorrect(true);
+  }, [runAutoCorrect]);
 
   const onDeclineAutoCheckAtTimeout = useCallback(() => {
     setSessionWithInputSync((current) => {
-      if (current.phase !== 'playing') return current
+      if (current.phase !== "playing") return current;
       return {
         ...current,
-        phase: 'game_over',
+        phase: "game_over",
         timerMs: 0,
         elapsedMs: elapsedMsRef.current,
         awaitingAutoCheckChoice: false,
-      }
-    })
-  }, [setSessionWithInputSync])
+      };
+    });
+  }, [setSessionWithInputSync]);
 
   const onInputChange = useCallback((value: string) => {
-    const digitsOnly = value.replace(/\D/g, '').slice(0, 2)
-    inputValueRef.current = digitsOnly
-    setInputValueState(digitsOnly)
-  }, [])
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 2);
+    inputValueRef.current = digitsOnly;
+    setInputValueState(digitsOnly);
+  }, []);
 
   const playClick = useCallback(() => {
-    unlockAudioSync()
-    playSfx('click', soundEnabledRef.current)
-  }, [])
+    unlockAudioSync();
+    playSfx("click", soundEnabledRef.current);
+  }, []);
   const playGameStart = useCallback(() => {
-    unlockAudioSync()
-    playSfx('gameStart', soundEnabledRef.current)
-  }, [])
+    unlockAudioSync();
+    playSfx("gameStart", soundEnabledRef.current);
+  }, []);
   const playWriteKey = useCallback(() => {
-    unlockAudioSync()
-    playRandomWriteSfx(soundEnabledRef.current)
-  }, [])
+    unlockAudioSync();
+    playRandomWriteSfx(soundEnabledRef.current);
+  }, []);
   const playEraseKey = useCallback(() => {
-    unlockAudioSync()
-    playSfx('erase', soundEnabledRef.current)
-  }, [])
+    unlockAudioSync();
+    playSfx("erase", soundEnabledRef.current);
+  }, []);
   const playGoToMenu = useCallback(() => {
-    unlockAudioSync()
-    playSfx('goToMenu', soundEnabledRef.current)
-  }, [])
+    unlockAudioSync();
+    playSfx("goToMenu", soundEnabledRef.current);
+  }, []);
 
   const toggleSound = useCallback((enabled: boolean) => {
-    setSoundEnabled(enabled)
-    saveSoundEnabled(enabled)
+    setSoundEnabled(enabled);
+    saveSoundEnabled(enabled);
     if (!enabled) {
-      setMenuAudioReady(true)
-      setMenuAudioPrefetchComplete(true)
-      return
+      setMenuAudioReady(true);
+      setMenuAudioPrefetchComplete(true);
+      return;
     }
 
-    setMenuAudioReady(false)
-    setMenuAudioPrefetchComplete(false)
+    setMenuAudioReady(false);
+    setMenuAudioPrefetchComplete(false);
     void prefetchMenuAudio()
       .then(() => {
-        setMenuAudioPrefetchComplete(true)
+        setMenuAudioPrefetchComplete(true);
         if (!isIPhone()) {
           return hydrateMenuAudio().then(() => {
-            setMenuAudioReady(true)
-            preloadAudioIdle()
-          })
+            setMenuAudioReady(true);
+            preloadAudioIdle();
+          });
         }
       })
       .catch(() => {
-        setMenuAudioPrefetchComplete(true)
-      })
-  }, [])
+        setMenuAudioPrefetchComplete(true);
+      });
+  }, []);
 
   const toggleDevMode = useCallback((enabled: boolean) => {
-    setDevModeEnabled(enabled)
-    saveDevModeEnabled(enabled)
-  }, [])
+    setDevModeEnabled(enabled);
+    saveDevModeEnabled(enabled);
+  }, []);
 
-  const toggleGodMode = useCallback((enabled: boolean) => {
-    setGodModeEnabled(enabled)
-    saveGodModeEnabled(enabled)
-    if (!enabled) {
-      commitPlayer((current) => {
-        if (current.ownedThemeIds.includes(current.equippedThemeId)) return current
-        return {
-          ...current,
-          equippedThemeId: current.ownedThemeIds[0] ?? 'default',
-        }
-      })
-    }
-  }, [commitPlayer])
+  const toggleGodMode = useCallback(
+    (enabled: boolean) => {
+      setGodModeEnabled(enabled);
+      saveGodModeEnabled(enabled);
+      if (!enabled) {
+        commitPlayer((current) => {
+          const themeFallback = current.ownedThemeIds[0] ?? "default";
+          const badgeFallback = current.ownedBadgeIds[0] ?? "default-ring";
+          if (
+            current.ownedThemeIds.includes(current.equippedThemeId) &&
+            current.ownedBadgeIds.includes(current.equippedBadgeId)
+          ) {
+            return current;
+          }
+          return {
+            ...current,
+            equippedThemeId: themeFallback,
+            equippedBadgeId: badgeFallback,
+          };
+        });
+      }
+    },
+    [commitPlayer],
+  );
 
-  const setBackgroundTheme = useCallback((theme: BackgroundTheme) => {
-    if (!godModeEnabled) {
-      setEquippedTheme(theme)
-      return
-    }
+  const setBackgroundTheme = useCallback(
+    (theme: BackgroundTheme) => {
+      if (!godModeEnabled) {
+        setEquippedTheme(theme);
+        return;
+      }
 
-    const availableThemeIds = THEME_CATALOG.flatMap((entry) =>
-      entry.equippableThemeId === undefined ? [] : [entry.equippableThemeId],
-    )
-    if (!availableThemeIds.includes(theme)) return
-    commitPlayer((current) => ({ ...current, equippedThemeId: theme }))
-  }, [commitPlayer, godModeEnabled, setEquippedTheme])
+      const availableThemeIds = THEME_CATALOG.flatMap((entry) =>
+        entry.equippableThemeId === undefined ? [] : [entry.equippableThemeId],
+      );
+      if (!availableThemeIds.includes(theme)) return;
+      commitPlayer((current) => ({ ...current, equippedThemeId: theme }));
+    },
+    [commitPlayer, godModeEnabled, setEquippedTheme],
+  );
 
-  const buyTheme = useCallback((theme: BackgroundTheme, priceCoins: number): boolean => {
-    return purchaseTheme(theme, getThemePurchasePrice(priceCoins, godModeEnabled))
-  }, [godModeEnabled, purchaseTheme])
+  const buyTheme = useCallback(
+    (theme: BackgroundTheme, priceCoins: number): boolean => {
+      return purchaseTheme(
+        theme,
+        getThemePurchasePrice(priceCoins, godModeEnabled),
+      );
+    },
+    [godModeEnabled, purchaseTheme],
+  );
 
   const completeTutorial = useCallback((): TutorialCompletionResult => {
-    let rewardsGranted = false
-    let xpGained = 0
-    let coinsGained = 0
+    let rewardsGranted = false;
+    let xpGained = 0;
+    let coinsGained = 0;
 
     commitPlayer((current) => {
-      rewardsGranted = !current.tutorial.rewardsClaimed
-      xpGained = rewardsGranted ? TUTORIAL_REWARD_XP : 0
-      coinsGained = rewardsGranted ? TUTORIAL_REWARD_COINS : 0
+      rewardsGranted = !current.tutorial.rewardsClaimed;
+      xpGained = rewardsGranted ? TUTORIAL_REWARD_XP : 0;
+      coinsGained = rewardsGranted ? TUTORIAL_REWARD_COINS : 0;
 
       return {
         ...current,
@@ -610,11 +766,11 @@ export function useGame() {
           completed: true,
           rewardsClaimed: true,
         },
-      }
-    })
+      };
+    });
 
-    return { rewardsGranted, xpGained, coinsGained }
-  }, [commitPlayer])
+    return { rewardsGranted, xpGained, coinsGained };
+  }, [commitPlayer]);
 
   return {
     session,
@@ -656,5 +812,5 @@ export function useGame() {
     playEraseKey,
     playGoToMenu,
     completeTutorial,
-  }
+  };
 }

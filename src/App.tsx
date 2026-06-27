@@ -35,7 +35,10 @@ function App() {
       onGodModeChange={game.toggleGodMode}
       onBackgroundThemeChange={game.setBackgroundTheme}
       onBuyTheme={game.buyTheme}
+      onEquipBadge={game.setEquippedBadge}
+      onBuyBadge={game.purchaseBadge}
       onSaveDisplayName={game.updateDisplayName}
+      onSaveAvatarPhoto={game.updateAvatarPhoto}
       onWatchRewardedAd={game.watchSimulatedAd}
       rewardedAdsWatched={game.player.daily.rewardedAdsWatched}
       onPlayClick={game.playClick}

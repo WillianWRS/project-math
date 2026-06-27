@@ -273,6 +273,38 @@ body {
   text-shadow: 0 1px 0 rgba(255, 237, 213, 0.55);
 }
 
+.game-player-level-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  overflow: visible;
+}
+
+.game-player-level-badge--default-ring {
+  border-radius: 999px;
+  padding-inline: 0.75rem;
+}
+
+.game-player-level-badge--double-ring {
+  border-radius: 0;
+  clip-path: polygon(0 0, 86% 0, 100% 50%, 86% 100%, 0 100%);
+  padding-right: 0.95rem;
+}
+
+.game-player-level-badge--shield {
+  border-radius: 0;
+  clip-path: polygon(0 0, 82% 0, 100% 14%, 84% 28%, 100% 42%, 84% 56%, 100% 70%, 84% 84%, 100% 100%, 0 100%);
+  padding-right: 1rem;
+}
+
 .game-scene-header--sunset .game-player-level-badge {
   border: 1px solid rgba(251, 146, 60, 0.45);
   background: linear-gradient(180deg, #fff7ed 0%, #fed7aa 100%);
@@ -1392,6 +1424,7 @@ body {
   background: radial-gradient(circle, rgba(251, 191, 36, 0.16) 0%, transparent 68%);
   transform: translate(-50%, -50%);
   pointer-events: none;
+  z-index: 0;
 }
 
 .share-card__line {
@@ -1703,80 +1736,223 @@ body {
   color: #15803d;
 }
 
-.share-card__player-row {
+.share-card__player-head {
   display: flex;
-  margin-top: 40px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  border-top: 1px solid rgba(214, 205, 190, 0.14);
-  padding-top: 32px;
+  justify-content: center;
+  margin-bottom: 30px;
 }
 
-.share-card__panel--water .share-card__player-row {
-  border-top-color: rgba(125, 211, 252, 0.42);
+.share-card__player-avatar-wrap {
+  position: relative;
+  width: 227px;
+  height: 227px;
 }
 
-.share-card__panel--sunset .share-card__player-row {
-  border-top-color: rgba(251, 146, 60, 0.4);
-}
-
-.share-card__player-name {
-  display: flex;
-  overflow: hidden;
-  min-width: 0;
-  align-items: center;
-  gap: 12px;
-  font-size: 36px;
-  font-weight: 700;
-}
-
-.share-card__player-name > span:last-child {
+.share-card__player-name-badge {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -50%);
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.share-card__player-level {
-  flex-shrink: 0;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
   border-radius: 999px;
-  padding: 10px 22px;
-  font-family: var(--font-mono);
-  font-size: 28px;
+  padding: 8px 18px;
+  font-size: 19px;
   font-weight: 700;
+  line-height: 1;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.share-card__player-avatar {
+  --share-avatar-border-ext: 1.5px;
+  --share-avatar-level-shadow: none;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  border-radius: 61px;
+  border: 0;
+  background: linear-gradient(180deg, #141414 0%, #050505 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.share-card__player-avatar::before,
+.share-card__player-avatar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.share-card__player-avatar::before {
+  inset: calc(-1 * var(--share-avatar-border-ext));
+  border-radius: calc(61px + var(--share-avatar-border-ext));
+  border: var(--share-avatar-border-ext) solid #fbbf24;
+  z-index: 2;
+  box-shadow: var(--share-avatar-level-shadow);
+}
+
+.share-card__player-avatar-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.share-card__player-avatar-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(245, 245, 245, 0.9);
+}
+
+.share-card__player-avatar--lvl-1 {
+  --share-avatar-border-ext: 1.5px;
+}
+
+.share-card__player-avatar--lvl-2 {
+  --share-avatar-border-ext: 2px;
+}
+
+.share-card__player-avatar--lvl-3 {
+  --share-avatar-border-ext: 3px;
+  --share-avatar-level-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.45),
+    0 0 16px 3px rgba(251, 191, 36, 0.45);
+}
+
+.share-card__player-avatar--lvl-4 {
+  --share-avatar-border-ext: 3.5px;
+  --share-avatar-level-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.45),
+    0 0 16px 3px rgba(251, 191, 36, 0.45);
+}
+
+.share-card__player-avatar--lvl-5 {
+  --share-avatar-border-ext: 4px;
+  --share-avatar-level-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.45),
+    0 0 16px 3px rgba(251, 191, 36, 0.45);
+}
+
+.share-card__player-avatar--lvl-4::before,
+.share-card__player-avatar--lvl-5::before {
+  animation: share-card-avatar-border-pulse 1.8s ease-in-out infinite;
+}
+
+.share-card__player-avatar--lvl-5::after {
+  inset: calc(-1 * var(--share-avatar-border-ext));
+  z-index: 3;
+  border-radius: calc(61px + var(--share-avatar-border-ext));
+  padding: var(--share-avatar-border-ext);
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 290deg,
+    rgba(254, 240, 138, 0.96) 320deg,
+    transparent 350deg 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: share-card-avatar-border-run 1.55s linear infinite;
+}
+
+@keyframes share-card-avatar-border-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.36),
+      0 0 12px 2px rgba(251, 191, 36, 0.28);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.52),
+      0 0 18px 4px rgba(251, 191, 36, 0.46);
+  }
+}
+
+@keyframes share-card-avatar-border-run {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.share-card__player-level-chip {
+  position: absolute;
+  z-index: 3;
+  right: -8px;
+  bottom: -6px;
+  width: 57px;
+  height: 57px;
+  border-radius: 999px;
+  border: 2px solid #0b0b0b;
+  background: linear-gradient(180deg, #111111 0%, #000000 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.share-card__player-level-chip-ring {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.share-card__player-level-chip-track {
+  stroke: rgba(251, 191, 36, 0.32);
+}
+
+.share-card__player-level-chip-progress {
+  stroke: #fbbf24;
+  filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.42));
+}
+
+.share-card__player-level-chip-value {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
+  fill: #fbbf24;
+  paint-order: stroke fill;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 1.1px;
+  color: #fbbf24;
 }
 
-.share-card__panel--default .share-card__player-name {
-  color: #f5f5f4;
-}
-
-.share-card__panel--default .share-card__player-level {
-  border: 1px solid rgba(251, 191, 36, 0.28);
-  background: rgba(251, 191, 36, 0.1);
+.share-card__panel--default .share-card__player-name-badge {
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(40, 30, 10, 0.9);
   color: #fcd34d;
 }
 
-.share-card__panel--water .share-card__player-name {
-  color: #1a4a6e;
-}
-
-.share-card__panel--sunset .share-card__player-name {
-  color: #7c2d12;
-}
-
-.share-card__panel--water .share-card__player-level {
-  border: 1px solid rgba(14, 116, 144, 0.22);
-  background: rgba(255, 255, 255, 0.62);
+.share-card__panel--water .share-card__player-name-badge {
+  border: 1px solid rgba(14, 116, 144, 0.28);
+  background: rgba(236, 254, 255, 0.9);
   color: #0e7490;
 }
 
-.share-card__panel--sunset .share-card__player-level {
-  border: 1px solid rgba(194, 65, 12, 0.24);
-  background: rgba(255, 237, 213, 0.72);
+.share-card__panel--sunset .share-card__player-name-badge {
+  border: 1px solid rgba(194, 65, 12, 0.3);
+  background: rgba(255, 237, 213, 0.88);
   color: #9a3412;
 }
 

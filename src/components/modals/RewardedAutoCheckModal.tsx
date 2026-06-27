@@ -8,6 +8,8 @@ interface RewardedAutoCheckModalProps {
   onWatchAd: () => Promise<'completed' | 'dismissed' | 'limit'>
 }
 
+const DAILY_REWARDED_ADS_LIMIT = 2
+
 export function RewardedAutoCheckModal({
   open,
   onClose,
@@ -16,14 +18,19 @@ export function RewardedAutoCheckModal({
 }: RewardedAutoCheckModalProps) {
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [progressInstantReset, setProgressInstantReset] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const progressTimerRef = useRef<number | null>(null)
-  const limitReached = watchedToday >= 5
+  const resetFrameRef = useRef<number | null>(null)
+  const limitReached = watchedToday >= DAILY_REWARDED_ADS_LIMIT
 
   useEffect(() => {
     return () => {
       if (progressTimerRef.current !== null) {
         window.clearInterval(progressTimerRef.current)
+      }
+      if (resetFrameRef.current !== null) {
+        window.cancelAnimationFrame(resetFrameRef.current)
       }
     }
   }, [])
@@ -48,7 +55,19 @@ export function RewardedAutoCheckModal({
     if (limitReached || loading) return
     setStatusMessage(null)
     setLoading(true)
-    setProgress(0)
+    if (progress >= 0.999) {
+      setProgressInstantReset(true)
+      setProgress(0)
+      if (resetFrameRef.current !== null) {
+        window.cancelAnimationFrame(resetFrameRef.current)
+      }
+      resetFrameRef.current = window.requestAnimationFrame(() => {
+        setProgressInstantReset(false)
+        resetFrameRef.current = null
+      })
+    } else {
+      setProgress(0)
+    }
     const startedAt = performance.now()
     stopProgressTimer()
     progressTimerRef.current = window.setInterval(() => {
@@ -77,12 +96,14 @@ export function RewardedAutoCheckModal({
         <p className="text-sm leading-relaxed text-stone-200">
           Assista um anúncio simulado para receber 1 auto-check.
         </p>
-        <p className="text-xs uppercase tracking-widest text-charcoal-muted">Hoje: {watchedToday}/5</p>
+        <p className="text-xs uppercase tracking-widest text-charcoal-muted">
+          Hoje: {Math.min(watchedToday, DAILY_REWARDED_ADS_LIMIT)}/{DAILY_REWARDED_ADS_LIMIT}
+        </p>
 
         <div className="space-y-2">
           <div className="h-2 overflow-hidden rounded-full bg-charcoal">
             <div
-              className="h-full transition-[width,background-color] duration-75 ease-linear"
+              className={`h-full ${progressInstantReset ? '' : 'transition-[width,background-color] duration-75 ease-linear'}`}
               style={{
                 width: `${progress * 100}%`,
                 backgroundColor: progressColor(progress),

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { SimulatedRewardedAds } from '../platform/ads'
 import { ensureDailyFresh } from '../platform/daily-reset'
-import { loadPlayerData, savePlayerData, type BackgroundTheme, type PlayerData } from '../platform/storage'
+import { loadPlayerData, savePlayerData, type BackgroundTheme, type BadgeVariant, type PlayerData } from '../platform/storage'
 
 export const DISPLAY_NAME_MAX_LENGTH = 20
+const DAILY_REWARDED_ADS_LIMIT = 2
 
 export function sanitizeDisplayName(raw: string): string {
   const trimmed = raw.trim().slice(0, DISPLAY_NAME_MAX_LENGTH)
@@ -35,6 +36,10 @@ export function usePlayer() {
     commitPlayer((current) => ({ ...current, displayName: sanitized }))
   }, [commitPlayer])
 
+  const updateAvatarPhoto = useCallback((avatarDataUrl: string | null) => {
+    commitPlayer((current) => ({ ...current, avatarDataUrl }))
+  }, [commitPlayer])
+
   const grantAutoCheck = useCallback((amount = 1) => {
     if (amount <= 0) return
     commitPlayer((current) => ({
@@ -63,6 +68,13 @@ export function usePlayer() {
     })
   }, [commitPlayer])
 
+  const setEquippedBadge = useCallback((badge: BadgeVariant) => {
+    commitPlayer((current) => {
+      if (!current.ownedBadgeIds.includes(badge)) return current
+      return { ...current, equippedBadgeId: badge }
+    })
+  }, [commitPlayer])
+
   const purchaseTheme = useCallback((theme: BackgroundTheme, priceCoins: number): boolean => {
     if (priceCoins < 0) return false
 
@@ -80,18 +92,36 @@ export function usePlayer() {
     return purchased
   }, [commitPlayer])
 
-  const rewardedAdsRemaining = Math.max(0, 5 - player.daily.rewardedAdsWatched)
+  const purchaseBadge = useCallback((badge: BadgeVariant, priceCoins: number): boolean => {
+    if (priceCoins < 0) return false
+
+    let purchased = false
+    commitPlayer((current) => {
+      if (current.ownedBadgeIds.includes(badge)) return current
+      if (current.coins < priceCoins) return current
+      purchased = true
+      return {
+        ...current,
+        coins: current.coins - priceCoins,
+        ownedBadgeIds: [...current.ownedBadgeIds, badge],
+      }
+    })
+    return purchased
+  }, [commitPlayer])
+
+  const rewardedAdsRemaining = Math.max(0, DAILY_REWARDED_ADS_LIMIT - player.daily.rewardedAdsWatched)
 
   const watchSimulatedAd = useCallback(async () => {
     const adapter = new SimulatedRewardedAds({
-      getRemainingToday: () => Math.max(0, 5 - ensureDailyFresh(loadPlayerData()).daily.rewardedAdsWatched),
+      getRemainingToday: () =>
+        Math.max(0, DAILY_REWARDED_ADS_LIMIT - ensureDailyFresh(loadPlayerData()).daily.rewardedAdsWatched),
       onReward: () => {
         commitPlayer((current) => ({
           ...current,
           walletAutoChecks: current.walletAutoChecks + 1,
           daily: {
             ...current.daily,
-            rewardedAdsWatched: Math.min(5, current.daily.rewardedAdsWatched + 1),
+            rewardedAdsWatched: Math.min(DAILY_REWARDED_ADS_LIMIT, current.daily.rewardedAdsWatched + 1),
           },
         }))
       },
@@ -102,10 +132,13 @@ export function usePlayer() {
   return {
     player,
     updateDisplayName,
+    updateAvatarPhoto,
     grantAutoCheck,
     spendAutoCheck,
     setEquippedTheme,
+    setEquippedBadge,
     purchaseTheme,
+    purchaseBadge,
     rewardedAdsRemaining,
     watchSimulatedAd,
     commitPlayer,

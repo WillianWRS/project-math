@@ -1,15 +1,13 @@
 import { PlayerModal } from '../modals/PlayerModal'
 import { ShopModal } from '../modals/ShopModal'
 import { SettingsModal } from '../modals/SettingsModal'
+import { AutoCheckTimeoutModal } from '../modals/AutoCheckTimeoutModal'
 import { lazy, memo, Suspense } from 'react'
 import { Modal } from '../ui/Modal'
-import type { BackgroundTheme, PlayerData, ScoreRecord } from '../../platform/storage'
+import type { BackgroundTheme, BadgeVariant, PlayerData, ScoreRecord } from '../../platform/storage'
 
 const RewardedAutoCheckModal = lazy(() =>
   import('../modals/RewardedAutoCheckModal').then((m) => ({ default: m.RewardedAutoCheckModal })),
-)
-const AutoCheckTimeoutModal = lazy(() =>
-  import('../modals/AutoCheckTimeoutModal').then((m) => ({ default: m.AutoCheckTimeoutModal })),
 )
 
 export interface GameModalLayerProps {
@@ -25,8 +23,6 @@ export interface GameModalLayerProps {
   showGodModeToggle: boolean
   soundEnabled: boolean
   devModeEnabled: boolean
-  backgroundTheme: BackgroundTheme
-  settingsThemeIds: BackgroundTheme[]
   rewardedAdsWatched: number
   onClosePlayer: () => void
   onCloseShop: () => void
@@ -35,6 +31,8 @@ export interface GameModalLayerProps {
   onOpenRewardedFromPlayer: () => void
   onSaveDisplayName: (name: string) => void
   onBuyTheme: (theme: BackgroundTheme, priceCoins: number) => boolean
+  onEquipBadge: (badge: BadgeVariant) => void
+  onBuyBadge: (badge: BadgeVariant, priceCoins: number) => boolean
   onSoundChange: (enabled: boolean) => void
   onDevModeChange: (enabled: boolean) => void
   onGodModeChange: (enabled: boolean) => void
@@ -59,8 +57,6 @@ function GameModalLayerInner({
   showGodModeToggle,
   soundEnabled,
   devModeEnabled,
-  backgroundTheme,
-  settingsThemeIds,
   rewardedAdsWatched,
   onClosePlayer,
   onCloseShop,
@@ -69,6 +65,8 @@ function GameModalLayerInner({
   onOpenRewardedFromPlayer,
   onSaveDisplayName,
   onBuyTheme,
+  onEquipBadge,
+  onBuyBadge,
   onSoundChange,
   onDevModeChange,
   onGodModeChange,
@@ -81,43 +79,37 @@ function GameModalLayerInner({
 }: GameModalLayerProps) {
   return (
     <>
-      {playerOpen && (
-        <PlayerModal
-          open
-          onClose={onClosePlayer}
-          player={player}
-          topScores={topScores}
-          onSaveName={onSaveDisplayName}
-          onOpenRewardedModal={onOpenRewardedFromPlayer}
-        />
-      )}
+      <PlayerModal
+        open={playerOpen}
+        onClose={onClosePlayer}
+        player={player}
+        topScores={topScores}
+        onSaveName={onSaveDisplayName}
+        onOpenRewardedModal={onOpenRewardedFromPlayer}
+      />
 
-      {shopOpen && (
-        <ShopModal
-          open
-          onClose={onCloseShop}
-          player={player}
-          godModeEnabled={godModeEnabled}
-          onBuyTheme={onBuyTheme}
-        />
-      )}
+      <ShopModal
+        open={shopOpen}
+        onClose={onCloseShop}
+        player={player}
+        godModeEnabled={godModeEnabled}
+        onBuyTheme={onBuyTheme}
+        onEquipTheme={onBackgroundThemeChange}
+        onBuyBadge={onBuyBadge}
+        onEquipBadge={onEquipBadge}
+      />
 
-      {settingsOpen && (
-        <SettingsModal
-          open
-          onClose={onCloseSettings}
-          soundEnabled={soundEnabled}
-          onSoundChange={onSoundChange}
-          devModeEnabled={devModeEnabled}
-          onDevModeChange={onDevModeChange}
-          godModeEnabled={godModeEnabled}
-          onGodModeChange={onGodModeChange}
-          showGodModeToggle={showGodModeToggle}
-          backgroundTheme={backgroundTheme}
-          ownedThemeIds={settingsThemeIds}
-          onBackgroundThemeChange={onBackgroundThemeChange}
-        />
-      )}
+      <SettingsModal
+        open={settingsOpen}
+        onClose={onCloseSettings}
+        soundEnabled={soundEnabled}
+        onSoundChange={onSoundChange}
+        devModeEnabled={devModeEnabled}
+        onDevModeChange={onDevModeChange}
+        godModeEnabled={godModeEnabled}
+        onGodModeChange={onGodModeChange}
+        showGodModeToggle={showGodModeToggle}
+      />
 
       {rewardedOpen && (
         <Suspense fallback={null}>
@@ -130,40 +122,34 @@ function GameModalLayerInner({
         </Suspense>
       )}
 
-      {timeoutModalOpen && (
-        <Suspense fallback={null}>
-          <AutoCheckTimeoutModal
-            open
-            walletAutoChecks={player.walletAutoChecks}
-            onUse={onUseAutoCheckAtTimeout}
-            onDecline={onDeclineAutoCheckAtTimeout}
-          />
-        </Suspense>
-      )}
+      <AutoCheckTimeoutModal
+        open={timeoutModalOpen}
+        walletAutoChecks={player.walletAutoChecks}
+        onUse={onUseAutoCheckAtTimeout}
+        onDecline={onDeclineAutoCheckAtTimeout}
+      />
 
-      {exitConfirmOpen && (
-        <Modal open title="Sair do jogo?" onClose={onCloseExitConfirm}>
-          <div className="space-y-4">
-            <p className="text-sm leading-relaxed text-stone-200">
-              Deseja sair mesmo ou continuar no menu?
-            </p>
-            <button
-              type="button"
-              onClick={onConfirmExit}
-              className="game-btn-push game-btn-push-amber w-full rounded-xl bg-gradient-to-b from-amber-300 to-amber-500 px-4 py-3 text-sm font-semibold text-amber-950"
-            >
-              Sair
-            </button>
-            <button
-              type="button"
-              onClick={onCloseExitConfirm}
-              className="game-btn-push game-btn-push-secondary w-full rounded-xl bg-charcoal-elevated px-4 py-3 text-sm font-semibold text-stone-100"
-            >
-              Continuar
-            </button>
-          </div>
-        </Modal>
-      )}
+      <Modal open={exitConfirmOpen} title="Sair do jogo?" onClose={onCloseExitConfirm}>
+        <div className="space-y-4">
+          <p className="text-sm leading-relaxed text-stone-200">
+            Deseja sair mesmo ou continuar no menu?
+          </p>
+          <button
+            type="button"
+            onClick={onConfirmExit}
+            className="game-btn-push game-btn-push-amber w-full rounded-xl bg-gradient-to-b from-amber-300 to-amber-500 px-4 py-3 text-sm font-semibold text-amber-950"
+          >
+            Sair
+          </button>
+          <button
+            type="button"
+            onClick={onCloseExitConfirm}
+            className="game-btn-push game-btn-push-secondary w-full rounded-xl bg-charcoal-elevated px-4 py-3 text-sm font-semibold text-stone-100"
+          >
+            Continuar
+          </button>
+        </div>
+      </Modal>
     </>
   )
 }

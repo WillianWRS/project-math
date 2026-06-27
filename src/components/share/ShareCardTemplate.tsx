@@ -1,15 +1,26 @@
 import type { BackgroundTheme } from '../../platform/storage'
 import { getShareCardThemeStyle } from '../../lib/share-card-theme'
+import { xpProgressInLevel } from '../../engine/player-level'
 
 interface ShareCardTemplateProps {
   theme: BackgroundTheme
   playerName: string
   level: number
+  xp: number
+  avatarDataUrl: string | null
   score: number
   durationText: string
   xpGained: number
   coinsGained: number
   goalCompleted: boolean
+}
+
+function avatarBorderLevelFromPlayerLevel(level: number): 1 | 2 | 3 | 4 | 5 {
+  if (level >= 50) return 5
+  if (level >= 30) return 4
+  if (level >= 20) return 3
+  if (level >= 10) return 2
+  return 1
 }
 
 function ShareIconTrophy() {
@@ -60,23 +71,9 @@ function ShareIconClock() {
   )
 }
 
-function ShareCardDecor({ theme }: { theme: BackgroundTheme }) {
-  if (theme === 'water') {
-    return (
-      <>
-        <div className="share-card__water-blob share-card__water-blob--one" aria-hidden />
-        <div className="share-card__water-blob share-card__water-blob--two" aria-hidden />
-        <div className="share-card__water-blob share-card__water-blob--three" aria-hidden />
-      </>
-    )
-  }
-
+function ShareCardDecor() {
   return (
     <>
-      <div className="share-card__line share-card__line--one" aria-hidden />
-      <div className="share-card__line share-card__line--two" aria-hidden />
-      <div className="share-card__line share-card__line--three" aria-hidden />
-      <div className="share-card__line share-card__line--four" aria-hidden />
       <div className="share-card__glow" aria-hidden />
     </>
   )
@@ -86,6 +83,8 @@ export function ShareCardTemplate({
   theme,
   playerName,
   level,
+  xp,
+  avatarDataUrl,
   score,
   durationText,
   xpGained,
@@ -93,6 +92,14 @@ export function ShareCardTemplate({
   goalCompleted,
 }: ShareCardTemplateProps) {
   const themeStyle = getShareCardThemeStyle(theme)
+  const avatarBorderLevel = avatarBorderLevelFromPlayerLevel(level)
+  const progress = xpProgressInLevel(xp)
+  const ratio = progress.needed > 0 ? progress.current / progress.needed : 0
+  const ringSize = 57
+  const ringStroke = 3.4
+  const radius = (ringSize - ringStroke) / 2
+  const circumference = 2 * Math.PI * radius
+  const dashOffset = circumference * (1 - Math.min(1, Math.max(0, ratio)))
 
   return (
     <div
@@ -100,11 +107,67 @@ export function ShareCardTemplate({
       className={`share-card ${themeStyle.rootClass}`}
       data-capture-background={themeStyle.captureBackground}
     >
-      <ShareCardDecor theme={theme} />
+      <ShareCardDecor />
 
       <p className="share-card__brand">Project Math</p>
 
       <div className={`share-card__panel ${themeStyle.panelClass}`}>
+        <div className="share-card__player-head">
+          <div className="share-card__player-avatar-wrap">
+            <p className="share-card__player-name-badge">{playerName}</p>
+            <div className={`share-card__player-avatar share-card__player-avatar--lvl-${avatarBorderLevel}`}>
+              {avatarDataUrl ? (
+                <img src={avatarDataUrl} alt="" className="share-card__player-avatar-photo" draggable={false} />
+              ) : (
+                <span className="share-card__player-avatar-icon">
+                  <ShareIconPerson />
+                </span>
+              )}
+            </div>
+            <div className="share-card__player-level-chip" aria-hidden>
+              <svg className="share-card__player-level-chip-ring" width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`}>
+                <circle
+                  className="share-card__player-level-chip-track"
+                  cx={ringSize / 2}
+                  cy={ringSize / 2}
+                  r={radius}
+                  fill="none"
+                  strokeWidth={ringStroke}
+                  stroke="rgba(251, 191, 36, 0.32)"
+                />
+                <circle
+                  className="share-card__player-level-chip-progress"
+                  cx={ringSize / 2}
+                  cy={ringSize / 2}
+                  r={radius}
+                  fill="none"
+                  strokeWidth={ringStroke}
+                  stroke="#fbbf24"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={dashOffset}
+                  strokeLinecap="round"
+                  transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`}
+                />
+                <text
+                  className="share-card__player-level-chip-value"
+                  x="50%"
+                  y="50%"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="30"
+                  fontWeight="800"
+                  fill="#fbbf24"
+                  stroke="rgba(0, 0, 0, 0.6)"
+                  strokeWidth="1.5"
+                  paintOrder="stroke"
+                >
+                  {level}
+                </text>
+              </svg>
+            </div>
+          </div>
+        </div>
+
         <p className="share-card__label">
           <ShareIconTrophy />
           <span>Resultado</span>
@@ -128,17 +191,9 @@ export function ShareCardTemplate({
 
         {goalCompleted ? (
           <p className="share-card__highlight share-card__highlight--goal">
-            Meta diária completa! <span className="share-card__reward-xp">+1000 XP</span> e +1 auto-check
+            Meta diária completa! <span className="share-card__reward-xp">+200 XP</span> e +10 moedas
           </p>
         ) : null}
-
-        <div className="share-card__player-row">
-          <span className="share-card__player-name">
-            <ShareIconPerson />
-            <span>{playerName}</span>
-          </span>
-          <span className="share-card__player-level">Nv. {level}</span>
-        </div>
       </div>
     </div>
   )

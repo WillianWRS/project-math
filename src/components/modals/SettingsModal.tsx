@@ -1,5 +1,3 @@
-import type { BackgroundTheme } from '../../platform/storage'
-import { THEME_CATALOG } from '../../cosmetics/theme-catalog'
 import { Modal } from '../ui/Modal'
 
 interface SettingsModalProps {
@@ -12,9 +10,6 @@ interface SettingsModalProps {
   godModeEnabled: boolean
   onGodModeChange: (enabled: boolean) => void
   showGodModeToggle: boolean
-  backgroundTheme: BackgroundTheme
-  ownedThemeIds: BackgroundTheme[]
-  onBackgroundThemeChange: (theme: BackgroundTheme) => void
 }
 
 function IconGear() {
@@ -32,15 +27,6 @@ function IconGear() {
         strokeLinejoin="round"
       />
     </svg>
-  )
-}
-
-function ThemeSelectionRing({ water }: { water: boolean }) {
-  return (
-    <span
-      className={`settings-theme-selection-ring${water ? ' settings-theme-selection-ring--water' : ''}`}
-      aria-hidden
-    />
   )
 }
 
@@ -79,45 +65,10 @@ export function SettingsModal({
   godModeEnabled,
   onGodModeChange,
   showGodModeToggle,
-  backgroundTheme,
-  ownedThemeIds,
-  onBackgroundThemeChange,
 }: SettingsModalProps) {
-  const ownedThemes = THEME_CATALOG.filter(
-    (theme) =>
-      theme.equippableThemeId !== undefined && ownedThemeIds.includes(theme.equippableThemeId),
-  )
-
   return (
     <Modal open={open} title="Configurações" titleIcon={<IconGear />} onClose={onClose}>
       <div className="space-y-4">
-        <div>
-          <p className="mb-2 text-sm font-medium text-stone-200">Fundo do jogo</p>
-          <div className="grid grid-cols-2 gap-3">
-            {ownedThemes.map((option) => {
-              const themeId = option.equippableThemeId as BackgroundTheme
-              const selected = backgroundTheme === themeId
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => onBackgroundThemeChange(themeId)}
-                  className={`game-modal-card settings-theme-card relative flex flex-col overflow-hidden text-left${
-                    selected ? ' settings-theme-card--selected' : ' hover:border-stone-600/50'
-                  }`}
-                >
-                  {selected && <ThemeSelectionRing water={themeId === 'water'} />}
-                  <div className={`settings-bg-preview ${option.previewClass}`} aria-hidden />
-                  <div className="px-3 py-2.5">
-                    <p className="text-sm font-medium text-stone-200">{option.name}</p>
-                    <p className="text-xs text-charcoal-muted">Tema desbloqueado</p>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
         <label className="game-modal-card flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
           <div>
             <p className="font-medium text-stone-200">Som</p>

@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useReducedMotion } from '../../lib/motion'
 import { ModalScrollArea } from './ModalScrollArea'
@@ -7,6 +7,7 @@ interface ModalProps {
   open: boolean
   title: string
   titleIcon?: ReactNode
+  headerRight?: ReactNode
   onClose: () => void
   children: ReactNode
   closeOnBackdrop?: boolean
@@ -15,10 +16,13 @@ interface ModalProps {
   stackLevel?: number
 }
 
+const MODAL_CLOSE_ANIMATION_MS = 140
+
 export function Modal({
   open,
   title,
   titleIcon,
+  headerRight,
   onClose,
   children,
   closeOnBackdrop = true,
@@ -29,10 +33,46 @@ export function Modal({
   const reduceMotion = useReducedMotion()
   const isTopSheet = sheetAnchor === 'top'
   const layerZ = 80 + stackLevel * 10
+  const [phase, setPhase] = useState<'open' | 'closing' | 'closed'>(open ? 'open' : 'closed')
+  const closeTimerRef = useRef<number | null>(null)
 
-  if (!open) return null
+  useEffect(() => {
+    let frame = 0
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = null
+    }
 
-  const layerPhase = 'game-modal-layer--open'
+    if (open) {
+      frame = window.requestAnimationFrame(() => setPhase('open'))
+      return () => window.cancelAnimationFrame(frame)
+    }
+
+    if (phase === 'closed') return
+    if (reduceMotion) {
+      frame = window.requestAnimationFrame(() => setPhase('closed'))
+      return () => window.cancelAnimationFrame(frame)
+    }
+
+    frame = window.requestAnimationFrame(() => setPhase('closing'))
+    closeTimerRef.current = window.setTimeout(() => {
+      setPhase('closed')
+      closeTimerRef.current = null
+    }, MODAL_CLOSE_ANIMATION_MS)
+    return () => window.cancelAnimationFrame(frame)
+  }, [open, phase, reduceMotion])
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current)
+      }
+    }
+  }, [])
+
+  if (phase === 'closed') return null
+
+  const layerPhase = phase === 'closing' ? 'game-modal-layer--closing' : 'game-modal-layer--open'
   const instantClass = reduceMotion ? ' game-modal-layer--instant' : ''
 
   return createPortal(
@@ -60,9 +100,7 @@ export function Modal({
         style={{ zIndex: 1 }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div
-          className={`mb-4 flex items-center gap-3${showCloseButton ? ' justify-between' : ''}`}
-        >
+        <div className={`mb-4 flex items-center gap-3${showCloseButton ? ' justify-between' : ''}`}>
           <h2
             id="modal-title"
             className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.18em] text-stone-200"
@@ -70,16 +108,19 @@ export function Modal({
             {titleIcon ? <span className="game-modal-title__icon">{titleIcon}</span> : null}
             <span>{title}</span>
           </h2>
-          {showCloseButton && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="game-btn-push flex h-9 w-9 items-center justify-center rounded-xl bg-charcoal-elevated text-stone-400 ring-1 ring-stone-700/50 transition hover:text-stone-100"
-              aria-label="Fechar"
-            >
-              ✕
-            </button>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {headerRight}
+            {showCloseButton && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="game-btn-push flex h-9 w-9 items-center justify-center rounded-xl bg-charcoal-elevated text-stone-400 ring-1 ring-stone-700/50 transition hover:text-stone-100"
+                aria-label="Fechar"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
         <ModalScrollArea>{children}</ModalScrollArea>
       </div>
