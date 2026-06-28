@@ -315,6 +315,3 @@ export function returnToMenu(): GameSession {
 }
 
 export { SUBMIT_LOCK_MS }
-
-/** Debug: auto-check do teclado sempre disponível, sem consumir cargas. */
-export const DEBUG_AUTO_CHECK_ALWAYS_ENABLED = false

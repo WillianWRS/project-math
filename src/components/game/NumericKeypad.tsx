@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from '../../lib/motion'
 import { memo, type ReactNode, useCallback, useRef, useState } from 'react'
-import { DEBUG_AUTO_CHECK_ALWAYS_ENABLED } from '../../engine/game-state-machine'
 import type { BenchmarkVirtualKey } from '../../engine/benchmark-types'
 
 interface NumericKeypadProps {
@@ -186,8 +185,8 @@ function AutoCheckButton({
   virtualPressed: boolean
   onAutoCorrect: () => void
 }) {
-  const enabled = DEBUG_AUTO_CHECK_ALWAYS_ENABLED || charges > 0
-  const displayCharges = DEBUG_AUTO_CHECK_ALWAYS_ENABLED ? 1 : charges
+  const enabled = charges > 0
+  const displayCharges = charges
   const stateKey = enabled ? 'enabled' : 'disabled'
 
   return (
@@ -202,9 +201,7 @@ function AutoCheckButton({
       onClick={onAutoCorrect}
       ariaLabel={
         enabled
-          ? DEBUG_AUTO_CHECK_ALWAYS_ENABLED
-            ? 'Auto acerto (debug)'
-            : `Auto acerto (${charges} uso${charges === 1 ? '' : 's'})`
+          ? `Auto acerto (${charges} uso${charges === 1 ? '' : 's'})`
           : 'Auto acerto indisponível'
       }
     >

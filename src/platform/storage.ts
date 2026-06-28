@@ -56,9 +56,6 @@ export interface PlayerData {
   }
 }
 
-/** @deprecated Use ScoreRecord */
-export type HighScoreRecord = ScoreRecord
-
 export interface SaveTopScoreResult {
   scores: ScoreRecord[]
   saved: boolean
@@ -183,15 +180,6 @@ export function loadTopScores(): ScoreRecord[] {
   }
 }
 
-export function getTopScore(): ScoreRecord | null {
-  return loadTopScores()[0] ?? null
-}
-
-/** @deprecated Use getTopScore */
-export function loadHighScore(): ScoreRecord | null {
-  return getTopScore()
-}
-
 export function qualifiesForTopScores(
   score: number,
   scores: ScoreRecord[] = loadTopScores(),
@@ -215,15 +203,6 @@ export function saveTopScore(score: number, durationMs = 0): SaveTopScoreResult 
 
   const isTop1 = score > previousTop1
   return { scores, saved: true, isTop1 }
-}
-
-/** @deprecated Use saveTopScore */
-export function saveHighScore(score: number): ScoreRecord {
-  const result = saveTopScore(score)
-  if (result.saved) {
-    return result.scores.find((entry) => entry.score === score) ?? result.scores[0]
-  }
-  return createScoreRecord(score)
 }
 
 export function loadSoundEnabled(): boolean {
@@ -389,14 +368,4 @@ export function loadPlayerData(): PlayerData {
 
 export function savePlayerData(player: PlayerData): void {
   localStorage.setItem(PLAYER_KEY, JSON.stringify(player))
-}
-
-export function loadBackgroundTheme(): BackgroundTheme {
-  return loadPlayerData().equippedThemeId
-}
-
-export function saveBackgroundTheme(theme: BackgroundTheme): void {
-  const player = loadPlayerData()
-  if (!player.ownedThemeIds.includes(theme)) return
-  savePlayerData({ ...player, equippedThemeId: theme })
 }

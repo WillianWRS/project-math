@@ -6,6 +6,7 @@ import {
   type ClipId,
   type SfxManifest,
 } from './audio-types'
+import { isIOS } from './device'
 
 const MANIFEST_PATH = '/audio/sfx-manifest.json'
 const MAX_WRITE_OVERLAP = 6
@@ -18,6 +19,7 @@ let audioUnlocked = false
 let audioContext: AudioContext | null = null
 let sfxGain: GainNode | null = null
 let iosUnlockPrimed = false
+let lifecycleHooksInstalled = false
 
 const bufferCache = new Map<ClipId, AudioBuffer>()
 const rawBytesCache = new Map<string, ArrayBuffer>()
@@ -25,12 +27,13 @@ const clipLoadPromises = new Map<ClipId, Promise<void>>()
 const tierLoadPromises = new Map<AudioTier, Promise<void>>()
 const MENU_AUDIO_TIERS: AudioTier[] = ['critical', 'gameplay']
 let menuAudioPrefetchPromise: Promise<void> | null = null
-let menuAudioPreparePromise: Promise<void> | null = null
+let menuAudioPreparePromise: Promise<boolean> | null = null
 
 let spriteBuffer: AudioBuffer | null = null
 let spriteLoadPromise: Promise<void> | null = null
 
 const activeWriteSources = new Set<AudioBufferSourceNode>()
+const htmlAudioFallback = new Map<string, HTMLAudioElement>()
 
 function getAudioContextConstructor(): AudioContextConstructor {
   const extendedWindow = window as Window & { webkitAudioContext?: AudioContextConstructor }
@@ -69,6 +72,11 @@ function primeIosAudioUnlock(context: AudioContext): void {
   } catch {
     /* already started or context blocked */
   }
+}
+
+function resumeContextIfSuspended(context: AudioContext): void {
+  if (context.state !== 'suspended') return
+  void context.resume().catch(() => {})
 }
 
 async function loadManifest(): Promise<SfxManifest> {
@@ -200,6 +208,10 @@ function playBufferClip(id: ClipId, manifest: SfxManifest, enabled: boolean): vo
   const buffer = bufferCache.get(id)
   if (!clip || !buffer) return
 
+  if (audioContext.state === 'suspended') {
+    resumeContextIfSuspended(audioContext)
+  }
+
   const source = audioContext.createBufferSource()
   source.buffer = buffer
 
@@ -224,6 +236,25 @@ function playBufferClip(id: ClipId, manifest: SfxManifest, enabled: boolean): vo
   source.start(0)
 }
 
+function tryPlayHtmlFallback(id: ClipId, manifest: SfxManifest, enabled: boolean): boolean {
+  if (!enabled) return false
+
+  const clip = manifest.clips[id]
+  if (!clip || !isFileClipDef(clip)) return false
+
+  let audio = htmlAudioFallback.get(clip.src)
+  if (!audio) {
+    audio = new Audio(clip.src)
+    audio.preload = 'auto'
+    htmlAudioFallback.set(clip.src, audio)
+  }
+
+  audio.volume = Math.min(1, Math.max(0, clip.volume ?? 1))
+  audio.currentTime = 0
+  void audio.play().catch(() => {})
+  return true
+}
+
 function tryPlayClipSync(id: ClipId, enabled: boolean): boolean {
   if (!enabled || !manifestCache || !bufferCache.has(id)) return false
   if (!audioContext || !sfxGain) return false
@@ -236,6 +267,14 @@ function tryPlayClipSync(id: ClipId, enabled: boolean): boolean {
   }
 }
 
+/**
+ * Deve ser chamado de forma **síncrona** dentro de touchstart/pointerdown/click.
+ * Cria o AudioContext, faz o prime silencioso do iOS e tenta retomar o contexto.
+ */
+export function unlockAudioFromUserGesture(): void {
+  unlockAudioContextSync()
+}
+
 export function unlockAudioContextSync(): void {
   audioUnlocked = true
   const context = ensureContextSync()
@@ -243,10 +282,7 @@ export function unlockAudioContextSync(): void {
 
   primeIosAudioUnlock(context)
   warmManifestFetch()
-
-  if (context.state === 'suspended') {
-    void context.resume()
-  }
+  resumeContextIfSuspended(context)
 }
 
 export async function unlockAudioContext(): Promise<void> {
@@ -255,8 +291,28 @@ export async function unlockAudioContext(): Promise<void> {
   if (!context) return
 
   if (context.state === 'suspended') {
-    await context.resume()
+    try {
+      await context.resume()
+    } catch {
+      /* resume rejected outside gesture — caller may retry on next interaction */
+    }
   }
+}
+
+export function installAudioLifecycleHooks(): void {
+  if (lifecycleHooksInstalled || typeof document === 'undefined') return
+  lifecycleHooksInstalled = true
+
+  const resumeIfNeeded = () => {
+    if (!audioUnlocked) return
+    unlockAudioContextSync()
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') resumeIfNeeded()
+  })
+  window.addEventListener('pageshow', resumeIfNeeded)
+  window.addEventListener('focus', resumeIfNeeded)
 }
 
 export async function preloadAudioTier(tier: AudioTier): Promise<void> {
@@ -302,16 +358,25 @@ export function preloadAudioTierIdle(tier: AudioTier): void {
 }
 
 export function playClip(id: ClipId, enabled: boolean): void {
-  if (!enabled || !audioUnlocked) return
+  if (!enabled) return
 
   unlockAudioContextSync()
+  if (!audioUnlocked) return
+
   if (tryPlayClipSync(id, enabled)) return
 
   void (async () => {
     await unlockAudioContext()
     const manifest = await loadManifest()
+
+    if (tryPlayClipSync(id, enabled)) return
+
     await loadClipBuffer(id)
-    playBufferClip(id, manifest, enabled)
+    if (tryPlayClipSync(id, enabled)) return
+
+    if (isIOS()) {
+      tryPlayHtmlFallback(id, manifest, enabled)
+    }
   })()
 }
 
@@ -366,25 +431,35 @@ export function isMenuAudioReady(): boolean {
   return clipIds.every((id) => bufferCache.has(id))
 }
 
-export async function prepareMenuAudio(): Promise<void> {
+export function isAudioUnlocked(): boolean {
+  return audioUnlocked
+}
+
+/**
+ * Decodifica tiers de menu. Chame `unlockAudioFromUserGesture()` de forma síncrona
+ * no gesto do usuário **antes** de invocar esta função no iOS.
+ */
+export async function prepareMenuAudio(): Promise<boolean> {
   if (menuAudioPreparePromise) {
-    await menuAudioPreparePromise
-    return
+    return menuAudioPreparePromise
   }
 
   menuAudioPreparePromise = (async () => {
+    unlockAudioContextSync()
     await prefetchMenuAudioBytes()
     await unlockAudioContext()
     await Promise.all(MENU_AUDIO_TIERS.map((tier) => preloadAudioTier(tier)))
+    return isMenuAudioReady()
   })().catch((error) => {
     menuAudioPreparePromise = null
     throw error
   })
 
   try {
-    await menuAudioPreparePromise
+    return await menuAudioPreparePromise
   } catch {
     menuAudioPreparePromise = null
+    return false
   }
 }
 
@@ -396,6 +471,7 @@ export function resetAudioEngineForTests(): void {
   manifestCache = null
   manifestPromise = null
   iosUnlockPrimed = false
+  lifecycleHooksInstalled = false
   bufferCache.clear()
   rawBytesCache.clear()
   clipLoadPromises.clear()
@@ -405,4 +481,5 @@ export function resetAudioEngineForTests(): void {
   spriteBuffer = null
   spriteLoadPromise = null
   activeWriteSources.clear()
+  htmlAudioFallback.clear()
 }

@@ -1,38 +1,28 @@
 import {
+  installAudioLifecycleHooks,
+  isAudioUnlocked,
+  isMenuAudioReady,
   playClip,
   playRandomWriteClip,
   prefetchMenuAudioBytes,
   prepareMenuAudio,
-  preloadAudioTier,
   preloadAudioTierIdle,
-  unlockAudioContext,
+  unlockAudioFromUserGesture,
   unlockAudioContextSync,
 } from './audio-engine'
 import type { SfxId } from './audio-types'
 
 export type { SfxId } from './audio-types'
 
-export function unlockAudio(): Promise<void> {
-  return unlockAudioContext()
+export {
+  installAudioLifecycleHooks,
+  isAudioUnlocked,
+  isMenuAudioReady,
+  unlockAudioFromUserGesture,
 }
 
 export function unlockAudioSync(): void {
   unlockAudioContextSync()
-}
-
-/** @deprecated Prefer tiered preload helpers below. */
-export function preloadSfx(): void {
-  void preloadAudioTier('critical')
-  preloadAudioTierIdle('gameplay')
-  preloadAudioTierIdle('idle')
-}
-
-export function preloadAudioCritical(): Promise<void> {
-  return preloadAudioTier('critical')
-}
-
-export function preloadAudioGameplay(): Promise<void> {
-  return preloadAudioTier('gameplay')
 }
 
 export function preloadAudioIdle(): void {
@@ -43,11 +33,12 @@ export function prefetchMenuAudio(): Promise<void> {
   return prefetchMenuAudioBytes()
 }
 
-export function hydrateMenuAudio(): Promise<void> {
+export function hydrateMenuAudio(): Promise<boolean> {
   return prepareMenuAudio()
 }
 
 export function playSfx(id: SfxId, enabled: boolean): void {
+  unlockAudioContextSync()
   playClip(id, enabled)
 }
 
@@ -69,5 +60,6 @@ export function playCorrectAnswerSfx(
 }
 
 export function playRandomWriteSfx(enabled: boolean): void {
+  unlockAudioContextSync()
   playRandomWriteClip(enabled)
 }

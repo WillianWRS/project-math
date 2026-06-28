@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from '../../lib/motion'
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type PointerEvent, type ReactNode, type RefObject } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
 import { NumericKeypad } from './NumericKeypad'
 import { PlayFieldsSideLayout } from './SideCardRails'
 import {
@@ -9,10 +9,8 @@ import {
 import { CurtainOverlay } from './CurtainOverlay'
 import { PlayFieldsFrame } from './PlayFieldsFrame'
 import { PlayStackWithChangerBg, type PlayStackChangerTheme } from './PlayStackWithChangerBg'
-import { SideCardActivateBurst } from '../motion/SideCardActivateBurst'
 import { TimerDangerOverlay } from './TimerDangerOverlay'
 import { WaterSceneLayer } from './WaterSceneLayer'
-import { SLIDE_TRANSITION } from '../../lib/motion-presets'
 import {
   isSceneAmbientDecorPaused,
   isSceneModalDecorPaused,
@@ -21,7 +19,6 @@ import {
   SCENE_BG_STATIC,
 } from '../../lib/scene-decor-pause'
 import { isFourSecondsGameChangerActive, isMinusGameChangerActive, isPlusGameChangerActive, isTimesDivGameChangerActive } from '../../engine/game-changer-cycles'
-import { OPERATOR_COLOR_CLASS } from '../../engine/operation-generator'
 import {
   generateFourSecondsOperation,
   generateInitialBase,
@@ -30,70 +27,60 @@ import {
   generateTimesDivOperation,
 } from '../../engine/operation-generator'
 import { SUBMIT_LOCK_MS } from '../../engine/game-state-machine'
-import { RightSideCardCatalog, type RightCardVariant } from './side-card-types'
+import { type RightCardVariant } from './side-card-types'
 import type { Operation } from '../../engine/types'
-import type { GameSession } from '../../engine/types'
 import { ShareCardTemplate } from '../share/ShareCardTemplate'
 import { shareScoreCardFromElement } from '../../utils/share-score-card'
-import { xpProgressInLevel, xpToLevel } from '../../engine/player-level'
+import { xpToLevel } from '../../engine/player-level'
 import { formatDuration } from '../../engine/rewards'
 import { preloadGameplayModals } from '../../platform/preload-modals'
-import { isIPhone } from '../../platform/device'
 import { playSfx } from '../../platform/audio-service'
-import type { BackgroundTheme, BadgeVariant, PlayerData, ScoreRecord } from '../../platform/storage'
-import type { PostGameRewards, TutorialCompletionResult } from '../../hooks/useGame'
-import type { BenchmarkMetricGradeId, BenchmarkMetrics, BenchmarkVirtualKey } from '../../engine/benchmark-types'
+import { formatAppVersionLabel } from '../../config/app-version'
+import type { BackgroundTheme } from '../../platform/storage'
+import type { TutorialCompletionResult } from '../../hooks/useGame'
 import { GameModalLayer } from './GameModalLayer'
-import { playUiClickAfterPaint } from '../../lib/modal-ui'
+import { playUiClickAfterPaint, primeAudioOnPointerDown } from '../../lib/modal-ui'
 import { Modal } from '../ui/Modal'
-
-interface GameScreenProps {
-  session: GameSession
-  inputValue: string
-  topScores: ScoreRecord[]
-  player: PlayerData
-  lastGameRewards: PostGameRewards
-  benchmarkMode: boolean
-  perfectAnswerToken: number
-  benchmarkMetrics: BenchmarkMetrics | null
-  benchmarkVirtualKeypadPress: { key: BenchmarkVirtualKey; token: number } | null
-  soundEnabled: boolean
-  menuAudioReady: boolean
-  menuAudioPrefetchComplete: boolean
-  devModeEnabled: boolean
-  godModeEnabled: boolean
-  showGodModeToggle: boolean
-  backgroundTheme: BackgroundTheme
-  onStart: () => void
-  onStartBenchmarkSession: () => void
-  onReturnToMenu: () => void
-  onConfirm: () => void
-  onAutoCorrect: () => void
-  onUseAutoCheckAtTimeout: () => void
-  onDeclineAutoCheckAtTimeout: () => void
-  onInputChange: (value: string) => void
-  onSoundChange: (enabled: boolean) => void
-  onDevModeChange: (enabled: boolean) => void
-  onGodModeChange: (enabled: boolean) => void
-  onBackgroundThemeChange: (theme: BackgroundTheme) => void
-  onBuyTheme: (theme: BackgroundTheme, priceCoins: number) => boolean
-  onEquipBadge: (badge: BadgeVariant) => void
-  onBuyBadge: (badge: BadgeVariant, priceCoins: number) => boolean
-  onSaveDisplayName: (name: string) => void
-  onSaveAvatarPhoto: (avatarDataUrl: string | null) => void
-  onWatchRewardedAd: () => Promise<'completed' | 'dismissed' | 'limit'>
-  rewardedAdsWatched: number
-  onPlayClick: () => void
-  onPlayGameStart: () => void
-  onPlayWriteKey: () => void
-  onPlayEraseKey: () => void
-  onPlayGoToMenu: () => void
-  onCompleteTutorial: () => TutorialCompletionResult
-}
+import { useGameContext } from '../../context/game-context'
+import {
+  IconAutoCheck,
+  IconCoin,
+  IconGear,
+  IconHelp,
+  IconPerson,
+  IconPlay,
+  IconShare,
+  IconShop,
+} from './icons'
+import {
+  AnswerDisplay,
+  OperationValue,
+  SlideValue,
+} from './play/AnswerDisplay'
+import {
+  AnimatedGameMenuButton,
+  MenuBenchmarkButton,
+  MenuHudButton,
+  MenuHudInlineButton,
+  MenuLevelBadge,
+  MenuPlayButton,
+  MenuThemeTestButton,
+} from './menu/MenuHud'
+import { ThemeTestSideLayout } from './theme-test/ThemeTestSideLayout'
+import {
+  BENCHMARK_METRIC_ORDER,
+  benchmarkGradeTone,
+  benchmarkPhaseSeverityTone,
+  gradeForMetric,
+} from './benchmark/benchmark-format'
+import {
+  TUTORIAL_FINAL_TARGET,
+  TUTORIAL_MESSAGES,
+  type TutorialStep,
+} from './tutorial/tutorial-content'
 
 type PresentationPhase = 'menu' | 'opening' | 'in-game' | 'theme-test' | 'tutorial' | 'closing'
 
-const slideTransition = SLIDE_TRANSITION
 const sceneEnterTransition = { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const }
 const ENTER_DURATION_MS = 280
 const THEME_TEST_ENTER_DURATION_MS = 100
@@ -104,7 +91,6 @@ const LIGHT_THEMES: BackgroundTheme[] = ['water', 'sunset', 'ice', 'aurora']
 const REWARD_ODOMETER_DURATION_MS = 3_000
 const POST_GAME_PRIMARY_FALLBACK_MS = 1_800
 const COIN_PAYOUT_SFX_SRC = '/audio/coin.mp3'
-const TUTORIAL_FINAL_TARGET = 10
 const AVATAR_CROP_VIEWPORT_SIZE = 230
 const AVATAR_EXPORT_SIZE = 512
 const DAILY_GOAL_SCORE_TARGET = 500
@@ -131,49 +117,6 @@ async function getAudioDurationMs(src: string): Promise<number> {
     }
     audio.onerror = () => settle(POST_GAME_PRIMARY_FALLBACK_MS)
   })
-}
-
-type TutorialStep =
-  | 0
-  | 1
-  | 2
-  | 3
-  | 4
-  | 5
-  | 6
-  | 7
-  | 8
-  | 9
-  | 10
-  | 11
-  | 12
-  | 13
-  | 14
-  | 15
-  | 16
-  | 17
-  | 18
-
-const TUTORIAL_MESSAGES: Record<TutorialStep, string> = {
-  0: 'Acerte o máximo de cálculos que conseguir.',
-  1: 'Esse é o número base.',
-  2: 'Essa é a operação.',
-  3: 'Aqui é onde os números digitados aparecem.',
-  4: 'Digite a resposta da operação.',
-  5: 'Sua vez: digite o resultado de 5 + 2. Tempo infinito.',
-  6: 'O tempo restante para cada cálculo é exibido na barra acima, quando o tempo se esgota a partida acaba.',
-  7: 'Durante o jogo podem aparecer alguns modificadores que mudam as regras durante alguns cálculos.',
-  8: 'Modificador de tiro rápido, os cálculos a seguir tem apenas 4 segundos para resolver mas só aparecem operações de + e - .',
-  9: 'Modificador de dividir e multiplicar, os cálculos a seguir serão somente multiplicação ou divisão.',
-  10: 'Modificador de subida ao 99, os cálculos a seguir serão apenas soma até chegar em 99 .',
-  11: 'Modificador de descida ao 1, os cálculos a seguir serão apenas subtrações até chegar a 1.',
-  12: 'Durante o jogo auto checks podem aparecer, utilizá-lo resolve uma conta automaticamente.',
-  13: 'Você pode acumular auto checks ganhos durante o jogo e adquirir mais auto checks no menu de jogador',
-  14: 'Utilize um auto check',
-  15: '',
-  16: 'Mostre o que aprendeu, resolva 10 cálculos e complete o tutorial.',
-  17: '',
-  18: '',
 }
 
 const SCENE_THEME_CLASS: Partial<Record<BackgroundTheme, string>> = {
@@ -210,1072 +153,51 @@ function menuStageItem(
   }
 }
 
-function SlideValue({
-  value,
-  className,
-  slotClassName,
-  shakeActive = false,
-  shakeKey = 0,
-}: {
-  value: string | number
-  className?: string
-  slotClassName?: string
-  shakeActive?: boolean
-  shakeKey?: number
-}) {
-  return (
-    <div className={`relative overflow-hidden ${slotClassName ?? ''}`}>
-      <NumberShake active={shakeActive} shakeKey={shakeKey}>
-        <AnimatePresence mode="sync" initial={false}>
-          <motion.p
-            key={value}
-            className={`absolute inset-x-0 font-mono tabular-nums ${className ?? ''}`}
-            initial={{ y: '100%', opacity: 0.5 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '-100%', opacity: 0 }}
-            transition={slideTransition}
-          >
-            {value}
-          </motion.p>
-        </AnimatePresence>
-      </NumberShake>
-    </div>
-  )
-}
-
-function OperationValue({
-  operation,
-  className,
-  slotClassName,
-  waterLight = false,
-  sunsetLight = false,
-  forestLight = false,
-  violetLight = false,
-  emberLight = false,
-  neonLight = false,
-  midnightLight = false,
-  retroLight = false,
-  fourSecondsLight = false,
-  timesDivLight = false,
-  plusLight = false,
-  minusLight = false,
-  shakeActive = false,
-  shakeKey = 0,
-}: {
-  operation: Operation
-  className?: string
-  slotClassName?: string
-  waterLight?: boolean
-  sunsetLight?: boolean
-  forestLight?: boolean
-  violetLight?: boolean
-  emberLight?: boolean
-  neonLight?: boolean
-  midnightLight?: boolean
-  retroLight?: boolean
-  fourSecondsLight?: boolean
-  timesDivLight?: boolean
-  plusLight?: boolean
-  minusLight?: boolean
-  shakeActive?: boolean
-  shakeKey?: number
-}) {
-  const key = `${operation.operator} ${operation.operand}`
-  const operandClass = fourSecondsLight
-    ? 'text-orange-900'
-    : timesDivLight
-      ? 'text-blue-900'
-      : plusLight
-        ? 'text-emerald-900'
-        : minusLight
-          ? 'text-rose-900'
-          : waterLight
-            ? 'text-sky-800'
-            : sunsetLight
-              ? 'text-orange-900'
-              : forestLight
-                ? 'text-amber-950'
-                : violetLight
-                  ? 'text-violet-950'
-                  : emberLight
-                    ? 'text-orange-950'
-                    : neonLight
-                      ? 'text-sky-100'
-                      : midnightLight
-                        ? 'text-slate-100'
-                        : retroLight
-                          ? 'text-amber-950'
-                          : 'text-stone-300'
-
-  return (
-    <div className={`relative overflow-hidden ${slotClassName ?? ''}`}>
-      <NumberShake active={shakeActive} shakeKey={shakeKey}>
-        <AnimatePresence mode="sync" initial={false}>
-          <motion.p
-            key={key}
-            className={`absolute inset-x-0 flex items-center justify-center gap-1.5 font-mono tabular-nums tracking-wide ${className ?? ''}`}
-            initial={{ x: '-100%', opacity: 0 }}
-            animate={{
-              x: 0,
-              opacity: 1,
-              transition: { duration: 0.26, ease: [0.22, 1, 0.36, 1] },
-            }}
-            exit={{
-              y: '-100%',
-              opacity: 0,
-              transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
-            }}
-          >
-            <span
-              className={`text-4xl font-bold leading-none ${OPERATOR_COLOR_CLASS[operation.operator]}`}
-            >
-              {operation.operator}
-            </span>
-            <span className={`text-3xl font-normal leading-none ${operandClass}`}>
-              {operation.operand}
-            </span>
-          </motion.p>
-        </AnimatePresence>
-      </NumberShake>
-    </div>
-  )
-}
-
-function IconGear() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"
-        stroke="currentColor"
-        strokeWidth="1.75"
-      />
-      <path
-        d="M19 12a7.2 7.2 0 00.1-1l2-1.5-2-3.5-2.3 1a7 7 0 00-1.7-1L15 3h-6l-.1 2.5a7 7 0 00-1.7 1l-2.3-1-2 3.5 2 1.5a7.2 7.2 0 00.1 1 7.2 7.2 0 00-.1 1l-2 1.5 2 3.5 2.3-1a7 7 0 001.7 1L9 21h6l.1-2.5a7 7 0 001.7-1l2.3 1 2-3.5-2-1.5a7.2 7.2 0 00-.1-1z"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function IconPlay() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M8 5.5v13l11-6.5L8 5.5z" />
-    </svg>
-  )
-}
-
-function IconBack() {
-  return (
-    <svg width="26" height="20" viewBox="0 0 28 24" fill="none" aria-hidden>
-      <path
-        d="M2 12L11 3v5h15v8h-15v5L2 12z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="miter"
-      />
-    </svg>
-  )
-}
-
-function IconCheckSmall() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M6 12.5l3.5 3.5L18 8"
-        stroke="currentColor"
-        strokeWidth="2.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function IconArrowUp() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 5l6 7H6l6-7z"
-        fill="currentColor"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function IconArrowDown() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 19l6-7H6l6 7z"
-        fill="currentColor"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function IconClock() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="2" />
-      <path
-        d="M12 8v4.5l3 1.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function IconHelp() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-      <path
-        d="M9.75 9.25a2.25 2.25 0 013.4 1.95c0 1.85-2.15 2.3-2.15 4.05"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <circle cx="12" cy="17.25" r="1.1" fill="currentColor" />
-    </svg>
-  )
-}
-
-function IconPerson() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" />
-      <path
-        d="M5 20c0-3.314 3.134-6 7-6s7 2.686 7 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-function IconShop() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 10h16L18.5 5.5H5.5L4 10z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M6 10v9h12v-9M9 19v-4h6v4"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8.5 10V7.5M12 10V7M15.5 10V7.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-function IconCoin() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" />
-      <path
-        d="M12 8v8M9.5 10.5h5M9.5 13.5h5"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-function IconAutoCheck() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M6 12.5l3.5 3.5L18 8"
-        stroke="currentColor"
-        strokeWidth="2.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function RightCardIcon({ variant }: { variant: RightCardVariant }) {
-  const iconClass = `game-side-card__icon game-side-card__icon--${variant}`
-
-  if (variant === 'cap-up') {
-    return (
-      <span className={iconClass}>
-        <IconArrowUp />
-      </span>
-    )
-  }
-  if (variant === 'cap-down') {
-    return (
-      <span className={iconClass}>
-        <IconArrowDown />
-      </span>
-    )
-  }
-  if (variant === 'timer') {
-    return (
-      <span className={iconClass}>
-        <IconClock />
-      </span>
-    )
-  }
-  return <span className={`${iconClass} game-side-card__icon--glyph`}>×÷</span>
-}
-
-function ThemeTestSideLayout({
-  activeChanger,
-  changerBurst,
-  changerBurstToken,
-  autoCheckEnabled,
-  onToggleAutoCheck,
-  onToggleChanger,
-  onChangerBurstComplete,
-  parallaxActive,
-  children,
-}: {
-  activeChanger: RightCardVariant | null
-  changerBurst: RightCardVariant | null
-  changerBurstToken: number
-  autoCheckEnabled: boolean
-  onToggleAutoCheck: () => void
-  onToggleChanger: (variant: RightCardVariant) => void
-  onChangerBurstComplete: () => void
-  parallaxActive: boolean
-  children: ReactNode
-}) {
-  return (
-    <div className="game-play-row">
-      <motion.div
-        className="relative z-[1]"
-        initial={{ x: -16, y: 10, opacity: 0 }}
-        animate={parallaxActive ? { x: 0, y: 0, opacity: 1 } : { x: -16, y: 10, opacity: 0.95 }}
-        transition={layerParallaxTransition}
-      >
-        <div className="game-side-cards game-side-cards--left !pointer-events-auto">
-          {Array.from({ length: RightSideCardCatalog.cardCount }, (_, index) => (
-            <div key={`left-slot-${index}`} className="game-side-card-slot">
-              {index === 0 ? (
-                <button
-                  type="button"
-                  onClick={onToggleAutoCheck}
-                  className={`game-side-card game-side-card--legendary game-side-card--auto-cycle transition-all duration-150 hover:scale-[1.03] active:scale-[0.97] ${
-                    autoCheckEnabled ? '' : 'opacity-55 saturate-50'
-                  }`}
-                  aria-pressed={autoCheckEnabled}
-                  aria-label={`Auto-check ${autoCheckEnabled ? 'ativado' : 'desativado'}`}
-                >
-                  <span className="game-side-card__content">
-                    <span className="game-side-card__label game-side-card__label--legendary">AUTO</span>
-                    <span className="game-side-card__icon game-side-card__icon--legendary">
-                      <IconCheckSmall />
-                    </span>
-                  </span>
-                </button>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
-      <motion.div
-        className="game-play-row__center"
-        initial={{ x: 0, y: 14, opacity: 0 }}
-        animate={parallaxActive ? { x: 0, y: 0, opacity: 1 } : { x: 0, y: 14, opacity: 0.96 }}
-        transition={layerParallaxTransition}
-      >
-        {children}
-      </motion.div>
-
-      <motion.div
-        className="relative z-[1]"
-        initial={{ x: 16, y: 10, opacity: 0 }}
-        animate={parallaxActive ? { x: 0, y: 0, opacity: 1 } : { x: 16, y: 10, opacity: 0.95 }}
-        transition={layerParallaxTransition}
-      >
-        <div className="game-side-cards game-side-cards--right !pointer-events-auto">
-          {RightSideCardCatalog.cards.map((card) => {
-            const active = activeChanger === card.variant
-            const changerLocked = activeChanger !== null && !active
-
-            return (
-              <div key={card.id} className="game-side-card-slot game-side-card-slot--burst-host">
-                <button
-                  type="button"
-                  disabled={changerLocked}
-                  onClick={() => onToggleChanger(card.variant)}
-                  className={`game-side-card ${card.styleClass} transition-transform duration-150 hover:scale-[1.03] active:scale-[0.97] ${
-                    active ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-charcoal' : ''
-                  }${changerLocked ? ' opacity-45 saturate-50 cursor-not-allowed' : ''}`}
-                  aria-pressed={active}
-                  aria-disabled={changerLocked || undefined}
-                  aria-label={`Alternar preview do game changer ${card.id}`}
-                >
-                  <span className="game-side-card__content">
-                    <RightCardIcon variant={card.variant} />
-                    {card.label ? (
-                      <span className={`game-side-card__label ${card.labelClass ?? ''}`}>{card.label}</span>
-                    ) : null}
-                  </span>
-                </button>
-                <AnimatePresence initial={false}>
-                  {changerBurst === card.variant && (
-                    <div
-                      key={`theme-test-changer-burst-${changerBurstToken}`}
-                      className="game-side-activate-burst-slot-overlay"
-                      aria-hidden
-                    >
-                      <SideCardActivateBurst
-                        variant={card.variant}
-                        onComplete={onChangerBurstComplete}
-                      />
-                    </div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )
-          })}
-        </div>
-      </motion.div>
-    </div>
-  )
-}
-
-function IconShare() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="18" cy="5" r="3" stroke="currentColor" strokeWidth="2" />
-      <circle cx="6" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
-      <circle cx="18" cy="19" r="3" stroke="currentColor" strokeWidth="2" />
-      <path
-        d="M8.7 10.7l6.6-3.4M8.7 13.3l6.6 3.4"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-
-function MenuHudButton({
-  label,
-  onClick,
-  onPointerDown,
-  disabled = false,
-  labelClassName,
-  children,
-}: {
-  label: string
-  onClick?: () => void
-  onPointerDown?: () => void
-  disabled?: boolean
-  labelClassName?: string
-  children: ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      onPointerDown={onPointerDown}
-      disabled={disabled}
-      aria-disabled={disabled}
-      className={`game-menu-hud-btn${disabled ? ' opacity-50' : ''}`}
-      aria-label={label}
-    >
-      <span className="game-menu-hud-btn__plate">
-        <span className="game-menu-hud-btn__icon">{children}</span>
-      </span>
-      <span className={`game-menu-hud-btn__label${labelClassName ? ` ${labelClassName}` : ''}`}>{label}</span>
-    </button>
-  )
-}
-
-function MenuHudInlineButton({
-  label,
-  onClick,
-  variant = 'default',
-  fill = false,
-  children,
-}: {
-  label: string
-  onClick: () => void
-  variant?: 'default' | 'accent'
-  fill?: boolean
-  children: ReactNode
-}) {
-  const plateClass =
-    variant === 'accent'
-      ? 'game-menu-hud-btn__plate game-menu-hud-btn__plate--inline game-menu-hud-btn__plate--accent game-menu-hud-btn__plate--wide'
-      : 'game-menu-hud-btn__plate game-menu-hud-btn__plate--inline'
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`game-menu-hud-btn game-menu-hud-btn--inline${fill ? ' game-menu-hud-btn--fill' : ''}`}
-      aria-label={label}
-    >
-      <span className={plateClass}>
-        <span className="game-menu-hud-btn__icon">{children}</span>
-        <span className="game-menu-hud-btn__inline-text">{label}</span>
-      </span>
-    </button>
-  )
-}
-
-function AnimatedGameMenuButton({
-  onClick,
-}: {
-  onClick: () => void
-}) {
-  return (
-    <div className="pointer-events-auto">
-      <button
-        type="button"
-        onClick={onClick}
-        className="game-menu-hud-btn game-menu-hud-btn--inline"
-        aria-label="Voltar ao menu"
-      >
-        <span className="game-menu-hud-btn__plate game-menu-hud-btn__plate--inline game-menu-hud-btn__plate--icon-only game-menu-hud-btn__plate--back-menu">
-          <span className="game-menu-hud-btn__icon">
-            <IconBack />
-          </span>
-        </span>
-      </button>
-    </div>
-  )
-}
-
-function IconMenuAvatar() {
-  return (
-    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="8.2" r="4.1" fill="currentColor" />
-      <path
-        d="M4.5 20.2c0-3.95 3.36-6.15 7.5-6.15s7.5 2.2 7.5 6.15"
-        fill="currentColor"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-function MenuLevelBadge({
-  xp,
-  avatarDataUrl,
-  onAvatarClick,
-  borderLevel,
-}: {
-  xp: number
-  avatarDataUrl: string | null
-  onAvatarClick: () => void
-  borderLevel: 1 | 2 | 3 | 4 | 5
-}) {
-  const progress = xpProgressInLevel(xp)
-  const ratio = progress.needed > 0 ? progress.current / progress.needed : 0
-  const size = 36
-  const stroke = 2.8
-  const radius = (size - stroke) / 2
-  const circumference = 2 * Math.PI * radius
-  const dashOffset = circumference * (1 - Math.min(1, Math.max(0, ratio)))
-
-  return (
-    <button
-      type="button"
-      className="game-menu-level-badge"
-      aria-label={`Nível ${progress.level}, ${progress.current} de ${progress.needed} XP`}
-      onClick={onAvatarClick}
-    >
-      <div className={`game-menu-level-badge__avatar game-menu-level-badge__avatar--lvl-${borderLevel}`} aria-hidden>
-        {avatarDataUrl ? (
-          <img src={avatarDataUrl} alt="" className="game-menu-level-badge__avatar-photo" draggable={false} />
-        ) : (
-          <span className="game-menu-level-badge__avatar-icon">
-            <IconMenuAvatar />
-          </span>
-        )}
-      </div>
-      <div className="game-menu-level-badge__level-chip" aria-hidden>
-        <svg
-          className="game-menu-level-badge__ring"
-          width={size}
-          height={size}
-          viewBox={`0 0 ${size} ${size}`}
-        >
-          <circle
-            className="game-menu-level-badge__track"
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            strokeWidth={stroke}
-          />
-          <circle
-            className="game-menu-level-badge__progress"
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            strokeWidth={stroke}
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
-            strokeLinecap="round"
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          />
-          <text
-            className="game-menu-level-badge__ring-text"
-            x="50%"
-            y="50%"
-            textAnchor="middle"
-            dominantBaseline="central"
-          >
-            {progress.level}
-          </text>
-        </svg>
-      </div>
-    </button>
-  )
-}
-
-function MenuPlayButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="Iniciar partida"
-      className="game-btn-push game-btn-push-amber flex items-center gap-2.5 rounded-2xl bg-gradient-to-b from-amber-300 to-amber-500 px-7 py-3.5 text-lg font-bold tracking-wide text-amber-950"
-    >
-      <IconPlay />
-      <span>Jogar</span>
-    </button>
-  )
-}
-
-function MenuBenchmarkButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="Iniciar benchmark"
-      className="game-btn-push game-btn-push-secondary flex items-center gap-2 rounded-xl bg-charcoal-elevated px-5 py-2.5 text-sm font-semibold tracking-wide text-stone-200 ring-1 ring-stone-700/50"
-    >
-      <IconBenchmark />
-      <span>Benchmark</span>
-    </button>
-  )
-}
-
-function MenuThemeTestButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="Abrir teste de tema"
-      className="game-btn-push game-btn-push-secondary flex items-center gap-2 rounded-xl bg-charcoal-elevated px-5 py-2.5 text-sm font-semibold tracking-wide text-stone-200 ring-1 ring-stone-700/50"
-    >
-      <IconThemeTest />
-      <span>Theme Test</span>
-    </button>
-  )
-}
-
-function IconBenchmark() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0">
-      <path d="M4 19h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path
-        d="M7 16V9M12 16V5M17 16v-4"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-function IconThemeTest() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0">
-      <path
-        d="M12 3c-3 2.5-5 5.2-5 8.5a5 5 0 1010 0C17 8.2 15 5.5 12 3z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <circle cx="9.5" cy="10.5" r="1" fill="currentColor" />
-      <circle cx="12" cy="8.5" r="1" fill="currentColor" />
-      <circle cx="14.5" cy="11" r="1" fill="currentColor" />
-    </svg>
-  )
-}
-
-function benchmarkGradeTone(grade: string): string {
-  switch (grade) {
-    case 'S':
-      return 'text-emerald-300'
-    case 'A':
-      return 'text-lime-300'
-    case 'B':
-      return 'text-amber-300'
-    case 'C':
-      return 'text-orange-300'
-    case 'D':
-      return 'text-orange-400'
-    case 'E':
-      return 'text-rose-300'
-    default:
-      return 'text-rose-400'
-  }
-}
-
-const BENCHMARK_METRIC_ORDER = [
-  'fps',
-  'avgFrameMs',
-  'p95FrameMs',
-  'p99FrameMs',
-  'rawMaxFrameMs',
-  'stutterRate',
-  'answerIntervalMs',
-] as const satisfies BenchmarkMetricGradeId[]
-
-function gradeForMetric(metrics: BenchmarkMetrics, id: BenchmarkMetricGradeId) {
-  return metrics.grades.find((grade) => grade.id === id)
-}
-
-function benchmarkPhaseSeverityTone(severity: 'ok' | 'warn' | 'critical'): string {
-  switch (severity) {
-    case 'critical':
-      return 'text-rose-300'
-    case 'warn':
-      return 'text-amber-300'
-    default:
-      return 'text-stone-300'
-  }
-}
-
-const answerFlashTransition = { duration: 0.52, ease: [0.22, 1, 0.36, 1] as const }
-
-function AnswerDigitPulse({ value, autoCheck = false }: { value: string; autoCheck?: boolean }) {
-  const toneClass = autoCheck ? ' answer-digit-pulse--amber' : ''
-
-  return (
-    <div
-      className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-visible"
-      aria-hidden
-    >
-      <motion.span
-        className={`answer-digit-pulse-ring answer-digit-pulse-ring--inner${toneClass} absolute z-[1] font-mono text-4xl font-bold tabular-nums`}
-        initial={{ scale: 1, opacity: 0.95 }}
-        animate={{ scale: 1.7, opacity: 0 }}
-        transition={answerFlashTransition}
-      >
-        {value}
-      </motion.span>
-      <motion.span
-        className={`answer-digit-pulse-ring answer-digit-pulse-ring--outer${toneClass} absolute z-[1] font-mono text-4xl font-bold tabular-nums`}
-        initial={{ scale: 1, opacity: 0.6 }}
-        animate={{ scale: 2.15, opacity: 0 }}
-        transition={{ ...answerFlashTransition, duration: 0.62, delay: 0.05 }}
-      >
-        {value}
-      </motion.span>
-      <motion.span
-        className={`absolute z-[2] font-mono text-4xl font-bold tabular-nums ${
-          autoCheck ? 'text-amber-400' : 'text-amber-50'
-        }`}
-        initial={{ scale: 1, opacity: 1 }}
-        animate={{ scale: 0, opacity: 0 }}
-        transition={answerFlashTransition}
-        style={{ transformOrigin: 'center center' }}
-      >
-        {value}
-      </motion.span>
-    </div>
-  )
-}
-
-function PerfectAnswerBadge({ token }: { token: number }) {
-  return (
-    <motion.div
-      key={`perfect-${token}`}
-      className="pointer-events-none absolute left-1/2 top-1 z-[5] -translate-x-1/2"
-      initial={{ opacity: 0, y: 16, scale: 0.84 }}
-      animate={{
-        opacity: [0, 1, 0],
-        y: [16, -4, -30],
-        scale: [0.84, 1, 0.95],
-      }}
-      transition={{ duration: 1, times: [0, 0.28, 1], ease: [0.22, 1, 0.36, 1] }}
-      aria-hidden
-    >
-      <motion.span
-        className="game-perfect-badge__trail game-perfect-badge__trail--inner"
-        initial={{ opacity: 0.82, scaleX: 0.72 }}
-        animate={{ opacity: [0.82, 0], scaleX: [0.72, 1.34] }}
-        transition={{ duration: 1, times: [0, 1], ease: [0.22, 1, 0.36, 1] }}
-      />
-      <motion.span
-        className="game-perfect-badge__trail game-perfect-badge__trail--outer"
-        initial={{ opacity: 0.58, scaleX: 0.66 }}
-        animate={{ opacity: [0.58, 0], scaleX: [0.66, 1.52] }}
-        transition={{ duration: 1, times: [0, 1], ease: [0.22, 1, 0.36, 1] }}
-      />
-      <span className="game-perfect-badge">PERFEITO</span>
-    </motion.div>
-  )
-}
-
-const wrongAnswerShakeTransition = { duration: SUBMIT_LOCK_MS / 1000, ease: [0.22, 1, 0.36, 1] as const }
-const wrongAnswerShakeX = [0, -10, 10, -8, 8, -4, 4, 0]
-
-function NumberShake({
-  active,
-  shakeKey,
-  children,
-}: {
-  active: boolean
-  shakeKey: number
-  children: ReactNode
-}) {
-  return (
-    <motion.div
-      key={shakeKey}
-      className="relative h-full w-full"
-      animate={active ? { x: wrongAnswerShakeX } : { x: 0 }}
-      transition={wrongAnswerShakeTransition}
-    >
-      {children}
-    </motion.div>
-  )
-}
-
-function AnswerDisplay({
-  value,
-  disabled,
-  shake,
-  shakeKey = 0,
-  answerFlash,
-  answerFlashAuto,
-  flashKey,
-  perfectAnswerToken,
-  waterLight = false,
-  sunsetLight = false,
-  forestLight = false,
-  violetLight = false,
-  emberLight = false,
-  neonLight = false,
-  midnightLight = false,
-  retroLight = false,
-  fourSecondsLight = false,
-  timesDivLight = false,
-  plusLight = false,
-  minusLight = false,
-  pulse = false,
-  slotRef,
-}: {
-  value: string
-  disabled: boolean
-  shake: boolean
-  shakeKey?: number
-  answerFlash: string | null
-  answerFlashAuto: boolean
-  flashKey: number
-  perfectAnswerToken: number
-  waterLight?: boolean
-  sunsetLight?: boolean
-  forestLight?: boolean
-  violetLight?: boolean
-  emberLight?: boolean
-  neonLight?: boolean
-  midnightLight?: boolean
-  retroLight?: boolean
-  fourSecondsLight?: boolean
-  timesDivLight?: boolean
-  plusLight?: boolean
-  minusLight?: boolean
-  pulse?: boolean
-  slotRef?: RefObject<HTMLDivElement | null>
-}) {
-  const displayValue = answerFlash ? '' : value || '·'
-  const gameChangerActive = fourSecondsLight || timesDivLight || plusLight || minusLight
-
-  return (
-    <div
-      className={`relative overflow-visible px-3 py-3${
-        waterLight
-          ? ' game-answer-row--water'
-          : sunsetLight
-            ? ' game-answer-row--sunset'
-            : forestLight
-              ? ' game-answer-row--forest'
-              : violetLight
-                ? ' game-answer-row--violet'
-                : emberLight
-                  ? ' game-answer-row--ember'
-                  : neonLight
-                    ? ' game-answer-row--neon'
-                    : midnightLight
-                      ? ' game-answer-row--midnight'
-                      : retroLight
-                        ? ' game-answer-row--retro'
-                        : ''
-      }${gameChangerActive ? ' game-answer-row--game-changer' : ''}${
-        pulse ? ' game-tutorial-field-pulse' : ''
-      }`}
-    >
-      {perfectAnswerToken > 0 && <PerfectAnswerBadge token={perfectAnswerToken} />}
-      <AnimatePresence>
-        {answerFlash && (
-          <AnswerDigitPulse
-            key={`${flashKey}-${answerFlash}`}
-            value={answerFlash}
-            autoCheck={answerFlashAuto}
-          />
-        )}
-      </AnimatePresence>
-      <div>
-        <div
-          ref={slotRef}
-          role="status"
-          aria-live="polite"
-          aria-label={`Resposta: ${value || 'vazio'}`}
-          className={`game-answer-slot flex h-16 w-full items-center justify-center bg-transparent text-center font-mono text-4xl font-bold tabular-nums ${
-            answerFlash
-              ? 'text-transparent'
-              : shake
-                ? 'text-rose-400'
-                : value
-                  ? fourSecondsLight
-                    ? 'text-orange-950'
-                    : timesDivLight
-                      ? 'text-blue-950'
-                      : plusLight
-                        ? 'text-emerald-950'
-                        : minusLight
-                          ? 'text-rose-950'
-                          : waterLight
-                            ? 'text-sky-900'
-                            : sunsetLight
-                              ? 'text-orange-950'
-                              : forestLight
-                                ? 'text-amber-950'
-                                : violetLight
-                                  ? 'text-violet-950'
-                                  : emberLight
-                                    ? 'text-orange-950'
-                                    : neonLight
-                                      ? 'text-sky-100'
-                                      : midnightLight
-                                        ? 'text-slate-100'
-                                        : retroLight
-                                          ? 'text-amber-950'
-                                          : 'text-amber-50'
-                  : fourSecondsLight
-                    ? 'text-orange-800/35'
-                    : timesDivLight
-                      ? 'text-blue-800/35'
-                      : plusLight
-                        ? 'text-emerald-800/35'
-                        : minusLight
-                          ? 'text-rose-800/35'
-                          : waterLight
-                            ? 'text-sky-700/35'
-                            : sunsetLight
-                              ? 'text-orange-900/35'
-                              : forestLight
-                                ? 'text-amber-900/35'
-                                : violetLight
-                                  ? 'text-violet-900/35'
-                                  : emberLight
-                                    ? 'text-orange-900/35'
-                                    : neonLight
-                                      ? 'text-sky-200/40'
-                                      : midnightLight
-                                        ? 'text-slate-300/40'
-                                        : retroLight
-                                          ? 'text-amber-900/35'
-                                          : 'text-charcoal-muted/50'
-          } ${disabled ? 'opacity-50' : ''}`}
-        >
-          <NumberShake active={shake} shakeKey={shakeKey}>
-            <span>{displayValue}</span>
-          </NumberShake>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-
-export function GameScreen({
-  session,
-  inputValue,
-  topScores,
-  player,
-  lastGameRewards,
-  benchmarkMode,
-  perfectAnswerToken,
-  benchmarkMetrics,
-  benchmarkVirtualKeypadPress,
-  soundEnabled,
-  menuAudioReady,
-  menuAudioPrefetchComplete,
-  devModeEnabled,
-  godModeEnabled,
-  showGodModeToggle,
-  onStart,
-  onStartBenchmarkSession,
-  onReturnToMenu,
-  onConfirm,
-  onAutoCorrect,
-  onUseAutoCheckAtTimeout,
-  onDeclineAutoCheckAtTimeout,
-  onInputChange,
-  onSoundChange,
-  onDevModeChange,
-  onGodModeChange,
-  backgroundTheme,
-  onBackgroundThemeChange,
-  onBuyTheme,
-  onEquipBadge,
-  onBuyBadge,
-  onSaveDisplayName,
-  onSaveAvatarPhoto,
-  onWatchRewardedAd,
-  rewardedAdsWatched,
-  onPlayClick,
-  onPlayGameStart,
-  onPlayWriteKey,
-  onPlayEraseKey,
-  onPlayGoToMenu,
-  onCompleteTutorial,
-}: GameScreenProps) {
+export function GameScreen() {
+  const {
+    session,
+    inputValue,
+    topScores,
+    player,
+    lastGameRewards,
+    benchmarkMode,
+    perfectAnswerToken,
+    benchmarkMetrics,
+    benchmarkVirtualKeypadPress,
+    soundEnabled,
+    menuAudioReady,
+    needsGestureUnlock,
+    activateAudioFromGesture,
+    devModeEnabled,
+    godModeEnabled,
+    showGodModeToggle,
+    backgroundTheme,
+    onStart,
+    onStartBenchmarkSession,
+    onReturnToMenu,
+    onConfirm,
+    onAutoCorrect,
+    onUseAutoCheckAtTimeout,
+    onDeclineAutoCheckAtTimeout,
+    onInputChange,
+    toggleSound: onSoundChange,
+    toggleDevMode: onDevModeChange,
+    toggleGodMode: onGodModeChange,
+    setBackgroundTheme: onBackgroundThemeChange,
+    buyTheme: onBuyTheme,
+    setEquippedBadge: onEquipBadge,
+    purchaseBadge: onBuyBadge,
+    updateDisplayName: onSaveDisplayName,
+    updateAvatarPhoto: onSaveAvatarPhoto,
+    watchSimulatedAd: onWatchRewardedAd,
+    playClick: onPlayClick,
+    playGameStart: onPlayGameStart,
+    playWriteKey: onPlayWriteKey,
+    playEraseKey: onPlayEraseKey,
+    playGoToMenu: onPlayGoToMenu,
+    completeTutorial: onCompleteTutorial,
+  } = useGameContext()
+  const rewardedAdsWatched = player.daily.rewardedAdsWatched
   const sceneRootRef = useRef<HTMLDivElement>(null)
   const [playerOpen, setPlayerOpen] = useState(false)
   const [shopOpen, setShopOpen] = useState(false)
@@ -3426,19 +2348,43 @@ export function GameScreen({
             {menuAudioReady ? (
               <div className="pointer-events-auto flex flex-col items-center gap-3">
                 <motion.div {...menuStageItem(0.06, 0, 20)}>
-                  <MenuPlayButton onClick={handlePlay} />
+                  <MenuPlayButton
+                    onPointerDown={primeAudioOnPointerDown}
+                    onClick={handlePlay}
+                  />
                 </motion.div>
                 {devModeEnabled && (
                   <>
                     <motion.div {...menuStageItem(0.08, -8, 16)}>
-                      <MenuBenchmarkButton onClick={handleBenchmark} />
+                      <MenuBenchmarkButton
+                        onPointerDown={primeAudioOnPointerDown}
+                        onClick={handleBenchmark}
+                      />
                     </motion.div>
                     <motion.div {...menuStageItem(0.1, 9, 18)}>
-                      <MenuThemeTestButton onClick={handleThemeTest} />
+                      <MenuThemeTestButton
+                        onPointerDown={primeAudioOnPointerDown}
+                        onClick={handleThemeTest}
+                      />
                     </motion.div>
                   </>
                 )}
               </div>
+            ) : needsGestureUnlock ? (
+              <motion.button
+                type="button"
+                className="pointer-events-auto game-btn-push game-btn-push-secondary rounded-2xl bg-charcoal-elevated px-8 py-4 text-base font-semibold tracking-wide text-stone-100 ring-1 ring-stone-600/60"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                onPointerDown={(event) => {
+                  event.preventDefault()
+                  activateAudioFromGesture()
+                }}
+                aria-label="Ativar som e continuar"
+              >
+                Toque para ativar o som
+              </motion.button>
             ) : (
               <motion.p
                 className="pointer-events-none px-6 text-center text-sm font-medium tracking-wide text-stone-400"
@@ -3446,9 +2392,7 @@ export function GameScreen({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               >
-                {menuAudioPrefetchComplete && isIPhone()
-                  ? 'Toque na tela para começar'
-                  : 'Carregando sons...'}
+                Carregando sons...
               </motion.p>
             )}
           </div>
@@ -3460,6 +2404,7 @@ export function GameScreen({
                   <MenuHudButton
                     label="Jogador"
                     onClick={openPlayerModal}
+                    onPointerDown={primeAudioOnPointerDown}
                   >
                     <IconPerson />
                   </MenuHudButton>
@@ -3469,6 +2414,7 @@ export function GameScreen({
                   <MenuHudButton
                     label="Loja"
                     onClick={openShopModal}
+                    onPointerDown={primeAudioOnPointerDown}
                   >
                     <IconShop />
                   </MenuHudButton>
@@ -3478,6 +2424,7 @@ export function GameScreen({
                   <MenuHudButton
                     label={player.tutorial.completed ? 'Tutorial ✓' : 'Tutorial'}
                     onClick={handleTutorial}
+                    onPointerDown={primeAudioOnPointerDown}
                   >
                     <IconHelp />
                   </MenuHudButton>
@@ -3487,6 +2434,7 @@ export function GameScreen({
                   <MenuHudButton
                     label="Configurações"
                     onClick={openSettingsModal}
+                    onPointerDown={primeAudioOnPointerDown}
                   >
                     <IconGear />
                   </MenuHudButton>
@@ -3495,7 +2443,7 @@ export function GameScreen({
             ) : null}
 
             <div className="game-menu-version-strip" aria-hidden>
-              <span>v0.0.25</span>
+              <span>{formatAppVersionLabel()}</span>
             </div>
           </div>
         </>

@@ -1,13 +1,16 @@
 import { PlayerModal } from '../modals/PlayerModal'
 import { ShopModal } from '../modals/ShopModal'
 import { SettingsModal } from '../modals/SettingsModal'
-import { AutoCheckTimeoutModal } from '../modals/AutoCheckTimeoutModal'
 import { lazy, memo, Suspense } from 'react'
 import { Modal } from '../ui/Modal'
 import type { BackgroundTheme, BadgeVariant, PlayerData, ScoreRecord } from '../../platform/storage'
 
 const RewardedAutoCheckModal = lazy(() =>
   import('../modals/RewardedAutoCheckModal').then((m) => ({ default: m.RewardedAutoCheckModal })),
+)
+
+const AutoCheckTimeoutModal = lazy(() =>
+  import('../modals/AutoCheckTimeoutModal').then((m) => ({ default: m.AutoCheckTimeoutModal })),
 )
 
 export interface GameModalLayerProps {
@@ -122,12 +125,16 @@ function GameModalLayerInner({
         </Suspense>
       )}
 
-      <AutoCheckTimeoutModal
-        open={timeoutModalOpen}
-        walletAutoChecks={player.walletAutoChecks}
-        onUse={onUseAutoCheckAtTimeout}
-        onDecline={onDeclineAutoCheckAtTimeout}
-      />
+      {timeoutModalOpen && (
+        <Suspense fallback={null}>
+          <AutoCheckTimeoutModal
+            open
+            walletAutoChecks={player.walletAutoChecks}
+            onUse={onUseAutoCheckAtTimeout}
+            onDecline={onDeclineAutoCheckAtTimeout}
+          />
+        </Suspense>
+      )}
 
       <Modal open={exitConfirmOpen} title="Sair do jogo?" onClose={onCloseExitConfirm}>
         <div className="space-y-4">
