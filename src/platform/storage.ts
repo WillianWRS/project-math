@@ -44,6 +44,7 @@ export interface PlayerData {
   avatarDataUrl: string | null
   xp: number
   coins: number
+  diamonds: number
   walletAutoChecks: number
   ownedThemeIds: BackgroundTheme[]
   equippedThemeId: BackgroundTheme
@@ -101,6 +102,7 @@ export function createDefaultPlayerData(): PlayerData {
     avatarDataUrl: null,
     xp: 0,
     coins: 0,
+    diamonds: 0,
     walletAutoChecks: 0,
     ownedThemeIds: ['default', 'water'],
     equippedThemeId: 'default',
@@ -306,6 +308,7 @@ function parsePlayerData(value: unknown): PlayerData | null {
     avatarDataUrl: typeof raw.avatarDataUrl === 'string' && raw.avatarDataUrl.length > 0 ? raw.avatarDataUrl : null,
     xp: clampNonNegative(raw.xp),
     coins: clampNonNegative(raw.coins),
+    diamonds: clampNonNegative(raw.diamonds),
     walletAutoChecks: clampNonNegative(raw.walletAutoChecks),
     ownedThemeIds: normalizedOwnedThemeIds,
     equippedThemeId:

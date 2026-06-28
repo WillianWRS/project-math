@@ -2,7 +2,9 @@ import { useState } from 'react'
 import type { BackgroundTheme, BadgeVariant } from '../../platform/storage'
 import { THEME_CATALOG, getThemePurchasePrice, type ThemeCatalogEntry } from '../../cosmetics/theme-catalog'
 import { BADGE_CATALOG, type BadgeCatalogEntry } from '../../cosmetics/badge-catalog'
+import { SHOP_AUTO_CHECK_OFFER } from '../../cosmetics/shop-catalog'
 import type { PlayerData } from '../../platform/storage'
+import { IconAutoCheck } from '../game/icons'
 import { Modal } from '../ui/Modal'
 
 interface ShopModalProps {
@@ -14,11 +16,13 @@ interface ShopModalProps {
   onEquipTheme: (theme: BackgroundTheme) => void
   onBuyBadge: (badge: BadgeVariant, priceCoins: number) => boolean
   onEquipBadge: (badge: BadgeVariant) => void
+  onBuyAutoCheck: (priceDiamonds: number, amount: number) => boolean
 }
 
 type PendingPurchase =
   | { kind: 'theme'; item: ThemeCatalogEntry; priceCoins: number }
   | { kind: 'badge'; item: BadgeCatalogEntry; priceCoins: number }
+  | { kind: 'autoCheck'; priceDiamonds: number; amount: number }
 
 function IconShop() {
   return (
@@ -41,6 +45,25 @@ function IconShop() {
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function IconDiamond() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 3l7.5 7.5L12 21 4.5 10.5 12 3z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4.5 10.5h15M8.5 10.5L12 3l3.5 7.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
       />
     </svg>
   )
@@ -92,8 +115,12 @@ export function ShopModal({
   onEquipTheme,
   onBuyBadge,
   onEquipBadge,
+  onBuyAutoCheck,
 }: ShopModalProps) {
   const [pendingPurchase, setPendingPurchase] = useState<PendingPurchase | null>(null)
+  const autoCheckPriceDiamonds = SHOP_AUTO_CHECK_OFFER.priceDiamonds
+  const autoCheckAmount = SHOP_AUTO_CHECK_OFFER.amount
+  const canBuyAutoCheck = player.diamonds >= autoCheckPriceDiamonds
 
   const handleClose = () => {
     setPendingPurchase(null)
@@ -113,6 +140,12 @@ export function ShopModal({
       return
     }
 
+    if (pendingPurchase.kind === 'autoCheck') {
+      onBuyAutoCheck(pendingPurchase.priceDiamonds, pendingPurchase.amount)
+      setPendingPurchase(null)
+      return
+    }
+
     const purchased = onBuyBadge(pendingPurchase.item.badgeId, pendingPurchase.priceCoins)
     if (purchased) onEquipBadge(pendingPurchase.item.badgeId)
     setPendingPurchase(null)
@@ -125,14 +158,25 @@ export function ShopModal({
         title="Loja"
         titleIcon={<IconShop />}
         headerRight={
-          <div className="inline-flex items-center gap-2">
-            <span
-              className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/15 text-amber-300"
-              aria-label="Saldo em moedas"
-            >
-              <IconCoin />
-            </span>
-            <p className="font-mono text-sm font-bold text-amber-100">{player.coins}</p>
+          <div className="inline-flex items-center gap-3">
+            <div className="inline-flex items-center gap-2">
+              <span
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-500/15 text-sky-300"
+                aria-label="Saldo em diamantes"
+              >
+                <IconDiamond />
+              </span>
+              <p className="font-mono text-sm font-bold text-sky-100">{player.diamonds}</p>
+            </div>
+            <div className="inline-flex items-center gap-2">
+              <span
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/15 text-amber-300"
+                aria-label="Saldo em moedas"
+              >
+                <IconCoin />
+              </span>
+              <p className="font-mono text-sm font-bold text-amber-100">{player.coins}</p>
+            </div>
           </div>
         }
         onClose={handleClose}
@@ -140,6 +184,47 @@ export function ShopModal({
       >
         <div className="space-y-3">
           <p className="text-center text-lg font-extrabold uppercase tracking-[0.22em] text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
+            Auto Check
+          </p>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!canBuyAutoCheck) return
+              setPendingPurchase({
+                kind: 'autoCheck',
+                priceDiamonds: autoCheckPriceDiamonds,
+                amount: autoCheckAmount,
+              })
+            }}
+            className="shop-theme-row game-modal-card w-full text-left"
+          >
+            <div className="flex items-center justify-between gap-3 px-3 py-3">
+              <p className="inline-flex items-center gap-2 text-sm font-semibold text-stone-100">
+                <span className="shop-autocheck-offer__icon" aria-hidden>
+                  <IconAutoCheck />
+                </span>
+                <span className="font-mono">{autoCheckAmount}</span>
+              </p>
+              <p className="inline-flex items-center gap-1.5 text-xs text-sky-200">
+                <span className="text-sky-300">
+                  <IconDiamond />
+                </span>
+                <span className="font-mono text-sm font-bold">{autoCheckPriceDiamonds}</span>
+              </p>
+            </div>
+            {!canBuyAutoCheck ? (
+              <p className="border-t border-stone-700/45 px-3 py-2 text-right text-xs text-rose-300">
+                Diamantes insuficientes
+              </p>
+            ) : (
+              <p className="border-t border-stone-700/45 px-3 py-2 text-xs text-sky-300">
+                Toque pra comprar
+              </p>
+            )}
+          </button>
+
+          <p className="pt-2 text-center text-lg font-extrabold uppercase tracking-[0.22em] text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
             Temas
           </p>
 
@@ -194,7 +279,7 @@ export function ShopModal({
                         <span className="font-mono">{priceCoins}</span>
                       </p>
                       <p className={`text-xs ${canBuy ? 'text-amber-300' : 'text-rose-300'}`}>
-                        toque pra comprar
+                        Toque pra comprar
                       </p>
                     </div>
                   ) : null}
@@ -257,7 +342,7 @@ export function ShopModal({
                         <span className="font-mono">{priceCoins}</span>
                       </p>
                       <p className={`text-xs ${canBuy ? 'text-amber-300' : 'text-rose-300'}`}>
-                        toque pra comprar
+                        Toque pra comprar
                       </p>
                     </div>
                   ) : null}
@@ -279,7 +364,7 @@ export function ShopModal({
             <div className="game-modal-card overflow-hidden">
               {pendingPurchase.kind === 'theme' ? (
                 <div className={`settings-bg-preview ${pendingPurchase.item.previewClass}`} aria-hidden />
-              ) : (
+              ) : pendingPurchase.kind === 'badge' ? (
                 <div className="shop-badge-preview" aria-hidden>
                   <span
                     className={`shop-badge-sample game-player-level-badge game-player-level-badge--${pendingPurchase.item.badgeId}`}
@@ -287,21 +372,56 @@ export function ShopModal({
                     Nível 1
                   </span>
                 </div>
+              ) : (
+                <div className="shop-autocheck-offer-preview" aria-hidden>
+                  <span className="shop-autocheck-offer__icon shop-autocheck-offer__icon--preview">
+                    <IconAutoCheck />
+                  </span>
+                  <span className="font-mono text-lg font-bold text-stone-100">{pendingPurchase.amount}</span>
+                </div>
               )}
               <div className="space-y-1 px-3 py-2">
-                <p className="text-sm font-semibold text-stone-100">{pendingPurchase.item.name}</p>
-                <p className="text-xs text-charcoal-muted">{pendingPurchase.priceCoins} moedas</p>
+                <p className="text-sm font-semibold text-stone-100">
+                  {pendingPurchase.kind === 'theme'
+                    ? pendingPurchase.item.name
+                    : pendingPurchase.kind === 'badge'
+                      ? pendingPurchase.item.name
+                      : 'Auto Check'}
+                </p>
+                <p className="text-xs text-charcoal-muted">
+                  {pendingPurchase.kind === 'autoCheck'
+                    ? `${pendingPurchase.priceDiamonds} diamantes`
+                    : `${pendingPurchase.priceCoins} moedas`}
+                </p>
               </div>
             </div>
             <p className="text-sm leading-relaxed text-stone-200">
-              Deseja comprar {pendingPurchase.kind === 'theme' ? 'o tema' : 'a tag de nível'}{' '}
-              <span className="font-semibold text-amber-100">{pendingPurchase.item.name}</span> por{' '}
-              <span className="font-mono font-semibold text-amber-100">{pendingPurchase.priceCoins}</span> moedas?
+              {pendingPurchase.kind === 'autoCheck' ? (
+                <>
+                  Deseja comprar{' '}
+                  <span className="font-semibold text-amber-100">
+                    {pendingPurchase.amount} auto check
+                  </span>{' '}
+                  por{' '}
+                  <span className="font-mono font-semibold text-sky-100">
+                    {pendingPurchase.priceDiamonds}
+                  </span>{' '}
+                  diamantes?
+                </>
+              ) : (
+                <>
+                  Deseja comprar {pendingPurchase.kind === 'theme' ? 'o tema' : 'a tag de nível'}{' '}
+                  <span className="font-semibold text-amber-100">{pendingPurchase.item.name}</span> por{' '}
+                  <span className="font-mono font-semibold text-amber-100">{pendingPurchase.priceCoins}</span> moedas?
+                </>
+              )}
             </p>
             <p className="text-xs text-charcoal-muted">
               Saldo após a compra:{' '}
               <span className="font-mono text-stone-300">
-                {Math.max(0, player.coins - pendingPurchase.priceCoins)} moedas
+                {pendingPurchase.kind === 'autoCheck'
+                  ? `${Math.max(0, player.diamonds - pendingPurchase.priceDiamonds)} diamantes`
+                  : `${Math.max(0, player.coins - pendingPurchase.priceCoins)} moedas`}
               </span>
             </p>
             <button

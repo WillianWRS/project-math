@@ -111,6 +111,30 @@ export function IconHelp() {
   )
 }
 
+/** ? sem círculo — botão Tutorial do menu principal. */
+export function IconTutorial() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <text
+        x="12"
+        y="12.5"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+        paintOrder="stroke"
+        fontSize="21"
+        fontWeight="800"
+        fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
+      >
+        ?
+      </text>
+    </svg>
+  )
+}
+
 export function IconPerson() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -165,6 +189,25 @@ export function IconCoin() {
   )
 }
 
+export function IconDiamond() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 3l7.5 7.5L12 21 4.5 10.5 12 3z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4.5 10.5h15M8.5 10.5L12 3l3.5 7.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export function IconAutoCheck() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -205,6 +248,20 @@ export function IconMenuAvatar() {
         stroke="currentColor"
         strokeWidth="1"
         strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+export function IconWeeklyChallenges() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M13.2 2.75L5.5 13.25h6.35l-1.05 8 8.2-11.5H12.4l.8-7.5z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinejoin="round"
       />
     </svg>
   )

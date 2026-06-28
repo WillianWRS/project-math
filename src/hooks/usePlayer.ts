@@ -109,6 +109,25 @@ export function usePlayer() {
     return purchased
   }, [commitPlayer])
 
+  const purchaseAutoCheckWithDiamonds = useCallback(
+    (priceDiamonds: number, amount = 1): boolean => {
+      if (priceDiamonds < 0 || amount <= 0) return false
+
+      let purchased = false
+      commitPlayer((current) => {
+        if (current.diamonds < priceDiamonds) return current
+        purchased = true
+        return {
+          ...current,
+          diamonds: current.diamonds - priceDiamonds,
+          walletAutoChecks: current.walletAutoChecks + amount,
+        }
+      })
+      return purchased
+    },
+    [commitPlayer],
+  )
+
   const rewardedAdsRemaining = Math.max(0, DAILY_REWARDED_ADS_LIMIT - player.daily.rewardedAdsWatched)
 
   const watchSimulatedAd = useCallback(async () => {
@@ -139,6 +158,7 @@ export function usePlayer() {
     setEquippedBadge,
     purchaseTheme,
     purchaseBadge,
+    purchaseAutoCheckWithDiamonds,
     rewardedAdsRemaining,
     watchSimulatedAd,
     commitPlayer,

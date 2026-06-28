@@ -26,12 +26,13 @@
 }
 
 .game-modal-backdrop {
-  contain: strict;
   transform: translateZ(0);
   -webkit-tap-highlight-color: transparent;
   cursor: default;
   touch-action: manipulation;
-  background: #141210;
+  background: transparent;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   opacity: 0;
 }
 
@@ -376,6 +377,34 @@
 
 .settings-bg-preview--aurora {
   background: linear-gradient(180deg, #e0f2fe 0%, #d1fae5 40%, #f5d0fe 100%);
+}
+
+.shop-autocheck-offer__icon {
+  display: inline-flex;
+  width: 1.45rem;
+  height: 1.45rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fbbf24;
+  color: #451a03;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.shop-autocheck-offer__icon--preview {
+  width: 2rem;
+  height: 2rem;
+}
+
+.shop-autocheck-offer-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  height: 3.25rem;
+  border-bottom: 1px solid rgba(87, 83, 78, 0.25);
+  background: rgba(20, 18, 16, 0.72);
 }
 
 .shop-badge-preview {

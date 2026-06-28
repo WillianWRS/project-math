@@ -45,12 +45,14 @@ import { useGameContext } from '../../context/game-context'
 import {
   IconAutoCheck,
   IconCoin,
+  IconDiamond,
   IconGear,
-  IconHelp,
   IconPerson,
   IconPlay,
   IconShare,
   IconShop,
+  IconTutorial,
+  IconWeeklyChallenges,
 } from './icons'
 import {
   AnswerDisplay,
@@ -63,7 +65,7 @@ import {
   MenuHudButton,
   MenuHudInlineButton,
   MenuLevelBadge,
-  MenuPlayButton,
+  MenuPrimaryActions,
   MenuThemeTestButton,
 } from './menu/MenuHud'
 import { ThemeTestSideLayout } from './theme-test/ThemeTestSideLayout'
@@ -187,6 +189,7 @@ export function GameScreen() {
     buyTheme: onBuyTheme,
     setEquippedBadge: onEquipBadge,
     purchaseBadge: onBuyBadge,
+    purchaseAutoCheckWithDiamonds: onBuyAutoCheck,
     updateDisplayName: onSaveDisplayName,
     updateAvatarPhoto: onSaveAvatarPhoto,
     watchSimulatedAd: onWatchRewardedAd,
@@ -203,6 +206,7 @@ export function GameScreen() {
   const [shopOpen, setShopOpen] = useState(false)
   const [rewardedOpen, setRewardedOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [weeklyChallengesOpen, setWeeklyChallengesOpen] = useState(false)
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false)
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const [avatarCropOpen, setAvatarCropOpen] = useState(false)
@@ -323,6 +327,7 @@ export function GameScreen() {
     playerOpen ||
     shopOpen ||
     settingsOpen ||
+    weeklyChallengesOpen ||
     rewardedOpen ||
     avatarPickerOpen ||
     avatarCropOpen ||
@@ -914,6 +919,17 @@ export function GameScreen() {
   const openSettingsModal = useCallback(() => {
     setExitConfirmOpen(false)
     setSettingsOpen(true)
+    playUiClickAfterPaint(onPlayClick)
+  }, [onPlayClick])
+
+  const openWeeklyChallengesModal = useCallback(() => {
+    setExitConfirmOpen(false)
+    setWeeklyChallengesOpen(true)
+    playUiClickAfterPaint(onPlayClick)
+  }, [onPlayClick])
+
+  const closeWeeklyChallengesModal = useCallback(() => {
+    setWeeklyChallengesOpen(false)
     playUiClickAfterPaint(onPlayClick)
   }, [onPlayClick])
 
@@ -2304,6 +2320,16 @@ export function GameScreen() {
                   </span>
                   <span className="game-menu-autocheck__value">{player.walletAutoChecks}</span>
                 </motion.div>
+                <motion.div
+                  {...menuStageItem(0.045, 6, -10)}
+                  className="game-menu-diamonds"
+                  aria-label={`${player.diamonds} diamante${player.diamonds === 1 ? '' : 's'}`}
+                >
+                  <span className="game-menu-diamonds__icon">
+                    <IconDiamond />
+                  </span>
+                  <span className="game-menu-diamonds__value">{player.diamonds}</span>
+                </motion.div>
                 <motion.div {...menuStageItem(0.05, 12, -10)} className="game-menu-coins" aria-label={`${player.coins} moedas`}>
                   <span className="game-menu-coins__icon">
                     <IconCoin />
@@ -2347,10 +2373,15 @@ export function GameScreen() {
           <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">
             {menuAudioReady ? (
               <div className="pointer-events-auto flex flex-col items-center gap-3">
-                <motion.div {...menuStageItem(0.06, 0, 20)}>
-                  <MenuPlayButton
-                    onPointerDown={primeAudioOnPointerDown}
-                    onClick={handlePlay}
+                <motion.div
+                  {...menuStageItem(0.06, 0, 20)}
+                  className="game-menu-primary-actions"
+                >
+                  <MenuPrimaryActions
+                    onPlayPointerDown={primeAudioOnPointerDown}
+                    onPlay={handlePlay}
+                    onWeeklyPointerDown={primeAudioOnPointerDown}
+                    onWeekly={openWeeklyChallengesModal}
                   />
                 </motion.div>
                 {devModeEnabled && (
@@ -2426,7 +2457,7 @@ export function GameScreen() {
                     onClick={handleTutorial}
                     onPointerDown={primeAudioOnPointerDown}
                   >
-                    <IconHelp />
+                    <IconTutorial />
                   </MenuHudButton>
                 </motion.div>
 
@@ -2448,6 +2479,18 @@ export function GameScreen() {
           </div>
         </>
       )}
+
+      <Modal
+        open={weeklyChallengesOpen}
+        title="Desafios semanais"
+        titleIcon={<IconWeeklyChallenges />}
+        onClose={closeWeeklyChallengesModal}
+      >
+        <p className="text-sm leading-relaxed text-stone-200">
+          Objetivos especiais toda semana com recompensas exclusivas.
+        </p>
+        <p className="mt-3 text-xs text-charcoal-muted">Em breve.</p>
+      </Modal>
 
       <Modal
         open={avatarPickerOpen}
@@ -2598,6 +2641,7 @@ export function GameScreen() {
         onBuyTheme={onBuyTheme}
         onEquipBadge={onEquipBadge}
         onBuyBadge={onBuyBadge}
+        onBuyAutoCheck={onBuyAutoCheck}
         onSoundChange={onSoundChange}
         onDevModeChange={onDevModeChange}
         onGodModeChange={onGodModeChange}

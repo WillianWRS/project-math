@@ -191,3 +191,182 @@
   padding: 0 0.45rem;
   justify-content: center;
 }
+
+.game-menu-primary-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.game-menu-weekly-challenges-btn {
+  width: auto;
+}
+
+.game-menu-weekly-challenges-btn__plate {
+  --hud-shadow: #b45309;
+
+  width: auto;
+  height: 2.55rem;
+  min-width: 0;
+  padding: 0 1.15rem;
+  gap: 0.48rem;
+  justify-content: center;
+  border-radius: 0.875rem;
+  background: linear-gradient(180deg, #fef3c7 0%, #fde68a 38%, #fbbf24 100%);
+  box-shadow:
+    0 3px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    inset 0 -8px 14px rgba(180, 83, 9, 0.16);
+}
+
+.game-menu-weekly-challenges-btn__plate::before {
+  border-color: rgba(255, 251, 235, 0.5);
+}
+
+.game-menu-weekly-challenges-btn__plate::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+}
+
+.game-menu-weekly-challenges-btn .game-menu-hud-btn__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  transform-origin: center center;
+  color: #92400e;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.42));
+  animation: game-menu-weekly-challenges-icon-shake 4.35s ease-in-out 1.65s infinite;
+}
+
+@keyframes game-menu-weekly-challenges-icon-shake {
+  0%,
+  16%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  2% {
+    transform: translate3d(-1px, 0, 0) rotate(-10deg);
+  }
+
+  4% {
+    transform: translate3d(1px, -1px, 0) rotate(9deg);
+  }
+
+  6% {
+    transform: translate3d(-1px, 1px, 0) rotate(-8deg);
+  }
+
+  8% {
+    transform: translate3d(1px, 0, 0) rotate(7deg);
+  }
+
+  10% {
+    transform: translate3d(-1px, 0, 0) rotate(-5deg);
+  }
+
+  12% {
+    transform: translate3d(1px, 0, 0) rotate(4deg);
+  }
+
+  14% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+}
+
+.game-menu-weekly-challenges-btn--disabled,
+.game-menu-weekly-challenges-btn:disabled {
+  cursor: not-allowed;
+}
+
+.game-menu-weekly-challenges-btn--disabled .game-menu-hud-btn__icon,
+.game-menu-weekly-challenges-btn:disabled .game-menu-hud-btn__icon {
+  animation-play-state: paused;
+}
+
+.game-menu-weekly-challenges-btn--disabled:active .game-menu-weekly-challenges-btn__plate,
+.game-menu-weekly-challenges-btn:disabled:active .game-menu-weekly-challenges-btn__plate {
+  transform: none;
+  box-shadow:
+    0 3px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    inset 0 -8px 14px rgba(180, 83, 9, 0.16);
+}
+
+.game-menu-weekly-challenges-btn .game-menu-hud-btn__icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.game-menu-weekly-challenges-btn .game-menu-hud-btn__inline-text {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #78350f;
+  white-space: nowrap;
+}
+
+.game-menu-weekly-challenges-btn:active .game-menu-weekly-challenges-btn__plate {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -5px 10px rgba(180, 83, 9, 0.2);
+}
+
+.game-menu-play-btn__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  transform-origin: 42% center;
+  animation: game-menu-play-icon-nudge 2s ease-in-out infinite;
+}
+
+@keyframes game-menu-play-icon-nudge {
+  0%,
+  34%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  3% {
+    transform: translate3d(5px, 0, 0) rotate(0deg);
+  }
+
+  6% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  9% {
+    transform: translate3d(5px, 0, 0) rotate(0deg);
+  }
+
+  12% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  15% {
+    transform: translate3d(2px, 0, 0) rotate(2.5deg);
+  }
+
+  18% {
+    transform: translate3d(-1px, 0, 0) rotate(-2deg);
+  }
+
+  21% {
+    transform: translate3d(1px, 0, 0) rotate(1.5deg);
+  }
+
+  24% {
+    transform: translate3d(-1px, 0, 0) rotate(-1deg);
+  }
+
+  27% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-menu-play-btn__icon,
+  .game-menu-weekly-challenges-btn .game-menu-hud-btn__icon {
+    animation: none;
+  }
+}

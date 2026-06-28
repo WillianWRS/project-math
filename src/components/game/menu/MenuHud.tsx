@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { xpProgressInLevel } from '../../../engine/player-level'
 import {
   IconBack,
@@ -6,6 +6,7 @@ import {
   IconMenuAvatar,
   IconPlay,
   IconThemeTest,
+  IconWeeklyChallenges,
 } from '../icons'
 
 export function MenuHudButton({
@@ -189,8 +190,60 @@ export function MenuPlayButton({
       aria-label="Iniciar partida"
       className="game-btn-push game-btn-push-amber flex items-center gap-2.5 rounded-2xl bg-gradient-to-b from-amber-300 to-amber-500 px-7 py-3.5 text-lg font-bold tracking-wide text-amber-950"
     >
-      <IconPlay />
+      <span className="game-menu-play-btn__icon" aria-hidden>
+        <IconPlay />
+      </span>
       <span>Jogar</span>
+    </button>
+  )
+}
+
+export function MenuPrimaryActions({
+  onPlay,
+  onWeekly,
+  onPlayPointerDown,
+  onWeeklyPointerDown,
+}: {
+  onPlay: () => void
+  onWeekly: () => void
+  onPlayPointerDown?: () => void
+  onWeeklyPointerDown?: () => void
+}) {
+  return (
+    <>
+      <MenuPlayButton onClick={onPlay} onPointerDown={onPlayPointerDown} />
+      <MenuWeeklyChallengesButton onClick={onWeekly} onPointerDown={onWeeklyPointerDown} />
+    </>
+  )
+}
+
+export function MenuWeeklyChallengesButton({
+  onClick,
+  onPointerDown,
+  disabled = true,
+}: {
+  onClick: () => void
+  onPointerDown?: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onPointerDown={onPointerDown}
+      disabled={disabled}
+      aria-disabled={disabled}
+      aria-label="Desafios"
+      className={`game-menu-hud-btn game-menu-hud-btn--inline game-menu-weekly-challenges-btn${
+        disabled ? ' game-menu-weekly-challenges-btn--disabled opacity-50' : ''
+      }`}
+    >
+      <span className="game-menu-hud-btn__plate game-menu-hud-btn__plate--inline game-menu-weekly-challenges-btn__plate">
+        <span className="game-menu-hud-btn__icon">
+          <IconWeeklyChallenges />
+        </span>
+        <span className="game-menu-hud-btn__inline-text">Desafios</span>
+      </span>
     </button>
   )
 }

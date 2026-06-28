@@ -36,6 +36,7 @@ export interface GameModalLayerProps {
   onBuyTheme: (theme: BackgroundTheme, priceCoins: number) => boolean
   onEquipBadge: (badge: BadgeVariant) => void
   onBuyBadge: (badge: BadgeVariant, priceCoins: number) => boolean
+  onBuyAutoCheck: (priceDiamonds: number, amount: number) => boolean
   onSoundChange: (enabled: boolean) => void
   onDevModeChange: (enabled: boolean) => void
   onGodModeChange: (enabled: boolean) => void
@@ -70,6 +71,7 @@ function GameModalLayerInner({
   onBuyTheme,
   onEquipBadge,
   onBuyBadge,
+  onBuyAutoCheck,
   onSoundChange,
   onDevModeChange,
   onGodModeChange,
@@ -100,6 +102,7 @@ function GameModalLayerInner({
         onEquipTheme={onBackgroundThemeChange}
         onBuyBadge={onBuyBadge}
         onEquipBadge={onEquipBadge}
+        onBuyAutoCheck={onBuyAutoCheck}
       />
 
       <SettingsModal

@@ -269,22 +269,20 @@ export function PlayerModal({
             </div>
           </div>
           <div className="game-modal-card p-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs uppercase tracking-widest text-charcoal-muted">Auto-check</p>
-              <button
-                type="button"
-                onClick={onOpenRewardedModal}
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-stone-600/70 bg-charcoal-elevated text-stone-200"
-                aria-label="Ganhar auto-check"
-              >
-                <IconPlusOutline />
-              </button>
-            </div>
+            <p className="text-xs uppercase tracking-widest text-charcoal-muted">Auto-check</p>
             <div className="mt-1 flex items-center gap-2">
               <StatBadge>
                 <IconAutoCheck />
               </StatBadge>
               <p className="font-mono text-xl font-bold text-amber-100">{player.walletAutoChecks}</p>
+              <button
+                type="button"
+                onClick={onOpenRewardedModal}
+                className="ml-auto inline-flex h-6 w-6 items-center justify-center rounded-full border border-amber-400/70 bg-transparent text-amber-300"
+                aria-label="Ganhar auto-check"
+              >
+                <IconPlusOutline />
+              </button>
             </div>
           </div>
         </section>
