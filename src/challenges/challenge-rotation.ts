@@ -1,6 +1,6 @@
 import type { ChallengeModeId } from '../engine/types'
 import { getDateKey } from '../platform/daily-reset'
-import { CHALLENGE_CATALOG, getChallengeDefinition, type ChallengeDefinition } from './challenge-catalog'
+import { getChallengeDefinition, type ChallengeDefinition } from './challenge-catalog'
 
 /** Dia em que o Kit 1 (Moedas em dobro + 3 segundos) está ativo. */
 export const CHALLENGE_ROTATION_ANCHOR_DATE_KEY = '2026-06-28'
