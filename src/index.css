@@ -961,6 +961,24 @@ body {
   letter-spacing: 0.04em;
 }
 
+.game-header-center-dock__tutorial-label {
+  width: 100%;
+  margin: 0;
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', 'Franklin Gothic Medium', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+  color: #d6cdc0;
+}
+
+.game-scene-header--water .game-header-center-dock__tutorial-label {
+  color: #0c4a6e;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
 .game-header-center-dock__slot {
   width: 100%;
 }

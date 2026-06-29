@@ -37,7 +37,9 @@ import { preloadGameplayModals } from '../../platform/preload-modals'
 import { playSfx } from '../../platform/audio-service'
 import { formatAppVersionLabel } from '../../config/app-version'
 import type { BackgroundTheme } from '../../platform/storage'
+import type { ChallengeModeId } from '../../engine/types'
 import type { TutorialCompletionResult } from '../../hooks/useGame'
+import { ChallengesModal } from '../modals/ChallengesModal'
 import { GameModalLayer } from './GameModalLayer'
 import { playUiClickAfterPaint, primeAudioOnPointerDown } from '../../lib/modal-ui'
 import { Modal } from '../ui/Modal'
@@ -52,7 +54,6 @@ import {
   IconShare,
   IconShop,
   IconTutorial,
-  IconWeeklyChallenges,
 } from './icons'
 import {
   AnswerDisplay,
@@ -82,6 +83,25 @@ import {
 } from './tutorial/tutorial-content'
 
 type PresentationPhase = 'menu' | 'opening' | 'in-game' | 'theme-test' | 'tutorial' | 'closing'
+
+type PendingStartMode =
+  | 'play'
+  | 'benchmark'
+  | 'theme-test'
+  | 'tutorial'
+  | ChallengeModeId
+  | null
+
+const CHALLENGE_START_MODES: ChallengeModeId[] = [
+  'double-coins',
+  'sixty-seconds',
+  'three-seconds',
+  'times-div-only',
+]
+
+function isChallengeStartMode(mode: PendingStartMode): mode is ChallengeModeId {
+  return mode !== null && CHALLENGE_START_MODES.includes(mode as ChallengeModeId)
+}
 
 const sceneEnterTransition = { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const }
 const ENTER_DURATION_MS = 280
@@ -175,6 +195,7 @@ export function GameScreen() {
     showGodModeToggle,
     backgroundTheme,
     onStart,
+    onStartChallenge,
     onStartBenchmarkSession,
     onReturnToMenu,
     onConfirm,
@@ -199,6 +220,7 @@ export function GameScreen() {
     playEraseKey: onPlayEraseKey,
     playGoToMenu: onPlayGoToMenu,
     completeTutorial: onCompleteTutorial,
+    payChallengeEntry: onPayChallengeEntry,
   } = useGameContext()
   const rewardedAdsWatched = player.daily.rewardedAdsWatched
   const sceneRootRef = useRef<HTMLDivElement>(null)
@@ -219,9 +241,7 @@ export function GameScreen() {
   const [presentation, setPresentation] = useState<PresentationPhase>('menu')
   const answerFieldRef = useRef<HTMLDivElement>(null)
   const [sharing, setSharing] = useState(false)
-  const [pendingStartMode, setPendingStartMode] = useState<
-    'play' | 'benchmark' | 'theme-test' | 'tutorial' | null
-  >(null)
+  const [pendingStartMode, setPendingStartMode] = useState<PendingStartMode>(null)
   const [themeTestScore, setThemeTestScore] = useState(0)
   const [themeTestBurstFlash, setThemeTestBurstFlash] = useState<number | null>(null)
   const [themeTestBurstToken, setThemeTestBurstToken] = useState(0)
@@ -259,6 +279,7 @@ export function GameScreen() {
   const [tutorialCompletionResult, setTutorialCompletionResult] = useState<TutorialCompletionResult | null>(null)
   const [gameOverRewardDisplay, setGameOverRewardDisplay] = useState({ xp: 0, coins: 0 })
   const onStartRef = useRef(onStart)
+  const onStartChallengeRef = useRef(onStartChallenge)
   const onStartBenchmarkSessionRef = useRef(onStartBenchmarkSession)
   const onInputChangeRef = useRef(onInputChange)
   const onConfirmRef = useRef(onConfirm)
@@ -285,6 +306,10 @@ export function GameScreen() {
   useEffect(() => {
     onStartBenchmarkSessionRef.current = onStartBenchmarkSession
   }, [onStartBenchmarkSession])
+
+  useEffect(() => {
+    onStartChallengeRef.current = onStartChallenge
+  }, [onStartChallenge])
 
   useEffect(() => {
     onInputChangeRef.current = onInputChange
@@ -719,6 +744,20 @@ export function GameScreen() {
     setPresentation('opening')
   }
 
+  const handleChallengeStart = useCallback(
+    (challengeId: ChallengeModeId) => {
+      if (presentation !== 'menu') return
+      if (!onPayChallengeEntry(challengeId)) return
+      setExitConfirmOpen(false)
+      setWeeklyChallengesOpen(false)
+      setPendingStartMode(challengeId)
+      onPlayGameStart()
+      setSharing(false)
+      setPresentation('opening')
+    },
+    [onPayChallengeEntry, onPlayGameStart, presentation],
+  )
+
   const handleReturnToMenu = useCallback(() => {
     if (!isInGameScene) return
     setExitConfirmOpen(false)
@@ -971,6 +1010,10 @@ export function GameScreen() {
       closeRewardedModal()
       return 'consumed'
     }
+    if (weeklyChallengesOpen) {
+      closeWeeklyChallengesModal()
+      return 'consumed'
+    }
     if (timeoutModalOpen) {
       onDeclineAutoCheckAtTimeout()
       return 'consumed'
@@ -991,6 +1034,7 @@ export function GameScreen() {
     shopOpen,
     settingsOpen,
     rewardedOpen,
+    weeklyChallengesOpen,
     timeoutModalOpen,
     presentation,
     exitConfirmOpen,
@@ -1000,12 +1044,17 @@ export function GameScreen() {
     closeShopModal,
     closeSettingsModal,
     closeRewardedModal,
+    closeWeeklyChallengesModal,
     onDeclineAutoCheckAtTimeout,
     handleReturnToMenu,
   ])
 
   const handlePlayAgain = () => {
     if (presentation !== 'in-game' || session.phase !== 'game_over') return
+    if (session.challengeMode) {
+      handleReturnToMenu()
+      return
+    }
     onPlayGameStart()
     setSharing(false)
     onStart()
@@ -1325,6 +1374,9 @@ export function GameScreen() {
         setPresentation('tutorial')
       } else if (mode === 'theme-test') {
         setPresentation('theme-test')
+      } else if (isChallengeStartMode(mode)) {
+        onStartChallengeRef.current(mode)
+        setPresentation('in-game')
       } else {
         onStartRef.current()
         setPresentation('in-game')
@@ -1587,6 +1639,18 @@ export function GameScreen() {
 
                 <div className="game-header-center-dock">
                   <AnimatePresence mode="wait" initial={false}>
+                    {isTutorialScene && tutorialStep !== 18 && (
+                      <motion.p
+                        key="header-tutorial"
+                        className="game-header-center-dock__tutorial-label"
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                      >
+                        Tutorial
+                      </motion.p>
+                    )}
                     {isPlaying && (
                       <motion.p
                         key="header-elapsed"
@@ -2016,6 +2080,7 @@ export function GameScreen() {
                   <PlayStackWithChangerBg
                     baseClassName={basePlayStackClass}
                     activeChangerTheme={activeChangerTheme}
+                    instantSwitch={session.challengeInstantChangerSwitch}
                   >
                     <div className="game-play-stack__divider border-b px-3 py-4 text-center">
                       {isPlaying || isGameOver ? (
@@ -2257,9 +2322,12 @@ export function GameScreen() {
                       <span className="game-over-reward-xp">+200 XP</span> e +10 moedas
                     </p>
                   )}
-                  {session.beatRecord ? (
+                  {lastGameRewards.challengeMode && lastGameRewards.challengeCompleted ? (
+                    <p className="mt-1 text-xs text-emerald-400">Desafio concluído!</p>
+                  ) : null}
+                  {session.beatRecord && !lastGameRewards.challengeMode ? (
                     <p className="mt-1 text-sm text-emerald-400">Novo recorde pessoal!</p>
-                  ) : topScore ? (
+                  ) : topScore && !lastGameRewards.challengeMode ? (
                     <p
                       className={`game-over-card__meta mt-1 text-sm ${
                         useLightBackground ? '' : 'text-charcoal-muted'
@@ -2268,7 +2336,7 @@ export function GameScreen() {
                       Recorde: {topScore.score} pontos
                     </p>
                   ) : null}
-                  {!benchmarkMode && (
+                  {!benchmarkMode && !lastGameRewards.challengeMode && (
                   <button
                     type="button"
                     onClick={handleShare}
@@ -2480,17 +2548,12 @@ export function GameScreen() {
         </>
       )}
 
-      <Modal
+      <ChallengesModal
         open={weeklyChallengesOpen}
-        title="Desafios semanais"
-        titleIcon={<IconWeeklyChallenges />}
+        player={player}
         onClose={closeWeeklyChallengesModal}
-      >
-        <p className="text-sm leading-relaxed text-stone-200">
-          Objetivos especiais toda semana com recompensas exclusivas.
-        </p>
-        <p className="mt-3 text-xs text-charcoal-muted">Em breve.</p>
-      </Modal>
+        onStartChallenge={handleChallengeStart}
+      />
 
       <Modal
         open={avatarPickerOpen}

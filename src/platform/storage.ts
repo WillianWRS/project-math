@@ -1,3 +1,5 @@
+import type { ChallengeModeId } from '../engine/types'
+
 const TOP_SCORES_KEY = 'project-math-top-scores'
 const LEGACY_HIGH_SCORE_KEY = 'project-math-high-score'
 const SOUND_KEY = 'project-math-sound'
@@ -37,6 +39,8 @@ export interface PlayerDailyData {
   scoreAccumulated: number
   goalClaimed: boolean
   rewardedAdsWatched: number
+  challengesPlayed: ChallengeModeId[]
+  challengeAttemptsUsed: Partial<Record<ChallengeModeId, number>>
 }
 
 export interface PlayerData {
@@ -83,6 +87,17 @@ function isBackgroundTheme(value: unknown): value is BackgroundTheme {
   )
 }
 
+const CHALLENGE_MODE_IDS: ChallengeModeId[] = [
+  'double-coins',
+  'sixty-seconds',
+  'three-seconds',
+  'times-div-only',
+]
+
+function isChallengeModeId(value: unknown): value is ChallengeModeId {
+  return typeof value === 'string' && CHALLENGE_MODE_IDS.includes(value as ChallengeModeId)
+}
+
 function isBadgeVariant(value: unknown): value is BadgeVariant {
   return value === 'default-ring' || value === 'double-ring' || value === 'shield'
 }
@@ -93,7 +108,23 @@ function createDailyDefaults(): PlayerDailyData {
     scoreAccumulated: 0,
     goalClaimed: false,
     rewardedAdsWatched: 0,
+    challengesPlayed: [],
+    challengeAttemptsUsed: {},
   }
+}
+
+function parseChallengeAttemptsUsed(value: unknown): Partial<Record<ChallengeModeId, number>> {
+  if (!value || typeof value !== 'object') return {}
+
+  const result: Partial<Record<ChallengeModeId, number>> = {}
+  for (const [key, rawCount] of Object.entries(value)) {
+    if (!isChallengeModeId(key)) continue
+    if (typeof rawCount !== 'number' || !Number.isFinite(rawCount)) continue
+    const count = Math.max(0, Math.floor(rawCount))
+    if (count > 0) result[key] = count
+  }
+
+  return result
 }
 
 export function createDefaultPlayerData(): PlayerData {
@@ -278,6 +309,10 @@ function parsePlayerData(value: unknown): PlayerData | null {
       : defaults.ownedBadgeIds
 
   const dailyRaw = raw.daily
+  const challengesPlayed = Array.isArray(dailyRaw?.challengesPlayed)
+    ? dailyRaw.challengesPlayed.filter(isChallengeModeId)
+    : []
+  const challengeAttemptsUsed = parseChallengeAttemptsUsed(dailyRaw?.challengeAttemptsUsed)
   const daily =
     dailyRaw && typeof dailyRaw === 'object'
       ? {
@@ -285,6 +320,8 @@ function parsePlayerData(value: unknown): PlayerData | null {
           scoreAccumulated: clampNonNegative(dailyRaw.scoreAccumulated),
           goalClaimed: Boolean(dailyRaw.goalClaimed),
           rewardedAdsWatched: Math.min(DAILY_REWARDED_ADS_LIMIT, clampNonNegative(dailyRaw.rewardedAdsWatched)),
+          challengesPlayed,
+          challengeAttemptsUsed,
         }
       : createDailyDefaults()
 

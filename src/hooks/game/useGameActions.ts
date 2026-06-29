@@ -1,5 +1,6 @@
 import { useCallback, type SetStateAction } from "react";
 import { setInputValue, submitAnswer } from "../../engine/game-state-machine";
+import { submitChallengeAnswer } from "../../engine/challenge-session";
 import { isAnyGameChangerActive } from "../../engine/game-changer-cycles";
 import { PERFECT_ANSWER_COINS } from "../../engine/rewards";
 import type { GameSession } from "../../engine/types";
@@ -49,18 +50,23 @@ export function useGameActions({
   elapsedMsRef,
   registerPerfectAnswer,
 }: GameActionsOptions): GameActions {
+  const resolveSubmit = useCallback((current: GameSession, autoCheck?: boolean) => {
+    if (current.challengeMode) {
+      return submitChallengeAnswer(current, { autoCheck });
+    }
+    return submitAnswer(current, { autoCheck });
+  }, []);
+
   const applyAnswerResult = useCallback(
     (current: GameSession, fromAutoCheck = false) => {
       const {
         session: next,
         result,
         autoCheckGranted,
-      } = submitAnswer(current, {
-        autoCheck: fromAutoCheck,
-      });
+      } = resolveSubmit(current, fromAutoCheck);
       setSession(next);
 
-      if (autoCheckGranted) {
+      if (autoCheckGranted && !current.challengeMode) {
         grantAutoCheck(1);
       }
 
@@ -77,6 +83,7 @@ export function useGameActions({
         if (
           !fromAutoCheck &&
           !benchmarkSessionRef.current &&
+          !current.challengeMode &&
           liveTimerRatio >= PERFECT_ANSWER_RATIO
         ) {
           registerPerfectAnswer();
@@ -101,6 +108,7 @@ export function useGameActions({
       cycleTimerMaxRef,
       grantAutoCheck,
       registerPerfectAnswer,
+      resolveSubmit,
       setSession,
       soundEnabledRef,
     ],
@@ -134,14 +142,14 @@ export function useGameActions({
         session: next,
         result,
         autoCheckGranted,
-      } = submitAnswer(forcedAnswer, { autoCheck: true });
+      } = resolveSubmit(forcedAnswer, true);
       setSession(next);
 
       if (result === "locked" && spent && consumeWallet) {
         grantAutoCheck(1);
         return;
       }
-      if (autoCheckGranted) {
+      if (autoCheckGranted && !current.challengeMode) {
         grantAutoCheck(1);
       }
       if (result === "correct") {
@@ -154,7 +162,7 @@ export function useGameActions({
         playSfx("error", soundEnabledRef.current);
       }
     },
-    [grantAutoCheck, sessionRef, setSession, soundEnabledRef, spendAutoCheck],
+    [grantAutoCheck, resolveSubmit, sessionRef, setSession, soundEnabledRef, spendAutoCheck],
   );
 
   const onAutoCorrect = useCallback(() => {

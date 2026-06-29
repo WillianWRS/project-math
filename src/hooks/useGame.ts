@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { returnToMenu, startGame } from "../engine/game-state-machine";
+import { startChallengeGame } from "../engine/challenge-session";
+import type { ChallengeModeId } from "../engine/types";
 import { isAnyGameChangerActive } from "../engine/game-changer-cycles";
 import type { GameSession } from "../engine/types";
 import type { BenchmarkVirtualKey } from "../engine/benchmark-types";
@@ -61,6 +63,7 @@ export function useGame() {
 
   const [benchmarkMode, setBenchmarkMode] = useState(false);
   const benchmarkSessionRef = useRef(false);
+  const challengeSessionRef = useRef<ChallengeModeId | null>(null);
 
   // Refs de timing compartilhados: o relógio os muta, benchmark e ações os leem.
   const timerMsRef = useRef(session.timerMs);
@@ -119,6 +122,7 @@ export function useGame() {
     playerRef,
     benchmarkActive,
     benchmarkSessionRef,
+    challengeSessionRef,
     soundEnabledRef,
     timerMsRef,
     elapsedMsRef,
@@ -131,6 +135,7 @@ export function useGame() {
       session,
       setSession,
       benchmarkSessionRef,
+      challengeSessionRef,
       commitPlayer,
       soundEnabledRef,
     });
@@ -158,6 +163,7 @@ export function useGame() {
   const onStart = useCallback(() => {
     if (sessionRef.current.phase === "playing") return;
     benchmarkSessionRef.current = false;
+    challengeSessionRef.current = null;
     setBenchmarkMode(false);
     resetBenchmark();
     resetRewardTracking();
@@ -172,9 +178,31 @@ export function useGame() {
     setSession,
   ]);
 
+  const onStartChallenge = useCallback(
+    (mode: ChallengeModeId) => {
+      if (sessionRef.current.phase === "playing") return;
+      benchmarkSessionRef.current = false;
+      challengeSessionRef.current = mode;
+      setBenchmarkMode(false);
+      resetBenchmark();
+      resetRewardTracking();
+      clearLastGameRewards();
+      setPerfectAnswerToken(0);
+      setSession(startChallengeGame(mode));
+    },
+    [
+      clearLastGameRewards,
+      resetBenchmark,
+      resetRewardTracking,
+      sessionRef,
+      setSession,
+    ],
+  );
+
   const onStartBenchmarkSession = useCallback(() => {
     if (sessionRef.current.phase === "playing") return;
     benchmarkSessionRef.current = true;
+    challengeSessionRef.current = null;
     setBenchmarkMode(true);
     resetRewardTracking();
     clearLastGameRewards();
@@ -190,6 +218,7 @@ export function useGame() {
   const onReturnToMenu = useCallback(() => {
     onInterruptBenchmark();
     benchmarkSessionRef.current = false;
+    challengeSessionRef.current = null;
     setBenchmarkMode(false);
     resetBenchmark();
     resetRewardTracking();
@@ -223,6 +252,7 @@ export function useGame() {
     benchmarkMode,
     perfectAnswerToken,
     onStart,
+    onStartChallenge,
     onStartBenchmarkSession,
     onReturnToMenu,
     onConfirm: actions.onConfirm,

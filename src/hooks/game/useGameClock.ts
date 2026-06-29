@@ -1,6 +1,10 @@
 import { useEffect, useRef, type SetStateAction } from "react";
 import { tickTimer } from "../../engine/game-state-machine";
-import type { GameSession } from "../../engine/types";
+import {
+  challengeSessionElapsedLimitMs,
+  tickChallengeTimer,
+} from "../../engine/challenge-session";
+import type { ChallengeModeId, GameSession } from "../../engine/types";
 import type { PlayerData } from "../../platform/storage";
 import { gameTimerStore } from "../../platform/game-timer-store";
 import { unlockAudioSync } from "../../platform/audio-service";
@@ -22,6 +26,7 @@ export interface GameClockOptions extends GameTimingRefs {
   playerRef: React.MutableRefObject<PlayerData>;
   benchmarkActive: boolean;
   benchmarkSessionRef: React.MutableRefObject<boolean>;
+  challengeSessionRef: React.MutableRefObject<ChallengeModeId | null>;
   soundEnabledRef: React.MutableRefObject<boolean>;
 }
 
@@ -42,6 +47,7 @@ export function useGameClock({
   playerRef,
   benchmarkActive,
   benchmarkSessionRef,
+  challengeSessionRef,
   soundEnabledRef,
   timerMsRef,
   elapsedMsRef,
@@ -149,7 +155,25 @@ export function useGameClock({
         elapsedMsRef.current += delta;
       }
 
+      const challengeMode = sessionRef.current.challengeMode ?? challengeSessionRef.current;
+      const elapsedLimitMs = challengeSessionElapsedLimitMs(challengeMode);
       if (
+        elapsedLimitMs !== null &&
+        elapsedMsRef.current >= elapsedLimitMs &&
+        !sessionRef.current.awaitingAutoCheckChoice
+      ) {
+        setSession((current) => {
+          if (current.phase !== "playing") return current;
+          return {
+            ...current,
+            phase: "game_over",
+            timerMs: 0,
+            elapsedMs: elapsedLimitMs,
+            awaitingAutoCheckChoice: false,
+            autoCheckCycleStep: null,
+          };
+        });
+      } else if (
         timerMsRef.current <= 0 &&
         !sessionRef.current.awaitingAutoCheckChoice
       ) {
@@ -159,7 +183,9 @@ export function useGameClock({
           if (playerRef.current.walletAutoChecks > 0) {
             return { ...current, timerMs: 0, awaitingAutoCheckChoice: true };
           }
-          const timedOut = tickTimer({ ...current, timerMs: 0 }, 0);
+          const timedOut = current.challengeMode
+            ? tickChallengeTimer({ ...current, timerMs: 0 }, 0)
+            : tickTimer({ ...current, timerMs: 0 }, 0);
           return timedOut.phase === "game_over"
             ? { ...timedOut, elapsedMs: elapsedMsRef.current }
             : timedOut;

@@ -1,5 +1,13 @@
 export type GamePhase = 'idle' | 'playing' | 'game_over'
 
+export type ChallengeModeId = 'double-coins' | 'sixty-seconds' | 'three-seconds' | 'times-div-only'
+
+export interface ChallengeProgress {
+  bonusCoinsEarned: number
+  threeSecondsPhase: 'plus' | 'minus'
+  roundsCompleted: number
+}
+
 export type Operator = '+' | '-' | '×' | '÷'
 
 export interface Operation {
@@ -46,6 +54,11 @@ export interface GameSession {
   minusCycleStep: number | null
   /** Game changer − ativo (só −, operando 1–9, até resultado 1) */
   minusGameChangerActive: boolean
+  /** Modo de desafio ativo; null = partida normal */
+  challengeMode: ChallengeModeId | null
+  challengeProgress: ChallengeProgress | null
+  /** Troca seca de overlay de game changer (desafio 3 segundos) */
+  challengeInstantChangerSwitch: boolean
 }
 
 export type SubmitResult = 'correct' | 'wrong' | 'locked' | 'empty'

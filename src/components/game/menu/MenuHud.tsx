@@ -203,16 +203,22 @@ export function MenuPrimaryActions({
   onWeekly,
   onPlayPointerDown,
   onWeeklyPointerDown,
+  weeklyDisabled = false,
 }: {
   onPlay: () => void
   onWeekly: () => void
   onPlayPointerDown?: () => void
   onWeeklyPointerDown?: () => void
+  weeklyDisabled?: boolean
 }) {
   return (
     <>
       <MenuPlayButton onClick={onPlay} onPointerDown={onPlayPointerDown} />
-      <MenuWeeklyChallengesButton onClick={onWeekly} onPointerDown={onWeeklyPointerDown} />
+      <MenuWeeklyChallengesButton
+        onClick={onWeekly}
+        onPointerDown={onWeeklyPointerDown}
+        disabled={weeklyDisabled}
+      />
     </>
   )
 }

@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { canStartChallenge, consumeChallengeAttempt } from '../challenges/challenge-helpers'
+import { getChallengeDefinition } from '../challenges/challenge-catalog'
+import type { ChallengeModeId } from '../engine/types'
 import { SimulatedRewardedAds } from '../platform/ads'
 import { ensureDailyFresh } from '../platform/daily-reset'
 import { loadPlayerData, savePlayerData, type BackgroundTheme, type BadgeVariant, type PlayerData } from '../platform/storage'
@@ -128,8 +131,6 @@ export function usePlayer() {
     [commitPlayer],
   )
 
-  const rewardedAdsRemaining = Math.max(0, DAILY_REWARDED_ADS_LIMIT - player.daily.rewardedAdsWatched)
-
   const watchSimulatedAd = useCallback(async () => {
     const adapter = new SimulatedRewardedAds({
       getRemainingToday: () =>
@@ -148,6 +149,24 @@ export function usePlayer() {
     return adapter.showRewardedAutoCheck()
   }, [commitPlayer])
 
+  const rewardedAdsRemaining = Math.max(0, DAILY_REWARDED_ADS_LIMIT - player.daily.rewardedAdsWatched)
+
+  const payChallengeEntry = useCallback((challengeId: ChallengeModeId): boolean => {
+    let paid = false
+    commitPlayer((current) => {
+      const check = canStartChallenge(current, challengeId)
+      if (!check.ok) return current
+      const definition = getChallengeDefinition(challengeId)
+      paid = true
+      const withAttempt = consumeChallengeAttempt(current, challengeId)
+      return {
+        ...withAttempt,
+        coins: withAttempt.coins - definition.entryCostCoins,
+      }
+    })
+    return paid
+  }, [commitPlayer])
+
   return {
     player,
     updateDisplayName,
@@ -161,6 +180,7 @@ export function usePlayer() {
     purchaseAutoCheckWithDiamonds,
     rewardedAdsRemaining,
     watchSimulatedAd,
+    payChallengeEntry,
     commitPlayer,
   }
 }

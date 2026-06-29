@@ -43,6 +43,9 @@ export function createInitialSession(): GameSession {
     plusGameChangerActive: false,
     minusCycleStep: null,
     minusGameChangerActive: false,
+    challengeMode: null,
+    challengeProgress: null,
+    challengeInstantChangerSwitch: false,
   }
 }
 
@@ -78,6 +81,9 @@ export function startGame(): GameSession {
     plusGameChangerActive: false,
     minusCycleStep: null,
     minusGameChangerActive: false,
+    challengeMode: null,
+    challengeProgress: null,
+    challengeInstantChangerSwitch: false,
   }
 }
 
@@ -167,7 +173,9 @@ export function submitAnswer(
     clutchHelpCooldownRemaining -= 1
   }
 
-  const cycleUpdate = advanceSideCyclesOnCorrect({ ...session, score, rhythmLevel })
+  const cycleUpdate = session.challengeMode
+    ? {}
+    : advanceSideCyclesOnCorrect({ ...session, score, rhythmLevel })
   if (cycleUpdate.fourSecondsGameChangerRemaining !== undefined) {
     fourSecondsGameChangerRemaining = cycleUpdate.fourSecondsGameChangerRemaining
   }
