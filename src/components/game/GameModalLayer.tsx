@@ -1,4 +1,5 @@
 import { PlayerModal } from '../modals/PlayerModal'
+import { AchievementsModal } from '../modals/AchievementsModal'
 import { ShopModal } from '../modals/ShopModal'
 import { SettingsModal } from '../modals/SettingsModal'
 import { lazy, memo, Suspense } from 'react'
@@ -18,6 +19,7 @@ export interface GameModalLayerProps {
   shopOpen: boolean
   settingsOpen: boolean
   rewardedOpen: boolean
+  achievementsOpen: boolean
   timeoutModalOpen: boolean
   exitConfirmOpen: boolean
   player: PlayerData
@@ -31,7 +33,11 @@ export interface GameModalLayerProps {
   onCloseShop: () => void
   onCloseSettings: () => void
   onCloseRewarded: () => void
+  onCloseAchievements: () => void
   onOpenRewardedFromPlayer: () => void
+  onOpenAchievementsFromPlayer: () => void
+  onOpenAvatarPicker: () => void
+  avatarBorderLevel: 1 | 2 | 3 | 4 | 5
   onSaveDisplayName: (name: string) => void
   onBuyTheme: (theme: BackgroundTheme, priceCoins: number) => boolean
   onEquipBadge: (badge: BadgeVariant) => void
@@ -53,6 +59,7 @@ function GameModalLayerInner({
   shopOpen,
   settingsOpen,
   rewardedOpen,
+  achievementsOpen,
   timeoutModalOpen,
   exitConfirmOpen,
   player,
@@ -66,7 +73,11 @@ function GameModalLayerInner({
   onCloseShop,
   onCloseSettings,
   onCloseRewarded,
+  onCloseAchievements,
   onOpenRewardedFromPlayer,
+  onOpenAchievementsFromPlayer,
+  onOpenAvatarPicker,
+  avatarBorderLevel,
   onSaveDisplayName,
   onBuyTheme,
   onEquipBadge,
@@ -89,9 +100,14 @@ function GameModalLayerInner({
         onClose={onClosePlayer}
         player={player}
         topScores={topScores}
+        avatarBorderLevel={avatarBorderLevel}
         onSaveName={onSaveDisplayName}
+        onOpenAvatarPicker={onOpenAvatarPicker}
         onOpenRewardedModal={onOpenRewardedFromPlayer}
+        onOpenAchievements={onOpenAchievementsFromPlayer}
       />
+
+      <AchievementsModal open={achievementsOpen} onClose={onCloseAchievements} />
 
       <ShopModal
         open={shopOpen}

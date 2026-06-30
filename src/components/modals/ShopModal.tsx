@@ -350,6 +350,14 @@ export function ShopModal({
               )
             })}
           </div>
+
+          <p className="pt-2 text-center text-lg font-extrabold uppercase tracking-[0.22em] text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
+            Efeitos da Tag
+          </p>
+
+          <p className="pt-2 text-center text-lg font-extrabold uppercase tracking-[0.22em] text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
+            Teclado Numérico
+          </p>
         </div>
       </Modal>
 

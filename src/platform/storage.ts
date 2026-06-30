@@ -25,7 +25,7 @@ export type BackgroundTheme =
   | 'ice'
   | 'aurora'
 
-export type BadgeVariant = 'default-ring' | 'double-ring' | 'shield'
+export type BadgeVariant = 'default-ring' | 'double-ring' | 'shield' | 'ruler'
 
 export interface ScoreRecord {
   score: number
@@ -99,7 +99,7 @@ function isChallengeModeId(value: unknown): value is ChallengeModeId {
 }
 
 function isBadgeVariant(value: unknown): value is BadgeVariant {
-  return value === 'default-ring' || value === 'double-ring' || value === 'shield'
+  return value === 'default-ring' || value === 'double-ring' || value === 'shield' || value === 'ruler'
 }
 
 function createDailyDefaults(): PlayerDailyData {

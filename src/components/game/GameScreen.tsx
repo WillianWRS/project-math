@@ -227,6 +227,7 @@ export function GameScreen() {
   const [playerOpen, setPlayerOpen] = useState(false)
   const [shopOpen, setShopOpen] = useState(false)
   const [rewardedOpen, setRewardedOpen] = useState(false)
+  const [achievementsOpen, setAchievementsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [weeklyChallengesOpen, setWeeklyChallengesOpen] = useState(false)
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false)
@@ -354,6 +355,7 @@ export function GameScreen() {
     settingsOpen ||
     weeklyChallengesOpen ||
     rewardedOpen ||
+    achievementsOpen ||
     avatarPickerOpen ||
     avatarCropOpen ||
     exitConfirmOpen ||
@@ -787,6 +789,16 @@ export function GameScreen() {
     playUiClickAfterPaint(() => playSfx('clickClose', soundEnabled))
   }, [soundEnabled])
 
+  const closeAchievementsModal = useCallback(() => {
+    setAchievementsOpen(false)
+    playUiClickAfterPaint(() => playSfx('clickClose', soundEnabled))
+  }, [soundEnabled])
+
+  const openAchievementsFromPlayer = useCallback(() => {
+    setAchievementsOpen(true)
+    playUiClickAfterPaint(() => playSfx('click', soundEnabled))
+  }, [soundEnabled])
+
   const resetAvatarDraft = useCallback(() => {
     avatarDragRef.current = null
     setAvatarDragging(false)
@@ -994,6 +1006,10 @@ export function GameScreen() {
       closeAvatarPicker()
       return 'consumed'
     }
+    if (achievementsOpen) {
+      closeAchievementsModal()
+      return 'consumed'
+    }
     if (playerOpen) {
       closePlayerModal()
       return 'consumed'
@@ -1030,6 +1046,7 @@ export function GameScreen() {
   }, [
     avatarCropOpen,
     avatarPickerOpen,
+    achievementsOpen,
     playerOpen,
     shopOpen,
     settingsOpen,
@@ -1044,6 +1061,7 @@ export function GameScreen() {
     closeShopModal,
     closeSettingsModal,
     closeRewardedModal,
+    closeAchievementsModal,
     closeWeeklyChallengesModal,
     onDeclineAutoCheckAtTimeout,
     handleReturnToMenu,
@@ -2683,6 +2701,7 @@ export function GameScreen() {
         shopOpen={shopOpen}
         settingsOpen={settingsOpen}
         rewardedOpen={rewardedOpen}
+        achievementsOpen={achievementsOpen}
         timeoutModalOpen={timeoutModalOpen}
         exitConfirmOpen={exitConfirmOpen}
         player={player}
@@ -2696,10 +2715,14 @@ export function GameScreen() {
         onCloseShop={closeShopModal}
         onCloseSettings={closeSettingsModal}
         onCloseRewarded={closeRewardedModal}
+        onCloseAchievements={closeAchievementsModal}
         onOpenRewardedFromPlayer={() => {
           setPlayerOpen(false)
           setRewardedOpen(true)
         }}
+        onOpenAchievementsFromPlayer={openAchievementsFromPlayer}
+        onOpenAvatarPicker={openAvatarPicker}
+        avatarBorderLevel={avatarBorderLevel}
         onSaveDisplayName={onSaveDisplayName}
         onBuyTheme={onBuyTheme}
         onEquipBadge={onEquipBadge}
