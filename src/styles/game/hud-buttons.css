@@ -313,6 +313,54 @@
     inset 0 -5px 10px rgba(180, 83, 9, 0.2);
 }
 
+.game-menu-test-achievement-btn {
+  width: auto;
+}
+
+.game-menu-test-achievement-btn__plate {
+  --hud-shadow: #57534e;
+
+  width: auto;
+  height: 2.35rem;
+  min-width: 0;
+  padding: 0 1rem;
+  gap: 0.42rem;
+  justify-content: center;
+  border-radius: 0.875rem;
+  background: linear-gradient(180deg, #44403c 0%, #292524 38%, #1c1917 100%);
+  box-shadow:
+    0 3px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -8px 14px rgba(0, 0, 0, 0.28);
+}
+
+.game-menu-test-achievement-btn__plate::before {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.game-menu-test-achievement-btn .game-menu-hud-btn__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: #fbbf24;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.45));
+}
+
+.game-menu-test-achievement-btn .game-menu-hud-btn__inline-text {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #e7e5e4;
+  white-space: nowrap;
+}
+
+.game-menu-test-achievement-btn:active .game-menu-test-achievement-btn__plate {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 0 var(--hud-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -5px 10px rgba(0, 0, 0, 0.32);
+}
+
 .game-menu-play-btn__icon {
   display: inline-flex;
   flex-shrink: 0;

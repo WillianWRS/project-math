@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import type { BackgroundTheme, BadgeVariant } from '../../platform/storage'
+import type { BackgroundTheme, BadgeVariant, KeypadStyleId, TagEffectId } from '../../platform/storage'
 import { THEME_CATALOG, getThemePurchasePrice, type ThemeCatalogEntry } from '../../cosmetics/theme-catalog'
 import { BADGE_CATALOG, type BadgeCatalogEntry } from '../../cosmetics/badge-catalog'
+import { KEYPAD_STYLE_CATALOG, type KeypadStyleCatalogEntry } from '../../cosmetics/keypad-style-catalog'
+import { TAG_EFFECT_CATALOG, type TagEffectCatalogEntry } from '../../cosmetics/tag-effect-catalog'
 import { SHOP_AUTO_CHECK_OFFER } from '../../cosmetics/shop-catalog'
 import type { PlayerData } from '../../platform/storage'
+import { PlayerLevelBadge } from '../game/PlayerLevelBadge'
 import { IconAutoCheck } from '../game/icons'
 import { Modal } from '../ui/Modal'
 
@@ -16,12 +19,18 @@ interface ShopModalProps {
   onEquipTheme: (theme: BackgroundTheme) => void
   onBuyBadge: (badge: BadgeVariant, priceCoins: number) => boolean
   onEquipBadge: (badge: BadgeVariant) => void
+  onBuyTagEffect: (effect: TagEffectId, priceCoins: number) => boolean
+  onEquipTagEffect: (effect: TagEffectId) => void
+  onBuyKeypadStyle: (style: KeypadStyleId, priceCoins: number) => boolean
+  onEquipKeypadStyle: (style: KeypadStyleId) => void
   onBuyAutoCheck: (priceDiamonds: number, amount: number) => boolean
 }
 
 type PendingPurchase =
   | { kind: 'theme'; item: ThemeCatalogEntry; priceCoins: number }
   | { kind: 'badge'; item: BadgeCatalogEntry; priceCoins: number }
+  | { kind: 'tagEffect'; item: TagEffectCatalogEntry; priceCoins: number }
+  | { kind: 'keypadStyle'; item: KeypadStyleCatalogEntry; priceCoins: number }
   | { kind: 'autoCheck'; priceDiamonds: number; amount: number }
 
 function IconShop() {
@@ -115,6 +124,10 @@ export function ShopModal({
   onEquipTheme,
   onBuyBadge,
   onEquipBadge,
+  onBuyTagEffect,
+  onEquipTagEffect,
+  onBuyKeypadStyle,
+  onEquipKeypadStyle,
   onBuyAutoCheck,
 }: ShopModalProps) {
   const [pendingPurchase, setPendingPurchase] = useState<PendingPurchase | null>(null)
@@ -142,6 +155,20 @@ export function ShopModal({
 
     if (pendingPurchase.kind === 'autoCheck') {
       onBuyAutoCheck(pendingPurchase.priceDiamonds, pendingPurchase.amount)
+      setPendingPurchase(null)
+      return
+    }
+
+    if (pendingPurchase.kind === 'tagEffect') {
+      const purchased = onBuyTagEffect(pendingPurchase.item.effectId, pendingPurchase.priceCoins)
+      if (purchased) onEquipTagEffect(pendingPurchase.item.effectId)
+      setPendingPurchase(null)
+      return
+    }
+
+    if (pendingPurchase.kind === 'keypadStyle') {
+      const purchased = onBuyKeypadStyle(pendingPurchase.item.styleId, pendingPurchase.priceCoins)
+      if (purchased) onEquipKeypadStyle(pendingPurchase.item.styleId)
       setPendingPurchase(null)
       return
     }
@@ -314,9 +341,13 @@ export function ShopModal({
                   }`}
                 >
                   <div className="shop-badge-preview" aria-hidden>
-                    <span className={`shop-badge-sample game-player-level-badge game-player-level-badge--${badge.badgeId}`}>
+                    <PlayerLevelBadge
+                      badgeId={badge.badgeId}
+                      tagEffectId="none"
+                      className="shop-badge-sample"
+                    >
                       Nível 1
-                    </span>
+                    </PlayerLevelBadge>
                   </div>
                   <div className="flex items-center justify-between gap-3 px-3 py-2">
                     <p className="text-sm font-semibold text-stone-100">{badge.name}</p>
@@ -354,10 +385,154 @@ export function ShopModal({
           <p className="pt-2 text-center text-lg font-extrabold uppercase tracking-[0.22em] text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
             Efeitos da Tag
           </p>
+          <div className="space-y-2">
+            {TAG_EFFECT_CATALOG.map((effect) => {
+              const owned = player.ownedTagEffectIds.includes(effect.effectId)
+              const selected = owned && effect.effectId === player.equippedTagEffectId
+              const priceCoins = getPrice(effect.priceCoins)
+              const canBuy = !owned && player.coins >= priceCoins
+              return (
+                <button
+                  key={effect.id}
+                  type="button"
+                  onClick={() => {
+                    if (owned) {
+                      onEquipTagEffect(effect.effectId)
+                      return
+                    }
+                    if (priceCoins === 0) {
+                      const purchased = onBuyTagEffect(effect.effectId, 0)
+                      if (purchased) onEquipTagEffect(effect.effectId)
+                      return
+                    }
+                    if (!canBuy) return
+                    setPendingPurchase({ kind: 'tagEffect', item: effect, priceCoins })
+                  }}
+                  className={`shop-theme-row game-modal-card w-full text-left ${
+                    selected ? 'shop-theme-row--selected' : ''
+                  }`}
+                >
+                  <div className="shop-badge-preview" aria-hidden>
+                    <PlayerLevelBadge
+                      badgeId="default-ring"
+                      tagEffectId={effect.effectId}
+                      className="shop-badge-sample"
+                    >
+                      Nível 1
+                    </PlayerLevelBadge>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-3 py-2">
+                    <p className="text-sm font-semibold text-stone-100">{effect.name}</p>
+                    <span
+                      className={`inline-flex h-5 w-5 items-center justify-center rounded-full border ${
+                        selected
+                          ? 'border-emerald-500/70 bg-emerald-500/10 text-emerald-300'
+                          : !owned
+                            ? 'border-stone-600/70 bg-charcoal text-stone-300'
+                            : 'border-transparent bg-transparent text-transparent'
+                      }`}
+                      aria-hidden
+                    >
+                      {selected ? <IconCheckSmall /> : !owned ? <IconLockSmall /> : null}
+                    </span>
+                  </div>
+                  {!owned ? (
+                    <div className="flex items-center justify-between gap-3 border-t border-stone-700/45 px-3 py-2">
+                      <p className="inline-flex items-center gap-1.5 text-xs text-amber-200">
+                        {priceCoins > 0 ? (
+                          <>
+                            <span className="text-amber-300">
+                              <IconCoin />
+                            </span>
+                            <span className="font-mono">{priceCoins}</span>
+                          </>
+                        ) : (
+                          <span className="text-emerald-300">Grátis</span>
+                        )}
+                      </p>
+                      <p className={`text-xs ${canBuy || priceCoins === 0 ? 'text-amber-300' : 'text-rose-300'}`}>
+                        {priceCoins === 0 ? 'Toque para equipar' : 'Toque pra comprar'}
+                      </p>
+                    </div>
+                  ) : null}
+                </button>
+              )
+            })}
+          </div>
 
           <p className="pt-2 text-center text-lg font-extrabold uppercase tracking-[0.22em] text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
             Teclado Numérico
           </p>
+          <div className="space-y-2">
+            {KEYPAD_STYLE_CATALOG.map((style) => {
+              const owned = player.ownedKeypadStyleIds.includes(style.styleId)
+              const selected = owned && style.styleId === player.equippedKeypadStyleId
+              const priceCoins = getPrice(style.priceCoins)
+              const canBuy = !owned && player.coins >= priceCoins
+              return (
+                <button
+                  key={style.id}
+                  type="button"
+                  onClick={() => {
+                    if (owned) {
+                      onEquipKeypadStyle(style.styleId)
+                      return
+                    }
+                    if (priceCoins === 0) {
+                      const purchased = onBuyKeypadStyle(style.styleId, 0)
+                      if (purchased) onEquipKeypadStyle(style.styleId)
+                      return
+                    }
+                    if (!canBuy) return
+                    setPendingPurchase({ kind: 'keypadStyle', item: style, priceCoins })
+                  }}
+                  className={`shop-theme-row game-modal-card w-full text-left ${
+                    selected ? 'shop-theme-row--selected' : ''
+                  }`}
+                >
+                  <div className="shop-keypad-preview" aria-hidden>
+                    <span className={`shop-keypad-preview__key shop-keypad-preview__key--${style.styleId}`}>
+                      1
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-3 py-2">
+                    <p className="text-sm font-semibold text-stone-100">{style.name}</p>
+                    <span
+                      className={`inline-flex h-5 w-5 items-center justify-center rounded-full border ${
+                        selected
+                          ? 'border-emerald-500/70 bg-emerald-500/10 text-emerald-300'
+                          : !owned
+                            ? 'border-stone-600/70 bg-charcoal text-stone-300'
+                            : 'border-transparent bg-transparent text-transparent'
+                      }`}
+                      aria-hidden
+                    >
+                      {selected ? <IconCheckSmall /> : !owned ? <IconLockSmall /> : null}
+                    </span>
+                  </div>
+                  {!owned ? (
+                    <div className="flex items-center justify-between gap-3 border-t border-stone-700/45 px-3 py-2">
+                      <p className="inline-flex items-center gap-1.5 text-xs text-amber-200">
+                        {priceCoins > 0 ? (
+                          <>
+                            <span className="text-amber-300">
+                              <IconCoin />
+                            </span>
+                            <span className="font-mono">{priceCoins}</span>
+                          </>
+                        ) : (
+                          <span className="text-emerald-300">Grátis</span>
+                        )}
+                      </p>
+                      <p className={`text-xs ${canBuy || priceCoins === 0 ? 'text-amber-300' : 'text-rose-300'}`}>
+                        {priceCoins === 0 ? 'Toque para equipar' : 'Toque pra comprar'}
+                      </p>
+                    </div>
+                  ) : null}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </Modal>
 
@@ -374,10 +549,30 @@ export function ShopModal({
                 <div className={`settings-bg-preview ${pendingPurchase.item.previewClass}`} aria-hidden />
               ) : pendingPurchase.kind === 'badge' ? (
                 <div className="shop-badge-preview" aria-hidden>
-                  <span
-                    className={`shop-badge-sample game-player-level-badge game-player-level-badge--${pendingPurchase.item.badgeId}`}
+                  <PlayerLevelBadge
+                    badgeId={pendingPurchase.item.badgeId}
+                    tagEffectId="none"
+                    className="shop-badge-sample"
                   >
                     Nível 1
+                  </PlayerLevelBadge>
+                </div>
+              ) : pendingPurchase.kind === 'tagEffect' ? (
+                <div className="shop-badge-preview" aria-hidden>
+                  <PlayerLevelBadge
+                    badgeId="default-ring"
+                    tagEffectId={pendingPurchase.item.effectId}
+                    className="shop-badge-sample"
+                  >
+                    Nível 1
+                  </PlayerLevelBadge>
+                </div>
+              ) : pendingPurchase.kind === 'keypadStyle' ? (
+                <div className="shop-keypad-preview" aria-hidden>
+                  <span
+                    className={`shop-keypad-preview__key shop-keypad-preview__key--${pendingPurchase.item.styleId}`}
+                  >
+                    1
                   </span>
                 </div>
               ) : (
@@ -394,12 +589,18 @@ export function ShopModal({
                     ? pendingPurchase.item.name
                     : pendingPurchase.kind === 'badge'
                       ? pendingPurchase.item.name
-                      : 'Auto Check'}
+                      : pendingPurchase.kind === 'tagEffect'
+                        ? pendingPurchase.item.name
+                        : pendingPurchase.kind === 'keypadStyle'
+                          ? pendingPurchase.item.name
+                          : 'Auto Check'}
                 </p>
                 <p className="text-xs text-charcoal-muted">
                   {pendingPurchase.kind === 'autoCheck'
                     ? `${pendingPurchase.priceDiamonds} diamantes`
-                    : `${pendingPurchase.priceCoins} moedas`}
+                    : pendingPurchase.priceCoins === 0
+                      ? 'Grátis'
+                      : `${pendingPurchase.priceCoins} moedas`}
                 </p>
               </div>
             </div>
@@ -418,9 +619,25 @@ export function ShopModal({
                 </>
               ) : (
                 <>
-                  Deseja comprar {pendingPurchase.kind === 'theme' ? 'o tema' : 'a tag de nível'}{' '}
-                  <span className="font-semibold text-amber-100">{pendingPurchase.item.name}</span> por{' '}
-                  <span className="font-mono font-semibold text-amber-100">{pendingPurchase.priceCoins}</span> moedas?
+                  Deseja comprar{' '}
+                  {pendingPurchase.kind === 'theme'
+                    ? 'o tema'
+                    : pendingPurchase.kind === 'badge'
+                      ? 'a tag de nível'
+                      : pendingPurchase.kind === 'tagEffect'
+                        ? 'o efeito da tag'
+                        : 'o teclado'}{' '}
+                  <span className="font-semibold text-amber-100">{pendingPurchase.item.name}</span>
+                  {pendingPurchase.priceCoins === 0 ? (
+                    <> gratuitamente?</>
+                  ) : (
+                    <>
+                      {' '}
+                      por{' '}
+                      <span className="font-mono font-semibold text-amber-100">{pendingPurchase.priceCoins}</span>{' '}
+                      moedas?
+                    </>
+                  )}
                 </>
               )}
             </p>

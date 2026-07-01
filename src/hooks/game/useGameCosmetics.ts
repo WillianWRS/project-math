@@ -25,6 +25,7 @@ export interface GameCosmeticsOptions {
   commitPlayer: (updater: (current: PlayerData) => PlayerData) => PlayerData;
   setEquippedTheme: (theme: BackgroundTheme) => void;
   purchaseTheme: (theme: BackgroundTheme, priceCoins: number) => boolean;
+  notifyAchievementUnlocks?: (before: PlayerData, after: PlayerData) => void;
 }
 
 export interface GameCosmetics {
@@ -45,6 +46,7 @@ export function useGameCosmetics({
   commitPlayer,
   setEquippedTheme,
   purchaseTheme,
+  notifyAchievementUnlocks,
 }: GameCosmeticsOptions): GameCosmetics {
   const [devModeEnabled, setDevModeEnabled] = useState(() => loadDevModeEnabled());
   const [godModeEnabled, setGodModeEnabled] = useState(() => loadGodModeEnabled());
@@ -106,11 +108,13 @@ export function useGameCosmetics({
   );
 
   const completeTutorial = useCallback((): TutorialCompletionResult => {
+    let before: PlayerData | null = null;
     let rewardsGranted = false;
     let xpGained = 0;
     let coinsGained = 0;
 
-    commitPlayer((current) => {
+    const after = commitPlayer((current) => {
+      before = current;
       rewardsGranted = !current.tutorial.rewardsClaimed;
       xpGained = rewardsGranted ? TUTORIAL_REWARD_XP : 0;
       coinsGained = rewardsGranted ? TUTORIAL_REWARD_COINS : 0;
@@ -126,8 +130,12 @@ export function useGameCosmetics({
       };
     });
 
+    if (before) {
+      notifyAchievementUnlocks?.(before, after);
+    }
+
     return { rewardsGranted, xpGained, coinsGained };
-  }, [commitPlayer]);
+  }, [commitPlayer, notifyAchievementUnlocks]);
 
   return {
     devModeEnabled,

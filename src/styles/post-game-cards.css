@@ -1,0 +1,520 @@
+/* Share card — fundos (espelham o tema equipado na cena) */
+.share-card--default {
+  background: linear-gradient(180deg, #2a2521 0%, #1a1714 42%, #141210 100%);
+}
+
+.share-card--water {
+  background: linear-gradient(180deg, #b8e8fa 0%, #8fd4f2 28%, #6ec5eb 58%, #5ab8e6 100%);
+}
+
+.share-card--sunset {
+  background: linear-gradient(180deg, #ffd8a8 0%, #ffb477 34%, #ff8c6b 66%, #d45b7a 100%);
+}
+
+.share-card--forest {
+  background: linear-gradient(
+    180deg,
+    #6b9a5e 0%,
+    #528a52 14%,
+    #3f7349 28%,
+    #2d5a3d 35%,
+    #1e4d32 52%,
+    #163d28 78%,
+    #0d2818 100%
+  );
+}
+
+.share-card--violet {
+  background:
+    radial-gradient(ellipse 75% 50% at 15% 12%, rgba(232, 121, 249, 0.45) 0%, transparent 55%),
+    radial-gradient(ellipse 65% 45% at 88% 20%, rgba(192, 132, 252, 0.5) 0%, transparent 52%),
+    linear-gradient(180deg, #1e0a3c 0%, #2e1065 22%, #4c1d95 48%, #312e81 72%, #1e1b4b 100%);
+}
+
+.share-card--ember {
+  background:
+    radial-gradient(ellipse 78% 52% at 18% 10%, rgba(255, 120, 40, 0.52) 0%, transparent 56%),
+    radial-gradient(ellipse 68% 48% at 88% 16%, rgba(255, 60, 100, 0.38) 0%, transparent 54%),
+    linear-gradient(165deg, #0c0810 0%, #16101c 28%, #120c14 58%, #080508 100%);
+}
+
+.share-card--neon {
+  background:
+    radial-gradient(ellipse 78% 54% at 14% 8%, rgba(0, 212, 255, 0.42) 0%, transparent 56%),
+    radial-gradient(ellipse 68% 50% at 90% 14%, rgba(168, 85, 247, 0.38) 0%, transparent 54%),
+    linear-gradient(155deg, #020818 0%, #0a1635 24%, #0d1f4a 48%, #081428 74%, #030810 100%);
+}
+
+.share-card--midnight {
+  background: linear-gradient(180deg, #030508 0%, #050810 22%, #0a1018 42%, #122a45 72%, #1a3555 100%);
+}
+
+.share-card--retro {
+  background:
+    radial-gradient(ellipse 72% 48% at 12% 6%, rgba(254, 240, 138, 0.42) 0%, transparent 54%),
+    radial-gradient(ellipse 64% 44% at 90% 12%, rgba(251, 191, 36, 0.34) 0%, transparent 52%),
+    linear-gradient(180deg, #0a0804 0%, #141008 26%, #1f1810 52%, #2a2012 100%);
+}
+
+.share-card--ice {
+  background: linear-gradient(180deg, #ecfeff 0%, #dbeafe 45%, #bae6fd 100%);
+}
+
+.share-card--aurora {
+  background: linear-gradient(180deg, #e0f2fe 0%, #d1fae5 40%, #f5d0fe 100%);
+}
+
+/* Tokens compartilhados — card pós-jogo e painel do share */
+.game-over-card--default,
+.share-card--default,
+.share-card__panel--default {
+  --pgc-border: rgba(251, 191, 36, 0.16);
+  --pgc-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, transparent 40%), #1f1b18;
+  --pgc-shadow: inset 0 1px 0 rgba(255, 240, 215, 0.06), 0 8px 20px rgba(0, 0, 0, 0.28);
+  --pgc-panel-shadow: inset 0 2px 0 rgba(255, 240, 215, 0.08), 0 18px 48px rgba(0, 0, 0, 0.34);
+  --pgc-label: #6b6358;
+  --pgc-score: #ffffff;
+  --pgc-meta: #6b6358;
+  --pgc-brand: rgba(252, 211, 77, 0.82);
+  --pgc-brand-shadow: none;
+  --pgc-icon-primary: #fbbf24;
+  --pgc-icon-muted: #6b6358;
+  --pgc-reward-xp: #c084fc;
+  --pgc-reward-coins: #fbbf24;
+  --pgc-reward-sep: #6b6358;
+  --pgc-daily-label: #a8a29e;
+  --pgc-daily-value: #f5f5f4;
+  --pgc-daily-track: rgba(12, 10, 9, 0.72);
+  --pgc-ach-shadow: 0 0 8px rgba(251, 191, 36, 0.55), 0 0 18px rgba(245, 158, 11, 0.35), 0 1px 2px rgba(0, 0, 0, 0.45);
+  --pgc-ach-detail-border: rgba(251, 191, 36, 0.45);
+  --pgc-ach-detail-bg: rgba(251, 191, 36, 0.12);
+  --pgc-ach-detail-color: #fcd34d;
+  --pgc-highlight-goal: #34d399;
+  --pgc-badge-border: rgba(251, 191, 36, 0.35);
+  --pgc-badge-bg: rgba(40, 30, 10, 0.9);
+  --pgc-badge-color: #fcd34d;
+  --pgc-benchmark-label: #a8a29e;
+}
+
+.game-over-card--water,
+.share-card--water,
+.share-card__panel--water {
+  --pgc-border: rgba(125, 211, 252, 0.45);
+  --pgc-bg: linear-gradient(180deg, rgba(240, 249, 255, 0.96) 0%, rgba(224, 242, 254, 0.92) 55%, rgba(186, 230, 253, 0.88) 100%);
+  --pgc-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 22px rgba(26, 74, 110, 0.14);
+  --pgc-panel-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.96), 0 18px 52px rgba(26, 74, 110, 0.18);
+  --pgc-label: #3d6f8c;
+  --pgc-score: #1a4a6e;
+  --pgc-meta: #4a7a96;
+  --pgc-brand: rgba(26, 74, 110, 0.72);
+  --pgc-brand-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  --pgc-icon-primary: #0e7490;
+  --pgc-icon-muted: #3d6f8c;
+  --pgc-reward-xp: #9333ea;
+  --pgc-reward-coins: #d97706;
+  --pgc-reward-sep: #4a7a96;
+  --pgc-daily-label: #3d6f8c;
+  --pgc-daily-value: #0c4a6e;
+  --pgc-daily-track: rgba(186, 230, 253, 0.55);
+  --pgc-ach-shadow: 0 0 8px rgba(217, 119, 6, 0.5), 0 0 16px rgba(245, 158, 11, 0.32), 0 1px 2px rgba(12, 74, 110, 0.35);
+  --pgc-ach-detail-border: rgba(217, 119, 6, 0.45);
+  --pgc-ach-detail-bg: rgba(217, 119, 6, 0.12);
+  --pgc-ach-detail-color: #d97706;
+  --pgc-highlight-goal: #059669;
+  --pgc-badge-border: rgba(14, 116, 144, 0.28);
+  --pgc-badge-bg: rgba(236, 254, 255, 0.9);
+  --pgc-badge-color: #0e7490;
+  --pgc-benchmark-label: #3d6f8c;
+}
+
+.game-over-card--sunset,
+.share-card--sunset,
+.share-card__panel--sunset {
+  --pgc-border: rgba(251, 146, 60, 0.45);
+  --pgc-bg: linear-gradient(180deg, rgba(255, 247, 237, 0.96) 0%, rgba(255, 237, 213, 0.93) 55%, rgba(254, 215, 170, 0.9) 100%);
+  --pgc-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 22px rgba(154, 52, 18, 0.15);
+  --pgc-panel-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.96), 0 18px 52px rgba(154, 52, 18, 0.2);
+  --pgc-label: #9a3412;
+  --pgc-score: #7c2d12;
+  --pgc-meta: #9a3412;
+  --pgc-brand: rgba(124, 45, 18, 0.88);
+  --pgc-brand-shadow: 0 1px 0 rgba(255, 237, 213, 0.6);
+  --pgc-icon-primary: #c2410c;
+  --pgc-icon-muted: #9a3412;
+  --pgc-reward-xp: #7e22ce;
+  --pgc-reward-coins: #c2410c;
+  --pgc-reward-sep: #9a3412;
+  --pgc-daily-label: #9a3412;
+  --pgc-daily-value: #7c2d12;
+  --pgc-daily-track: rgba(254, 215, 170, 0.55);
+  --pgc-ach-shadow: 0 0 8px rgba(217, 119, 6, 0.52), 0 0 16px rgba(234, 88, 12, 0.34), 0 1px 2px rgba(124, 45, 18, 0.35);
+  --pgc-ach-detail-border: rgba(217, 119, 6, 0.45);
+  --pgc-ach-detail-bg: rgba(234, 88, 12, 0.1);
+  --pgc-ach-detail-color: #c2410c;
+  --pgc-highlight-goal: #15803d;
+  --pgc-badge-border: rgba(194, 65, 12, 0.3);
+  --pgc-badge-bg: rgba(255, 237, 213, 0.88);
+  --pgc-badge-color: #9a3412;
+  --pgc-benchmark-label: #9a3412;
+}
+
+.game-over-card--forest,
+.share-card--forest,
+.share-card__panel--forest {
+  --pgc-border: rgba(52, 211, 153, 0.42);
+  --pgc-bg: linear-gradient(180deg, rgba(236, 253, 245, 0.97) 0%, rgba(209, 250, 229, 0.94) 55%, rgba(167, 243, 208, 0.9) 100%);
+  --pgc-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 22px rgba(22, 101, 52, 0.16);
+  --pgc-panel-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.96), 0 18px 52px rgba(22, 101, 52, 0.2);
+  --pgc-label: #166534;
+  --pgc-score: #14532d;
+  --pgc-meta: #15803d;
+  --pgc-brand: rgba(20, 83, 45, 0.82);
+  --pgc-brand-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  --pgc-icon-primary: #15803d;
+  --pgc-icon-muted: #166534;
+  --pgc-reward-xp: #7e22ce;
+  --pgc-reward-coins: #b45309;
+  --pgc-reward-sep: #15803d;
+  --pgc-daily-label: #166534;
+  --pgc-daily-value: #14532d;
+  --pgc-daily-track: rgba(187, 247, 208, 0.55);
+  --pgc-ach-shadow: 0 0 8px rgba(180, 83, 9, 0.48), 0 0 16px rgba(217, 119, 6, 0.3), 0 1px 2px rgba(20, 83, 45, 0.35);
+  --pgc-ach-detail-border: rgba(180, 83, 9, 0.45);
+  --pgc-ach-detail-bg: rgba(180, 83, 9, 0.12);
+  --pgc-ach-detail-color: #b45309;
+  --pgc-highlight-goal: #15803d;
+  --pgc-badge-border: rgba(22, 101, 52, 0.28);
+  --pgc-badge-bg: rgba(236, 253, 245, 0.92);
+  --pgc-badge-color: #166534;
+  --pgc-benchmark-label: #166534;
+}
+
+.game-over-card--ice,
+.share-card--ice,
+.share-card__panel--ice {
+  --pgc-border: rgba(125, 211, 252, 0.48);
+  --pgc-bg: linear-gradient(180deg, rgba(240, 249, 255, 0.98) 0%, rgba(224, 242, 254, 0.95) 55%, rgba(191, 219, 254, 0.92) 100%);
+  --pgc-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96), 0 8px 22px rgba(30, 90, 122, 0.14);
+  --pgc-panel-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.97), 0 18px 52px rgba(30, 90, 122, 0.18);
+  --pgc-label: #1e5a7a;
+  --pgc-score: #0c4a6e;
+  --pgc-meta: #2a7ab0;
+  --pgc-brand: rgba(12, 74, 110, 0.74);
+  --pgc-brand-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  --pgc-icon-primary: #0369a1;
+  --pgc-icon-muted: #1e5a7a;
+  --pgc-reward-xp: #9333ea;
+  --pgc-reward-coins: #b45309;
+  --pgc-reward-sep: #2a7ab0;
+  --pgc-daily-label: #1e5a7a;
+  --pgc-daily-value: #0c4a6e;
+  --pgc-daily-track: rgba(191, 219, 254, 0.55);
+  --pgc-ach-shadow: 0 0 8px rgba(180, 83, 9, 0.48), 0 0 16px rgba(217, 119, 6, 0.3), 0 1px 2px rgba(12, 74, 110, 0.35);
+  --pgc-ach-detail-border: rgba(180, 83, 9, 0.45);
+  --pgc-ach-detail-bg: rgba(180, 83, 9, 0.12);
+  --pgc-ach-detail-color: #b45309;
+  --pgc-highlight-goal: #059669;
+  --pgc-badge-border: rgba(3, 105, 161, 0.28);
+  --pgc-badge-bg: rgba(240, 249, 255, 0.92);
+  --pgc-badge-color: #0369a1;
+  --pgc-benchmark-label: #1e5a7a;
+}
+
+.game-over-card--aurora,
+.share-card--aurora,
+.share-card__panel--aurora {
+  --pgc-border: rgba(167, 139, 250, 0.42);
+  --pgc-bg: linear-gradient(180deg, rgba(240, 249, 255, 0.98) 0%, rgba(209, 250, 229, 0.94) 45%, rgba(245, 208, 254, 0.92) 100%);
+  --pgc-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96), 0 8px 22px rgba(109, 40, 217, 0.14);
+  --pgc-panel-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.97), 0 18px 52px rgba(109, 40, 217, 0.18);
+  --pgc-label: #6d28d9;
+  --pgc-score: #5b21b6;
+  --pgc-meta: #7c3aed;
+  --pgc-brand: rgba(91, 33, 182, 0.78);
+  --pgc-brand-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  --pgc-icon-primary: #7c3aed;
+  --pgc-icon-muted: #6d28d9;
+  --pgc-reward-xp: #9333ea;
+  --pgc-reward-coins: #b45309;
+  --pgc-reward-sep: #7c3aed;
+  --pgc-daily-label: #6d28d9;
+  --pgc-daily-value: #5b21b6;
+  --pgc-daily-track: rgba(233, 213, 255, 0.55);
+  --pgc-ach-shadow: 0 0 8px rgba(180, 83, 9, 0.48), 0 0 16px rgba(217, 119, 6, 0.3), 0 1px 2px rgba(91, 33, 182, 0.35);
+  --pgc-ach-detail-border: rgba(180, 83, 9, 0.45);
+  --pgc-ach-detail-bg: rgba(180, 83, 9, 0.12);
+  --pgc-ach-detail-color: #b45309;
+  --pgc-highlight-goal: #059669;
+  --pgc-badge-border: rgba(124, 58, 237, 0.28);
+  --pgc-badge-bg: rgba(245, 243, 255, 0.92);
+  --pgc-badge-color: #6d28d9;
+  --pgc-benchmark-label: #6d28d9;
+}
+
+.game-over-card--violet,
+.share-card--violet,
+.share-card__panel--violet {
+  --pgc-border: rgba(192, 132, 252, 0.35);
+  --pgc-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, transparent 42%), linear-gradient(180deg, #2e1065 0%, #1e1b4b 100%);
+  --pgc-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 22px rgba(76, 29, 149, 0.28);
+  --pgc-panel-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), 0 18px 48px rgba(76, 29, 149, 0.34);
+  --pgc-label: #c4b5fd;
+  --pgc-score: #f5f3ff;
+  --pgc-meta: #a78bfa;
+  --pgc-brand: rgba(196, 181, 253, 0.88);
+  --pgc-brand-shadow: none;
+  --pgc-icon-primary: #e879f9;
+  --pgc-icon-muted: #a78bfa;
+  --pgc-reward-xp: #e879f9;
+  --pgc-reward-coins: #fbbf24;
+  --pgc-reward-sep: #a78bfa;
+  --pgc-daily-label: #c4b5fd;
+  --pgc-daily-value: #f5f3ff;
+  --pgc-daily-track: rgba(46, 16, 101, 0.72);
+  --pgc-ach-shadow: 0 0 8px rgba(232, 121, 249, 0.55), 0 0 18px rgba(168, 85, 247, 0.35), 0 1px 2px rgba(0, 0, 0, 0.45);
+  --pgc-ach-detail-border: rgba(232, 121, 249, 0.45);
+  --pgc-ach-detail-bg: rgba(168, 85, 247, 0.16);
+  --pgc-ach-detail-color: #e9d5ff;
+  --pgc-highlight-goal: #34d399;
+  --pgc-badge-border: rgba(192, 132, 252, 0.35);
+  --pgc-badge-bg: rgba(46, 16, 101, 0.92);
+  --pgc-badge-color: #e9d5ff;
+  --pgc-benchmark-label: #c4b5fd;
+}
+
+.game-over-card--ember,
+.share-card--ember,
+.share-card__panel--ember {
+  --pgc-border: rgba(251, 113, 133, 0.32);
+  --pgc-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.05) 0%, transparent 42%), linear-gradient(180deg, #2a1520 0%, #120c14 100%);
+  --pgc-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 8px 22px rgba(190, 24, 93, 0.22);
+  --pgc-panel-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08), 0 18px 48px rgba(190, 24, 93, 0.3);
+  --pgc-label: #fda4af;
+  --pgc-score: #fff1f2;
+  --pgc-meta: #fb7185;
+  --pgc-brand: rgba(253, 164, 175, 0.88);
+  --pgc-brand-shadow: none;
+  --pgc-icon-primary: #fb923c;
+  --pgc-icon-muted: #fb7185;
+  --pgc-reward-xp: #f472b6;
+  --pgc-reward-coins: #fbbf24;
+  --pgc-reward-sep: #fb7185;
+  --pgc-daily-label: #fda4af;
+  --pgc-daily-value: #fff1f2;
+  --pgc-daily-track: rgba(18, 12, 20, 0.72);
+  --pgc-ach-shadow: 0 0 8px rgba(251, 146, 60, 0.55), 0 0 18px rgba(244, 63, 94, 0.35), 0 1px 2px rgba(0, 0, 0, 0.45);
+  --pgc-ach-detail-border: rgba(251, 146, 60, 0.45);
+  --pgc-ach-detail-bg: rgba(244, 63, 94, 0.16);
+  --pgc-ach-detail-color: #fdba74;
+  --pgc-highlight-goal: #34d399;
+  --pgc-badge-border: rgba(251, 113, 133, 0.35);
+  --pgc-badge-bg: rgba(42, 21, 32, 0.92);
+  --pgc-badge-color: #fecdd3;
+  --pgc-benchmark-label: #fda4af;
+}
+
+.game-over-card--neon,
+.share-card--neon,
+.share-card__panel--neon {
+  --pgc-border: rgba(56, 189, 248, 0.32);
+  --pgc-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.05) 0%, transparent 42%), linear-gradient(180deg, #0d1f4a 0%, #030810 100%);
+  --pgc-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 8px 22px rgba(14, 165, 233, 0.22);
+  --pgc-panel-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08), 0 18px 48px rgba(14, 165, 233, 0.3);
+  --pgc-label: #7dd3fc;
+  --pgc-score: #f0f9ff;
+  --pgc-meta: #38bdf8;
+  --pgc-brand: rgba(125, 211, 252, 0.88);
+  --pgc-brand-shadow: none;
+  --pgc-icon-primary: #22d3ee;
+  --pgc-icon-muted: #38bdf8;
+  --pgc-reward-xp: #e879f9;
+  --pgc-reward-coins: #fbbf24;
+  --pgc-reward-sep: #38bdf8;
+  --pgc-daily-label: #7dd3fc;
+  --pgc-daily-value: #f0f9ff;
+  --pgc-daily-track: rgba(3, 8, 16, 0.72);
+  --pgc-ach-shadow: 0 0 8px rgba(34, 211, 238, 0.55), 0 0 18px rgba(168, 85, 247, 0.35), 0 1px 2px rgba(0, 0, 0, 0.45);
+  --pgc-ach-detail-border: rgba(34, 211, 238, 0.45);
+  --pgc-ach-detail-bg: rgba(14, 165, 233, 0.16);
+  --pgc-ach-detail-color: #67e8f9;
+  --pgc-highlight-goal: #34d399;
+  --pgc-badge-border: rgba(56, 189, 248, 0.35);
+  --pgc-badge-bg: rgba(13, 31, 74, 0.92);
+  --pgc-badge-color: #bae6fd;
+  --pgc-benchmark-label: #7dd3fc;
+}
+
+.game-over-card--midnight,
+.share-card--midnight,
+.share-card__panel--midnight {
+  --pgc-border: rgba(96, 165, 250, 0.28);
+  --pgc-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, transparent 42%), linear-gradient(180deg, #122a45 0%, #050810 100%);
+  --pgc-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 22px rgba(30, 64, 175, 0.24);
+  --pgc-panel-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08), 0 18px 48px rgba(30, 64, 175, 0.32);
+  --pgc-label: #93c5fd;
+  --pgc-score: #eff6ff;
+  --pgc-meta: #60a5fa;
+  --pgc-brand: rgba(147, 197, 253, 0.86);
+  --pgc-brand-shadow: none;
+  --pgc-icon-primary: #60a5fa;
+  --pgc-icon-muted: #93c5fd;
+  --pgc-reward-xp: #c084fc;
+  --pgc-reward-coins: #fbbf24;
+  --pgc-reward-sep: #60a5fa;
+  --pgc-daily-label: #93c5fd;
+  --pgc-daily-value: #eff6ff;
+  --pgc-daily-track: rgba(5, 8, 16, 0.72);
+  --pgc-ach-shadow: 0 0 8px rgba(96, 165, 250, 0.55), 0 0 18px rgba(59, 130, 246, 0.35), 0 1px 2px rgba(0, 0, 0, 0.45);
+  --pgc-ach-detail-border: rgba(96, 165, 250, 0.45);
+  --pgc-ach-detail-bg: rgba(59, 130, 246, 0.16);
+  --pgc-ach-detail-color: #bfdbfe;
+  --pgc-highlight-goal: #34d399;
+  --pgc-badge-border: rgba(96, 165, 250, 0.35);
+  --pgc-badge-bg: rgba(18, 42, 69, 0.92);
+  --pgc-badge-color: #dbeafe;
+  --pgc-benchmark-label: #93c5fd;
+}
+
+.game-over-card--retro,
+.share-card--retro,
+.share-card__panel--retro {
+  --pgc-border: rgba(251, 191, 36, 0.28);
+  --pgc-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.05) 0%, transparent 42%), linear-gradient(180deg, #2a2012 0%, #141008 100%);
+  --pgc-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 8px 22px rgba(180, 83, 9, 0.22);
+  --pgc-panel-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08), 0 18px 48px rgba(180, 83, 9, 0.3);
+  --pgc-label: #fcd34d;
+  --pgc-score: #fffbeb;
+  --pgc-meta: #fbbf24;
+  --pgc-brand: rgba(252, 211, 77, 0.88);
+  --pgc-brand-shadow: none;
+  --pgc-icon-primary: #fbbf24;
+  --pgc-icon-muted: #fcd34d;
+  --pgc-reward-xp: #f472b6;
+  --pgc-reward-coins: #fbbf24;
+  --pgc-reward-sep: #fcd34d;
+  --pgc-daily-label: #fcd34d;
+  --pgc-daily-value: #fffbeb;
+  --pgc-daily-track: rgba(10, 8, 4, 0.72);
+  --pgc-ach-shadow: 0 0 8px rgba(251, 191, 36, 0.55), 0 0 18px rgba(245, 158, 11, 0.35), 0 1px 2px rgba(0, 0, 0, 0.45);
+  --pgc-ach-detail-border: rgba(251, 191, 36, 0.45);
+  --pgc-ach-detail-bg: rgba(251, 191, 36, 0.12);
+  --pgc-ach-detail-color: #fde68a;
+  --pgc-highlight-goal: #34d399;
+  --pgc-badge-border: rgba(251, 191, 36, 0.35);
+  --pgc-badge-bg: rgba(42, 32, 18, 0.92);
+  --pgc-badge-color: #fde68a;
+  --pgc-benchmark-label: #fcd34d;
+}
+
+/* Card pós-jogo na tela */
+[class*='game-over-card--'] {
+  border: 1px solid var(--pgc-border);
+  background: var(--pgc-bg);
+  box-shadow: var(--pgc-shadow);
+}
+
+[class*='game-over-card--'] .game-over-card__label,
+[class*='game-over-card--'] .game-over-card__duration {
+  color: var(--pgc-label);
+}
+
+[class*='game-over-card--'] .game-over-card__score {
+  color: var(--pgc-score);
+}
+
+[class*='game-over-card--'] .game-over-card__meta {
+  color: var(--pgc-meta);
+}
+
+[class*='game-over-card--'] .game-over-reward-xp {
+  color: var(--pgc-reward-xp);
+}
+
+[class*='game-over-card--'] .game-over-reward-coins {
+  color: var(--pgc-reward-coins);
+}
+
+[class*='game-over-card--'] .game-over-reward-sep {
+  color: var(--pgc-reward-sep);
+}
+
+[class*='game-over-card--'] .game-over-daily__label {
+  color: var(--pgc-daily-label);
+}
+
+[class*='game-over-card--'] .game-over-daily__value {
+  color: var(--pgc-daily-value);
+}
+
+[class*='game-over-card--'] .game-over-daily__track {
+  background: var(--pgc-daily-track);
+}
+
+[class*='game-over-card--'] .game-over-achievements__label {
+  text-shadow: var(--pgc-ach-shadow);
+}
+
+[class*='game-over-card--'] .game-over-achievements__details {
+  border-color: var(--pgc-ach-detail-border);
+  background: var(--pgc-ach-detail-bg);
+  color: var(--pgc-ach-detail-color);
+}
+
+[class*='game-over-card--'] .benchmark-overall-result__label {
+  color: var(--pgc-benchmark-label);
+}
+
+/* Painel do card compartilhado */
+[class*='share-card__panel--'] {
+  border: 2px solid var(--pgc-border);
+  background: var(--pgc-bg);
+  box-shadow: var(--pgc-panel-shadow);
+}
+
+[class*='share-card--'] .share-card__brand {
+  color: var(--pgc-brand);
+  text-shadow: var(--pgc-brand-shadow);
+}
+
+[class*='share-card__panel--'] .share-card__icon--primary {
+  color: var(--pgc-icon-primary);
+}
+
+[class*='share-card__panel--'] .share-card__icon--muted {
+  color: var(--pgc-icon-muted);
+}
+
+[class*='share-card__panel--'] .share-card__label {
+  color: var(--pgc-label);
+}
+
+[class*='share-card__panel--'] .share-card__score-value,
+[class*='share-card__panel--'] .share-card__score-suffix {
+  color: var(--pgc-score);
+}
+
+[class*='share-card__panel--'] .share-card__duration {
+  color: var(--pgc-label);
+}
+
+[class*='share-card__panel--'] .share-card__reward-xp {
+  color: var(--pgc-reward-xp);
+}
+
+[class*='share-card__panel--'] .share-card__reward-coins {
+  color: var(--pgc-reward-coins);
+}
+
+[class*='share-card__panel--'] .share-card__reward-sep {
+  color: var(--pgc-reward-sep);
+}
+
+[class*='share-card__panel--'] .share-card__highlight--goal {
+  color: var(--pgc-highlight-goal);
+}
+
+[class*='share-card__panel--'] .share-card__player-name-badge {
+  border: 1px solid var(--pgc-badge-border);
+  background: var(--pgc-badge-bg);
+  color: var(--pgc-badge-color);
+}

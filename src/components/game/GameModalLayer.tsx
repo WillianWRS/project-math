@@ -4,7 +4,7 @@ import { ShopModal } from '../modals/ShopModal'
 import { SettingsModal } from '../modals/SettingsModal'
 import { lazy, memo, Suspense } from 'react'
 import { Modal } from '../ui/Modal'
-import type { BackgroundTheme, BadgeVariant, PlayerData, ScoreRecord } from '../../platform/storage'
+import type { BackgroundTheme, BadgeVariant, KeypadStyleId, PlayerData, ScoreRecord, TagEffectId } from '../../platform/storage'
 
 const RewardedAutoCheckModal = lazy(() =>
   import('../modals/RewardedAutoCheckModal').then((m) => ({ default: m.RewardedAutoCheckModal })),
@@ -42,6 +42,10 @@ export interface GameModalLayerProps {
   onBuyTheme: (theme: BackgroundTheme, priceCoins: number) => boolean
   onEquipBadge: (badge: BadgeVariant) => void
   onBuyBadge: (badge: BadgeVariant, priceCoins: number) => boolean
+  onEquipTagEffect: (effect: TagEffectId) => void
+  onBuyTagEffect: (effect: TagEffectId, priceCoins: number) => boolean
+  onEquipKeypadStyle: (style: KeypadStyleId) => void
+  onBuyKeypadStyle: (style: KeypadStyleId, priceCoins: number) => boolean
   onBuyAutoCheck: (priceDiamonds: number, amount: number) => boolean
   onSoundChange: (enabled: boolean) => void
   onDevModeChange: (enabled: boolean) => void
@@ -52,6 +56,7 @@ export interface GameModalLayerProps {
   onDeclineAutoCheckAtTimeout: () => void
   onCloseExitConfirm: () => void
   onConfirmExit: () => void
+  onResetAchievements?: () => void
 }
 
 function GameModalLayerInner({
@@ -82,6 +87,10 @@ function GameModalLayerInner({
   onBuyTheme,
   onEquipBadge,
   onBuyBadge,
+  onEquipTagEffect,
+  onBuyTagEffect,
+  onEquipKeypadStyle,
+  onBuyKeypadStyle,
   onBuyAutoCheck,
   onSoundChange,
   onDevModeChange,
@@ -92,6 +101,7 @@ function GameModalLayerInner({
   onDeclineAutoCheckAtTimeout,
   onCloseExitConfirm,
   onConfirmExit,
+  onResetAchievements,
 }: GameModalLayerProps) {
   return (
     <>
@@ -107,7 +117,7 @@ function GameModalLayerInner({
         onOpenAchievements={onOpenAchievementsFromPlayer}
       />
 
-      <AchievementsModal open={achievementsOpen} onClose={onCloseAchievements} />
+      <AchievementsModal open={achievementsOpen} player={player} onClose={onCloseAchievements} />
 
       <ShopModal
         open={shopOpen}
@@ -118,6 +128,10 @@ function GameModalLayerInner({
         onEquipTheme={onBackgroundThemeChange}
         onBuyBadge={onBuyBadge}
         onEquipBadge={onEquipBadge}
+        onBuyTagEffect={onBuyTagEffect}
+        onEquipTagEffect={onEquipTagEffect}
+        onBuyKeypadStyle={onBuyKeypadStyle}
+        onEquipKeypadStyle={onEquipKeypadStyle}
         onBuyAutoCheck={onBuyAutoCheck}
       />
 
@@ -131,6 +145,7 @@ function GameModalLayerInner({
         godModeEnabled={godModeEnabled}
         onGodModeChange={onGodModeChange}
         showGodModeToggle={showGodModeToggle}
+        onResetAchievements={onResetAchievements}
       />
 
       {rewardedOpen && (

@@ -1,4 +1,13 @@
 import type { ChallengeModeId } from '../engine/types'
+import { DEFAULT_OWNED_KEYPAD_STYLE_IDS } from '../cosmetics/keypad-style-catalog'
+import { DEFAULT_OWNED_TAG_EFFECT_IDS } from '../cosmetics/tag-effect-catalog'
+import {
+  createDefaultLifetimeStats,
+  parsePlayerLifetimeStats,
+  type PlayerLifetimeStats,
+} from './player-lifetime-stats'
+
+export type { PlayerLifetimeStats } from './player-lifetime-stats'
 
 const TOP_SCORES_KEY = 'project-math-top-scores'
 const LEGACY_HIGH_SCORE_KEY = 'project-math-high-score'
@@ -27,6 +36,10 @@ export type BackgroundTheme =
 
 export type BadgeVariant = 'default-ring' | 'double-ring' | 'shield' | 'ruler'
 
+export type TagEffectId = 'none' | 'pulse-aura' | 'color-flow'
+
+export type KeypadStyleId = 'default' | 'chamfer' | 'hex-point'
+
 export interface ScoreRecord {
   score: number
   date: string
@@ -54,11 +67,16 @@ export interface PlayerData {
   equippedThemeId: BackgroundTheme
   ownedBadgeIds: BadgeVariant[]
   equippedBadgeId: BadgeVariant
+  ownedTagEffectIds: TagEffectId[]
+  equippedTagEffectId: TagEffectId
+  ownedKeypadStyleIds: KeypadStyleId[]
+  equippedKeypadStyleId: KeypadStyleId
   daily: PlayerDailyData
   tutorial: {
     completed: boolean
     rewardsClaimed: boolean
   }
+  lifetimeStats: PlayerLifetimeStats
 }
 
 export interface SaveTopScoreResult {
@@ -102,6 +120,23 @@ function isBadgeVariant(value: unknown): value is BadgeVariant {
   return value === 'default-ring' || value === 'double-ring' || value === 'shield' || value === 'ruler'
 }
 
+function isTagEffectId(value: unknown): value is TagEffectId {
+  return value === 'none' || value === 'pulse-aura' || value === 'color-flow'
+}
+
+function isKeypadStyleId(value: unknown): value is KeypadStyleId {
+  return value === 'default' || value === 'chamfer' || value === 'hex-point'
+}
+
+function normalizeOwnedCosmeticIds<T extends string>(
+  owned: unknown,
+  defaults: readonly T[],
+  isValid: (value: unknown) => value is T,
+): T[] {
+  const parsed = Array.isArray(owned) ? owned.filter(isValid) : []
+  return Array.from(new Set<T>([...defaults, ...parsed]))
+}
+
 function createDailyDefaults(): PlayerDailyData {
   return {
     dateKey: '',
@@ -139,11 +174,16 @@ export function createDefaultPlayerData(): PlayerData {
     equippedThemeId: 'default',
     ownedBadgeIds: ['default-ring'],
     equippedBadgeId: 'default-ring',
+    ownedTagEffectIds: [...DEFAULT_OWNED_TAG_EFFECT_IDS],
+    equippedTagEffectId: 'none',
+    ownedKeypadStyleIds: [...DEFAULT_OWNED_KEYPAD_STYLE_IDS],
+    equippedKeypadStyleId: 'default',
     daily: createDailyDefaults(),
     tutorial: {
       completed: false,
       rewardsClaimed: false,
     },
+    lifetimeStats: createDefaultLifetimeStats(),
   }
 }
 
@@ -308,6 +348,18 @@ function parsePlayerData(value: unknown): PlayerData | null {
         )
       : defaults.ownedBadgeIds
 
+  const normalizedOwnedTagEffectIds = normalizeOwnedCosmeticIds(
+    raw.ownedTagEffectIds,
+    DEFAULT_OWNED_TAG_EFFECT_IDS,
+    isTagEffectId,
+  )
+
+  const normalizedOwnedKeypadStyleIds = normalizeOwnedCosmeticIds(
+    raw.ownedKeypadStyleIds,
+    DEFAULT_OWNED_KEYPAD_STYLE_IDS,
+    isKeypadStyleId,
+  )
+
   const dailyRaw = raw.daily
   const challengesPlayed = Array.isArray(dailyRaw?.challengesPlayed)
     ? dailyRaw.challengesPlayed.filter(isChallengeModeId)
@@ -337,6 +389,8 @@ function parsePlayerData(value: unknown): PlayerData | null {
           rewardsClaimed: false,
         }
 
+  const lifetimeStats = parsePlayerLifetimeStats(raw.lifetimeStats)
+
   return {
     displayName:
       typeof raw.displayName === 'string' && raw.displayName.trim().length > 0
@@ -358,8 +412,21 @@ function parsePlayerData(value: unknown): PlayerData | null {
       isBadgeVariant(raw.equippedBadgeId) && normalizedOwnedBadgeIds.includes(raw.equippedBadgeId)
         ? raw.equippedBadgeId
         : defaults.equippedBadgeId,
+    ownedTagEffectIds: normalizedOwnedTagEffectIds,
+    equippedTagEffectId:
+      isTagEffectId(raw.equippedTagEffectId) &&
+      normalizedOwnedTagEffectIds.includes(raw.equippedTagEffectId)
+        ? raw.equippedTagEffectId
+        : defaults.equippedTagEffectId,
+    ownedKeypadStyleIds: normalizedOwnedKeypadStyleIds,
+    equippedKeypadStyleId:
+      isKeypadStyleId(raw.equippedKeypadStyleId) &&
+      normalizedOwnedKeypadStyleIds.includes(raw.equippedKeypadStyleId)
+        ? raw.equippedKeypadStyleId
+        : defaults.equippedKeypadStyleId,
     daily,
     tutorial,
+    lifetimeStats,
   }
 }
 

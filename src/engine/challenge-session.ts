@@ -237,6 +237,10 @@ export function challengeSessionElapsedLimitMs(mode: ChallengeModeId | null): nu
   return null
 }
 
+export function isSixtySecondsChallengeCompleted(session: GameSession): boolean {
+  return session.elapsedMs >= SIXTY_SECONDS_LIMIT_MS
+}
+
 export {
   DOUBLE_COINS_SCORE_CAP,
   SIXTY_SECONDS_LIMIT_MS,

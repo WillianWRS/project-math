@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from '../../lib/motion'
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
 import { NumericKeypad } from './NumericKeypad'
+import { PlayerLevelBadge } from './PlayerLevelBadge'
 import { PlayFieldsSideLayout } from './SideCardRails'
 import {
   ElapsedTimeLabel,
@@ -33,13 +34,18 @@ import { ShareCardTemplate } from '../share/ShareCardTemplate'
 import { shareScoreCardFromElement } from '../../utils/share-score-card'
 import { xpToLevel } from '../../engine/player-level'
 import { formatDuration } from '../../engine/rewards'
+import { formatPostGameAchievementsText } from '../../achievements/achievement-post-game'
 import { preloadGameplayModals } from '../../platform/preload-modals'
 import { playSfx } from '../../platform/audio-service'
 import { formatAppVersionLabel } from '../../config/app-version'
+import { getGameOverCardThemeClass } from '../../lib/post-game-card-theme'
 import type { BackgroundTheme } from '../../platform/storage'
 import type { ChallengeModeId } from '../../engine/types'
 import type { TutorialCompletionResult } from '../../hooks/useGame'
+import { useAchievementToast } from '../../hooks/useAchievementToast'
+import { AchievementToast } from '../ui/AchievementToast'
 import { ChallengesModal } from '../modals/ChallengesModal'
+import { PostGameAchievementsModal } from '../modals/PostGameAchievementsModal'
 import { GameModalLayer } from './GameModalLayer'
 import { playUiClickAfterPaint, primeAudioOnPointerDown } from '../../lib/modal-ui'
 import { Modal } from '../ui/Modal'
@@ -210,6 +216,10 @@ export function GameScreen() {
     buyTheme: onBuyTheme,
     setEquippedBadge: onEquipBadge,
     purchaseBadge: onBuyBadge,
+    setEquippedTagEffect: onEquipTagEffect,
+    purchaseTagEffect: onBuyTagEffect,
+    setEquippedKeypadStyle: onEquipKeypadStyle,
+    purchaseKeypadStyle: onBuyKeypadStyle,
     purchaseAutoCheckWithDiamonds: onBuyAutoCheck,
     updateDisplayName: onSaveDisplayName,
     updateAvatarPhoto: onSaveAvatarPhoto,
@@ -221,7 +231,10 @@ export function GameScreen() {
     playGoToMenu: onPlayGoToMenu,
     completeTutorial: onCompleteTutorial,
     payChallengeEntry: onPayChallengeEntry,
+    registerShopAchievementsListener,
+    resetAchievements,
   } = useGameContext()
+  const { achievementToastVisible, showAchievementToast } = useAchievementToast()
   const rewardedAdsWatched = player.daily.rewardedAdsWatched
   const sceneRootRef = useRef<HTMLDivElement>(null)
   const [playerOpen, setPlayerOpen] = useState(false)
@@ -231,6 +244,7 @@ export function GameScreen() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [weeklyChallengesOpen, setWeeklyChallengesOpen] = useState(false)
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false)
+  const [postGameAchievementsDetailOpen, setPostGameAchievementsDetailOpen] = useState(false)
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const [avatarCropOpen, setAvatarCropOpen] = useState(false)
   const [avatarDraftUrl, setAvatarDraftUrl] = useState<string | null>(null)
@@ -279,6 +293,10 @@ export function GameScreen() {
   const [tutorialFinalAutoChecks, setTutorialFinalAutoChecks] = useState(1)
   const [tutorialCompletionResult, setTutorialCompletionResult] = useState<TutorialCompletionResult | null>(null)
   const [gameOverRewardDisplay, setGameOverRewardDisplay] = useState({ xp: 0, coins: 0 })
+  const [gameOverDailyBarRatio, setGameOverDailyBarRatio] = useState(0)
+  const [gameOverAchievementsDisplay, setGameOverAchievementsDisplay] = useState(0)
+  const [gameOverPlayAgainVisible, setGameOverPlayAgainVisible] = useState(false)
+  const gameOverAchievementToastKeyRef = useRef<string | null>(null)
   const onStartRef = useRef(onStart)
   const onStartChallengeRef = useRef(onStartChallenge)
   const onStartBenchmarkSessionRef = useRef(onStartBenchmarkSession)
@@ -294,6 +312,8 @@ export function GameScreen() {
   const backNavigationBypassRef = useRef(false)
   const backTrapInitializedRef = useRef(false)
   const gameOverRewardSequenceKeyRef = useRef<string | null>(null)
+  const gameOverDailyInstanceKeyRef = useRef<string | null>(null)
+  const playerRef = useRef(player)
   const avatarGalleryInputRef = useRef<HTMLInputElement>(null)
   const avatarCameraInputRef = useRef<HTMLInputElement>(null)
   const avatarPreviewRef = useRef<HTMLDivElement>(null)
@@ -303,6 +323,11 @@ export function GameScreen() {
   useEffect(() => {
     onStartRef.current = onStart
   }, [onStart])
+
+  useEffect(() => {
+    registerShopAchievementsListener(showAchievementToast)
+    return () => registerShopAchievementsListener(null)
+  }, [registerShopAchievementsListener, showAchievementToast])
 
   useEffect(() => {
     onStartBenchmarkSessionRef.current = onStartBenchmarkSession
@@ -330,6 +355,8 @@ export function GameScreen() {
 
   const isPlaying = session.phase === 'playing'
   const isGameOver = session.phase === 'game_over'
+  const postGameAchievementsDetailVisible =
+    postGameAchievementsDetailOpen && isGameOver && !benchmarkMode
   const isThemeTestScene = presentation === 'theme-test'
   const isTutorialScene = presentation === 'tutorial'
   const showBenchmarkResults = benchmarkMode && isGameOver && benchmarkMetrics !== null
@@ -356,6 +383,7 @@ export function GameScreen() {
     weeklyChallengesOpen ||
     rewardedOpen ||
     achievementsOpen ||
+    postGameAchievementsDetailVisible ||
     avatarPickerOpen ||
     avatarCropOpen ||
     exitConfirmOpen ||
@@ -376,15 +404,55 @@ export function GameScreen() {
   }, [benchmarkMode])
 
   useEffect(() => {
+    playerRef.current = player
+  }, [player])
+
+  useEffect(() => {
     phaseRef.current = session.phase
     submitLockedRef.current = session.isSubmitLocked
   }, [session.phase, session.isSubmitLocked])
+
+  useEffect(() => {
+    if (!isGameOver || benchmarkMode || lastGameRewards.challengeMode) {
+      gameOverAchievementToastKeyRef.current = null
+      const frame = window.requestAnimationFrame(() => setGameOverPlayAgainVisible(false))
+      return () => window.cancelAnimationFrame(frame)
+    }
+    if (lastGameRewards.postGameAchievementsUnlocked <= 0) {
+      const frame = window.requestAnimationFrame(() => setGameOverPlayAgainVisible(true))
+      return () => window.cancelAnimationFrame(frame)
+    }
+
+    const toastKey = [
+      session.score,
+      session.elapsedMs,
+      lastGameRewards.postGameAchievementIds.join(','),
+    ].join(':')
+    if (gameOverAchievementToastKeyRef.current === toastKey) return
+    gameOverAchievementToastKeyRef.current = toastKey
+
+    const frame = window.requestAnimationFrame(() => setGameOverPlayAgainVisible(false))
+    showAchievementToast(() => {
+      setGameOverPlayAgainVisible(true)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [
+    benchmarkMode,
+    isGameOver,
+    lastGameRewards.challengeMode,
+    lastGameRewards.postGameAchievementIds,
+    lastGameRewards.postGameAchievementsUnlocked,
+    session.elapsedMs,
+    session.score,
+    showAchievementToast,
+  ])
 
   useEffect(() => {
     if (!isGameOver || benchmarkMode) {
       gameOverRewardSequenceKeyRef.current = null
       const frame = window.requestAnimationFrame(() => {
         setGameOverRewardDisplay({ xp: lastGameRewards.xpGained, coins: lastGameRewards.coinsGained })
+        setGameOverAchievementsDisplay(lastGameRewards.postGameAchievementsUnlocked)
       })
       return () => window.cancelAnimationFrame(frame)
     }
@@ -401,12 +469,8 @@ export function GameScreen() {
 
     const targetXp = Math.max(0, lastGameRewards.xpGained)
     const targetCoins = Math.max(0, lastGameRewards.coinsGained)
-    if (targetCoins < 3) {
-      const frame = window.requestAnimationFrame(() => {
-        setGameOverRewardDisplay({ xp: targetXp, coins: targetCoins })
-      })
-      return () => window.cancelAnimationFrame(frame)
-    }
+    const targetAchievements = Math.max(0, lastGameRewards.postGameAchievementsUnlocked)
+    const skipCoinOdometer = targetCoins < 3
 
     let cancelled = false
     let revealTimeout = 0
@@ -415,7 +479,12 @@ export function GameScreen() {
     let coinAudio: HTMLAudioElement | null = null
 
     zeroFrame = window.requestAnimationFrame(() => {
-      setGameOverRewardDisplay({ xp: 0, coins: 0 })
+      if (skipCoinOdometer) {
+        setGameOverRewardDisplay({ xp: targetXp, coins: targetCoins })
+      } else {
+        setGameOverRewardDisplay({ xp: 0, coins: 0 })
+      }
+      setGameOverAchievementsDisplay(targetAchievements)
     })
 
     const primarySfxSrc = session.beatRecord ? '/audio/record.mp3' : '/audio/game-over.mp3'
@@ -434,14 +503,28 @@ export function GameScreen() {
           })
         }
 
+        const shouldAnimateDailyBar =
+          !lastGameRewards.challengeMode && !playerRef.current.daily.goalClaimed
+        const dailyTargetRatio = shouldAnimateDailyBar
+          ? Math.min(1, playerRef.current.daily.scoreAccumulated / DAILY_GOAL_SCORE_TARGET)
+          : 0
+
         const startedAt = performance.now()
         const animate = (now: number) => {
           if (cancelled) return
           const progress = Math.max(0, Math.min(1, (now - startedAt) / REWARD_ODOMETER_DURATION_MS))
-          setGameOverRewardDisplay({
-            xp: Math.round(targetXp * progress),
-            coins: Math.round(targetCoins * progress),
-          })
+
+          if (!skipCoinOdometer) {
+            setGameOverRewardDisplay({
+              xp: Math.round(targetXp * progress),
+              coins: Math.round(targetCoins * progress),
+            })
+          }
+
+          if (shouldAnimateDailyBar) {
+            setGameOverDailyBarRatio(dailyTargetRatio * progress)
+          }
+
           if (progress >= 1) return
           rafId = window.requestAnimationFrame(animate)
         }
@@ -462,12 +545,43 @@ export function GameScreen() {
   }, [
     benchmarkMode,
     isGameOver,
+    lastGameRewards.challengeMode,
     lastGameRewards.coinsGained,
+    lastGameRewards.postGameAchievementsUnlocked,
     lastGameRewards.xpGained,
     session.beatRecord,
     session.elapsedMs,
     session.score,
     soundEnabled,
+  ])
+
+  useEffect(() => {
+    const isNormalGameOver = isGameOver && !benchmarkMode && !lastGameRewards.challengeMode
+
+    if (!isNormalGameOver) {
+      gameOverDailyInstanceKeyRef.current = null
+      const frame = window.requestAnimationFrame(() => setGameOverDailyBarRatio(0))
+      return () => window.cancelAnimationFrame(frame)
+    }
+
+    const instanceKey = `${session.score}:${session.elapsedMs}`
+    if (gameOverDailyInstanceKeyRef.current === instanceKey) return
+    gameOverDailyInstanceKeyRef.current = instanceKey
+
+    const daily = playerRef.current.daily
+    if (daily.goalClaimed) {
+      const frame = window.requestAnimationFrame(() => setGameOverDailyBarRatio(1))
+      return () => window.cancelAnimationFrame(frame)
+    }
+
+    const frame = window.requestAnimationFrame(() => setGameOverDailyBarRatio(0))
+    return () => window.cancelAnimationFrame(frame)
+  }, [
+    benchmarkMode,
+    isGameOver,
+    lastGameRewards.challengeMode,
+    session.elapsedMs,
+    session.score,
   ])
 
   const appendDigit = useCallback(
@@ -501,6 +615,7 @@ export function GameScreen() {
     presentation === 'theme-test' ||
     presentation === 'tutorial'
   const effectiveBackgroundTheme: BackgroundTheme = backgroundTheme
+  const gameOverCardThemeClass = getGameOverCardThemeClass(effectiveBackgroundTheme)
   const useWaterBackground = isInGameScene && effectiveBackgroundTheme === 'water'
   const useWaterLikeBackground =
     isInGameScene &&
@@ -763,6 +878,7 @@ export function GameScreen() {
   const handleReturnToMenu = useCallback(() => {
     if (!isInGameScene) return
     setExitConfirmOpen(false)
+    setPostGameAchievementsDetailOpen(false)
     onPlayGoToMenu()
     onReturnToMenu()
     setSharing(false)
@@ -961,6 +1077,11 @@ export function GameScreen() {
   const avatarPreviewDrawWidth = avatarDraftNaturalSize.width * avatarPreviewBaseScale * avatarScale
   const avatarPreviewDrawHeight = avatarDraftNaturalSize.height * avatarPreviewBaseScale * avatarScale
 
+  const handleResetAchievements = useCallback(() => {
+    resetAchievements()
+    playUiClickAfterPaint(onPlayClick)
+  }, [onPlayClick, resetAchievements])
+
   const openShopModal = useCallback(() => {
     setExitConfirmOpen(false)
     setShopOpen(true)
@@ -984,6 +1105,16 @@ export function GameScreen() {
     playUiClickAfterPaint(onPlayClick)
   }, [onPlayClick])
 
+  const closePostGameAchievementsDetail = useCallback(() => {
+    setPostGameAchievementsDetailOpen(false)
+    playUiClickAfterPaint(onPlayClick)
+  }, [onPlayClick])
+
+  const openPostGameAchievementsDetail = useCallback(() => {
+    setPostGameAchievementsDetailOpen(true)
+    playUiClickAfterPaint(onPlayClick)
+  }, [onPlayClick])
+
   const requestExitAppOrPreviousPage = useCallback(() => {
     const nav = navigator as Navigator & { app?: { exitApp?: () => void } }
     if (typeof nav.app?.exitApp === 'function') {
@@ -998,6 +1129,10 @@ export function GameScreen() {
   }, [])
 
   const handleBackRequest = useCallback((): 'consumed' | 'exit' => {
+    if (postGameAchievementsDetailVisible) {
+      closePostGameAchievementsDetail()
+      return 'consumed'
+    }
     if (avatarCropOpen) {
       closeAvatarCrop()
       return 'consumed'
@@ -1044,6 +1179,7 @@ export function GameScreen() {
     }
     return 'exit'
   }, [
+    postGameAchievementsDetailVisible,
     avatarCropOpen,
     avatarPickerOpen,
     achievementsOpen,
@@ -1056,6 +1192,7 @@ export function GameScreen() {
     presentation,
     exitConfirmOpen,
     closeAvatarCrop,
+    closePostGameAchievementsDetail,
     closeAvatarPicker,
     closePlayerModal,
     closeShopModal,
@@ -1075,6 +1212,7 @@ export function GameScreen() {
     }
     onPlayGameStart()
     setSharing(false)
+    setPostGameAchievementsDetailOpen(false)
     onStart()
   }
 
@@ -1643,9 +1781,12 @@ export function GameScreen() {
                 {isInGameScene ? (
                   <div className="game-header-left-dock">
                     {!isTutorialScene && (
-                      <span className={`game-player-level-badge game-player-level-badge--${player.equippedBadgeId}`}>
+                      <PlayerLevelBadge
+                        badgeId={player.equippedBadgeId}
+                        tagEffectId={player.equippedTagEffectId}
+                      >
                         Nível {playerLevel}
-                      </span>
+                      </PlayerLevelBadge>
                     )}
                     <AnimatedGameMenuButton
                       onClick={handleReturnToMenu}
@@ -1681,14 +1822,14 @@ export function GameScreen() {
                         <ElapsedTimeLabel fallbackMs={session.elapsedMs} />
                       </motion.p>
                     )}
-                    {isGameOver && !benchmarkMode && (
+                    {gameOverPlayAgainVisible && (
                       <motion.div
                         key="header-play-again"
                         className="game-header-center-dock__slot game-header-center-dock__slot--play"
                         initial={{ opacity: 0, scale: 0.92 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.92 }}
-                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                       >
                         <MenuHudInlineButton
                           label="Jogar novamente"
@@ -1740,13 +1881,7 @@ export function GameScreen() {
                 {tutorialStep === 6 && tutorialDefeatGameOver ? (
                   <div className="w-full max-w-xs">
                     <div
-                      className={`game-over-card flex h-[calc(14.5rem+3px)] w-full items-center justify-center rounded-2xl p-4 text-center ${
-                        useWaterLikeBackground
-                          ? 'game-over-card--water'
-                          : useSunsetBackground
-                            ? 'game-over-card--sunset'
-                            : 'game-over-card--default'
-                      }`}
+                      className={`game-over-card ${gameOverCardThemeClass} flex h-[calc(14.5rem+3px)] w-full items-center justify-center rounded-2xl p-4 text-center`}
                     >
                       <p className="game-over-card__score text-center text-xl font-bold">Fim de jogo</p>
                     </div>
@@ -1754,13 +1889,7 @@ export function GameScreen() {
                 ) : tutorialStep === 18 ? (
                   <div className="w-full max-w-xs">
                     <div
-                      className={`game-over-card flex h-[calc(14.5rem+3px)] w-full flex-col items-center justify-center rounded-2xl p-4 text-center ${
-                        useWaterLikeBackground
-                          ? 'game-over-card--water'
-                          : useSunsetBackground
-                            ? 'game-over-card--sunset'
-                            : 'game-over-card--default'
-                      }`}
+                      className={`game-over-card ${gameOverCardThemeClass} flex h-[calc(14.5rem+3px)] w-full flex-col items-center justify-center rounded-2xl p-4 text-center`}
                     >
                       <p className="game-over-card__score text-center font-mono text-2xl font-bold">
                         Tutorial completado.
@@ -2189,6 +2318,7 @@ export function GameScreen() {
                   interactionLocked={false}
                   backspaceDisabled={false}
                   autoCheckCharges={themeTestAutoCheckEnabled ? 1 : 0}
+                  keypadStyleId={player.equippedKeypadStyleId}
                   virtualPress={null}
                   onDigit={() => handleThemeTestKeypadDigit()}
                   onBackspace={handleThemeTestKeypadBackspace}
@@ -2209,6 +2339,7 @@ export function GameScreen() {
                   interactionLocked={benchmarkMode}
                   backspaceDisabled={inputValue.length === 0}
                   autoCheckCharges={player.walletAutoChecks}
+                  keypadStyleId={player.equippedKeypadStyleId}
                   virtualPress={benchmarkMode ? benchmarkVirtualKeypadPress : null}
                   onDigit={appendDigit}
                   onBackspace={backspaceDigit}
@@ -2230,35 +2361,15 @@ export function GameScreen() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-4 w-full max-w-xs"
               >
-                <div
-                  className={`game-over-card w-full rounded-2xl p-4 text-center ${
-                    useWaterLikeBackground
-                      ? 'game-over-card--water'
-                      : useSunsetBackground
-                        ? 'game-over-card--sunset'
-                        : 'game-over-card--default'
-                  }`}
-                >
-                  <p
-                    className={`game-over-card__label text-sm uppercase tracking-wide ${
-                      useLightBackground ? '' : 'text-charcoal-muted'
-                    }`}
-                  >
+                <div className={`game-over-card ${gameOverCardThemeClass} w-full rounded-2xl p-4 text-center`}>
+                  <p className="game-over-card__label text-sm uppercase tracking-wide">
                     {benchmarkMode && benchmarkMetrics ? 'Benchmark' : 'FIM DE JOGO'}
                   </p>
-                  <p
-                    className={`game-over-card__score font-mono text-2xl font-bold ${
-                      useLightBackground ? '' : 'text-white'
-                    }`}
-                  >
+                  <p className="game-over-card__score font-mono text-2xl font-bold">
                     {session.score} pontos
                   </p>
                   {!(benchmarkMode && benchmarkMetrics) && (
-                    <p
-                      className={`game-over-card__duration mt-1 text-xs ${
-                        useLightBackground ? '' : 'text-charcoal-muted'
-                      }`}
-                    >
+                    <p className="game-over-card__duration mt-1 text-xs">
                       Tempo: {gameOverElapsedText}
                     </p>
                   )}
@@ -2334,6 +2445,39 @@ export function GameScreen() {
                     <span className="game-over-reward-sep"> • </span>
                     <span className="game-over-reward-coins">+{gameOverRewardDisplay.coins} moedas</span>
                   </p>
+                  {!lastGameRewards.challengeMode && (
+                    <div
+                      className="game-over-daily mt-3 text-left"
+                      aria-label={`Meta diária ${player.daily.scoreAccumulated} de ${DAILY_GOAL_SCORE_TARGET}`}
+                    >
+                      <div className="game-over-daily__top">
+                        <span className="game-over-daily__label">Meta diária</span>
+                        <span className="game-over-daily__value">
+                          {player.daily.scoreAccumulated}/{DAILY_GOAL_SCORE_TARGET}
+                        </span>
+                      </div>
+                      <div className="game-over-daily__track">
+                        <div
+                          className={`game-over-daily__fill${player.daily.goalClaimed ? ' game-over-daily__fill--claimed' : ''}`}
+                          style={{ width: `${gameOverDailyBarRatio * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {lastGameRewards.postGameAchievementsUnlocked > 0 ? (
+                    <div className="game-over-achievements mt-2 flex items-center justify-center gap-2 text-sm">
+                      <span className="game-over-achievements__label">
+                        {formatPostGameAchievementsText(gameOverAchievementsDisplay)}
+                      </span>
+                      <button
+                        type="button"
+                        className="game-over-achievements__details"
+                        onClick={openPostGameAchievementsDetail}
+                      >
+                        Detalhes
+                      </button>
+                    </div>
+                  ) : null}
                   {lastGameRewards.goalCompleted && (
                     <p className="mt-1 text-xs text-emerald-400">
                       Meta diária completa!{' '}
@@ -2346,11 +2490,7 @@ export function GameScreen() {
                   {session.beatRecord && !lastGameRewards.challengeMode ? (
                     <p className="mt-1 text-sm text-emerald-400">Novo recorde pessoal!</p>
                   ) : topScore && !lastGameRewards.challengeMode ? (
-                    <p
-                      className={`game-over-card__meta mt-1 text-sm ${
-                        useLightBackground ? '' : 'text-charcoal-muted'
-                      }`}
-                    >
+                    <p className="game-over-card__meta mt-1 text-sm">
                       Recorde: {topScore.score} pontos
                     </p>
                   ) : null}
@@ -2727,6 +2867,10 @@ export function GameScreen() {
         onBuyTheme={onBuyTheme}
         onEquipBadge={onEquipBadge}
         onBuyBadge={onBuyBadge}
+        onEquipTagEffect={onEquipTagEffect}
+        onBuyTagEffect={onBuyTagEffect}
+        onEquipKeypadStyle={onEquipKeypadStyle}
+        onBuyKeypadStyle={onBuyKeypadStyle}
         onBuyAutoCheck={onBuyAutoCheck}
         onSoundChange={onSoundChange}
         onDevModeChange={onDevModeChange}
@@ -2737,10 +2881,18 @@ export function GameScreen() {
         onDeclineAutoCheckAtTimeout={onDeclineAutoCheckAtTimeout}
         onCloseExitConfirm={() => setExitConfirmOpen(false)}
         onConfirmExit={requestExitAppOrPreviousPage}
+        onResetAchievements={handleResetAchievements}
       />
+
+      <PostGameAchievementsModal
+        open={postGameAchievementsDetailVisible}
+        achievementIds={lastGameRewards.postGameAchievementIds}
+        onClose={closePostGameAchievementsDetail}
+      />
+
       {isGameOver && (
         <ShareCardTemplate
-          theme={backgroundTheme}
+          theme={player.equippedThemeId}
           playerName={player.displayName}
           level={playerLevel}
           xp={player.xp}
@@ -2752,6 +2904,10 @@ export function GameScreen() {
           goalCompleted={lastGameRewards.goalCompleted}
         />
       )}
+
+      <div className="achievement-toast-layer pointer-events-none fixed inset-x-0 top-[max(0.85rem,env(safe-area-inset-top))] z-[70] flex justify-center px-4">
+        <AchievementToast visible={achievementToastVisible} />
+      </div>
     </div>
   )
 }

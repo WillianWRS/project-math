@@ -18,6 +18,10 @@ import { useGameClock } from "./game/useGameClock";
 import { useGameRewards } from "./game/useGameRewards";
 import { useGameCosmetics } from "./game/useGameCosmetics";
 import { useGameActions } from "./game/useGameActions";
+import {
+  createEmptyPendingNormalSessionStats,
+  type PendingNormalSessionStats,
+} from "../platform/player-lifetime-stats";
 
 export type { PostGameRewards } from "./game/useGameRewards";
 export type { TutorialCompletionResult } from "./game/useGameCosmetics";
@@ -45,6 +49,9 @@ export function useGame() {
     spendAutoCheck,
     setEquippedTheme,
     purchaseTheme,
+    registerShopAchievementsListener,
+    notifyAchievementUnlocks,
+    resetAchievements,
     ...playerActions
   } = usePlayer();
 
@@ -64,6 +71,13 @@ export function useGame() {
   const [benchmarkMode, setBenchmarkMode] = useState(false);
   const benchmarkSessionRef = useRef(false);
   const challengeSessionRef = useRef<ChallengeModeId | null>(null);
+  const pendingNormalSessionStatsRef = useRef<PendingNormalSessionStats>(
+    createEmptyPendingNormalSessionStats(),
+  );
+
+  const resetPendingNormalSessionStats = useCallback(() => {
+    pendingNormalSessionStatsRef.current = createEmptyPendingNormalSessionStats();
+  }, []);
 
   // Refs de timing compartilhados: o relógio os muta, benchmark e ações os leem.
   const timerMsRef = useRef(session.timerMs);
@@ -138,12 +152,15 @@ export function useGame() {
       challengeSessionRef,
       commitPlayer,
       soundEnabledRef,
+      pendingNormalSessionStatsRef,
+      resetPendingNormalSessionStats,
     });
 
   const cosmetics = useGameCosmetics({
     commitPlayer,
     setEquippedTheme,
     purchaseTheme,
+    notifyAchievementUnlocks,
   });
 
   const actions = useGameActions({
@@ -154,6 +171,7 @@ export function useGame() {
     spendAutoCheck,
     soundEnabledRef,
     benchmarkSessionRef,
+    pendingNormalSessionStatsRef,
     cycleStartedAtRef,
     cycleTimerMaxRef,
     elapsedMsRef,
@@ -167,12 +185,14 @@ export function useGame() {
     setBenchmarkMode(false);
     resetBenchmark();
     resetRewardTracking();
+    resetPendingNormalSessionStats();
     clearLastGameRewards();
     setPerfectAnswerToken(0);
     setSession(startGame());
   }, [
     clearLastGameRewards,
     resetBenchmark,
+    resetPendingNormalSessionStats,
     resetRewardTracking,
     sessionRef,
     setSession,
@@ -186,6 +206,7 @@ export function useGame() {
       setBenchmarkMode(false);
       resetBenchmark();
       resetRewardTracking();
+      resetPendingNormalSessionStats();
       clearLastGameRewards();
       setPerfectAnswerToken(0);
       setSession(startChallengeGame(mode));
@@ -193,6 +214,7 @@ export function useGame() {
     [
       clearLastGameRewards,
       resetBenchmark,
+      resetPendingNormalSessionStats,
       resetRewardTracking,
       sessionRef,
       setSession,
@@ -205,12 +227,14 @@ export function useGame() {
     challengeSessionRef.current = null;
     setBenchmarkMode(true);
     resetRewardTracking();
+    resetPendingNormalSessionStats();
     clearLastGameRewards();
     setPerfectAnswerToken(0);
     onStartBenchmark();
   }, [
     clearLastGameRewards,
     onStartBenchmark,
+    resetPendingNormalSessionStats,
     resetRewardTracking,
     sessionRef,
   ]);
@@ -222,11 +246,13 @@ export function useGame() {
     setBenchmarkMode(false);
     resetBenchmark();
     resetRewardTracking();
+    resetPendingNormalSessionStats();
     setPerfectAnswerToken(0);
     setSession(returnToMenu());
   }, [
     onInterruptBenchmark,
     resetBenchmark,
+    resetPendingNormalSessionStats,
     resetRewardTracking,
     setSession,
   ]);
@@ -274,5 +300,7 @@ export function useGame() {
     playEraseKey: audio.playEraseKey,
     playGoToMenu: audio.playGoToMenu,
     completeTutorial: cosmetics.completeTutorial,
+    registerShopAchievementsListener,
+    resetAchievements,
   };
 }

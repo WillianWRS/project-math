@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { canStartChallenge, consumeChallengeAttempt } from '../challenges/challenge-helpers'
 import { getChallengeDefinition } from '../challenges/challenge-catalog'
+import { getNewlyUnlockedAchievementIds } from '../achievements/achievement-post-game'
+import { resetAchievementProgress } from '../achievements/reset-achievement-progress'
 import type { ChallengeModeId } from '../engine/types'
 import { SimulatedRewardedAds } from '../platform/ads'
 import { ensureDailyFresh } from '../platform/daily-reset'
-import { loadPlayerData, savePlayerData, type BackgroundTheme, type BadgeVariant, type PlayerData } from '../platform/storage'
+import { applyAvatarPhotoSaved, applyShopAutoCheckPurchaseStats } from '../platform/player-lifetime-stats'
+import { loadPlayerData, savePlayerData, type BackgroundTheme, type BadgeVariant, type KeypadStyleId, type PlayerData, type TagEffectId } from '../platform/storage'
 
 export const DISPLAY_NAME_MAX_LENGTH = 20
 const DAILY_REWARDED_ADS_LIMIT = 2
@@ -18,19 +21,28 @@ export function sanitizeDisplayName(raw: string): string {
 export function usePlayer() {
   const [player, setPlayer] = useState<PlayerData>(() => ensureDailyFresh(loadPlayerData()))
   const playerRef = useRef(player)
+  const achievementUnlockListenerRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     playerRef.current = player
   }, [player])
 
+  const registerShopAchievementsListener = useCallback((listener: (() => void) | null) => {
+    achievementUnlockListenerRef.current = listener
+  }, [])
+
+  const notifyAchievementUnlocks = useCallback((before: PlayerData, after: PlayerData) => {
+    if (getNewlyUnlockedAchievementIds(before, after).length > 0) {
+      achievementUnlockListenerRef.current?.()
+    }
+  }, [])
+
   const commitPlayer = useCallback((updater: (current: PlayerData) => PlayerData): PlayerData => {
-    let nextPlayer = playerRef.current
-    setPlayer((current) => {
-      nextPlayer = ensureDailyFresh(updater(ensureDailyFresh(current)))
-      playerRef.current = nextPlayer
-      savePlayerData(nextPlayer)
-      return nextPlayer
-    })
+    const current = ensureDailyFresh(playerRef.current)
+    const nextPlayer = ensureDailyFresh(updater(current))
+    playerRef.current = nextPlayer
+    savePlayerData(nextPlayer)
+    setPlayer(nextPlayer)
     return nextPlayer
   }, [])
 
@@ -40,8 +52,19 @@ export function usePlayer() {
   }, [commitPlayer])
 
   const updateAvatarPhoto = useCallback((avatarDataUrl: string | null) => {
-    commitPlayer((current) => ({ ...current, avatarDataUrl }))
-  }, [commitPlayer])
+    let before: PlayerData | null = null
+    const after = commitPlayer((current) => {
+      before = current
+      let next: PlayerData = { ...current, avatarDataUrl }
+      if (avatarDataUrl !== null) {
+        next = applyAvatarPhotoSaved(next)
+      }
+      return next
+    })
+    if (before) {
+      notifyAchievementUnlocks(before, after)
+    }
+  }, [commitPlayer, notifyAchievementUnlocks])
 
   const grantAutoCheck = useCallback((amount = 1) => {
     if (amount <= 0) return
@@ -78,11 +101,27 @@ export function usePlayer() {
     })
   }, [commitPlayer])
 
+  const setEquippedTagEffect = useCallback((effect: TagEffectId) => {
+    commitPlayer((current) => {
+      if (!current.ownedTagEffectIds.includes(effect)) return current
+      return { ...current, equippedTagEffectId: effect }
+    })
+  }, [commitPlayer])
+
+  const setEquippedKeypadStyle = useCallback((style: KeypadStyleId) => {
+    commitPlayer((current) => {
+      if (!current.ownedKeypadStyleIds.includes(style)) return current
+      return { ...current, equippedKeypadStyleId: style }
+    })
+  }, [commitPlayer])
+
   const purchaseTheme = useCallback((theme: BackgroundTheme, priceCoins: number): boolean => {
     if (priceCoins < 0) return false
 
     let purchased = false
-    commitPlayer((current) => {
+    let before: PlayerData | null = null
+    const after = commitPlayer((current) => {
+      before = current
       if (current.ownedThemeIds.includes(theme)) return current
       if (current.coins < priceCoins) return current
       purchased = true
@@ -92,14 +131,19 @@ export function usePlayer() {
         ownedThemeIds: [...current.ownedThemeIds, theme],
       }
     })
+    if (purchased && before) {
+      notifyAchievementUnlocks(before, after)
+    }
     return purchased
-  }, [commitPlayer])
+  }, [commitPlayer, notifyAchievementUnlocks])
 
   const purchaseBadge = useCallback((badge: BadgeVariant, priceCoins: number): boolean => {
     if (priceCoins < 0) return false
 
     let purchased = false
-    commitPlayer((current) => {
+    let before: PlayerData | null = null
+    const after = commitPlayer((current) => {
+      before = current
       if (current.ownedBadgeIds.includes(badge)) return current
       if (current.coins < priceCoins) return current
       purchased = true
@@ -109,26 +153,78 @@ export function usePlayer() {
         ownedBadgeIds: [...current.ownedBadgeIds, badge],
       }
     })
+    if (purchased && before) {
+      notifyAchievementUnlocks(before, after)
+    }
     return purchased
-  }, [commitPlayer])
+  }, [commitPlayer, notifyAchievementUnlocks])
+
+  const purchaseTagEffect = useCallback((effect: TagEffectId, priceCoins: number): boolean => {
+    if (priceCoins < 0) return false
+
+    let purchased = false
+    let before: PlayerData | null = null
+    const after = commitPlayer((current) => {
+      before = current
+      if (current.ownedTagEffectIds.includes(effect)) return current
+      if (current.coins < priceCoins) return current
+      purchased = true
+      return {
+        ...current,
+        coins: current.coins - priceCoins,
+        ownedTagEffectIds: [...current.ownedTagEffectIds, effect],
+      }
+    })
+    if (purchased && before) {
+      notifyAchievementUnlocks(before, after)
+    }
+    return purchased
+  }, [commitPlayer, notifyAchievementUnlocks])
+
+  const purchaseKeypadStyle = useCallback((style: KeypadStyleId, priceCoins: number): boolean => {
+    if (priceCoins < 0) return false
+
+    let purchased = false
+    let before: PlayerData | null = null
+    const after = commitPlayer((current) => {
+      before = current
+      if (current.ownedKeypadStyleIds.includes(style)) return current
+      if (current.coins < priceCoins) return current
+      purchased = true
+      return {
+        ...current,
+        coins: current.coins - priceCoins,
+        ownedKeypadStyleIds: [...current.ownedKeypadStyleIds, style],
+      }
+    })
+    if (purchased && before) {
+      notifyAchievementUnlocks(before, after)
+    }
+    return purchased
+  }, [commitPlayer, notifyAchievementUnlocks])
 
   const purchaseAutoCheckWithDiamonds = useCallback(
     (priceDiamonds: number, amount = 1): boolean => {
       if (priceDiamonds < 0 || amount <= 0) return false
 
       let purchased = false
-      commitPlayer((current) => {
+      let before: PlayerData | null = null
+      const after = commitPlayer((current) => {
+        before = current
         if (current.diamonds < priceDiamonds) return current
         purchased = true
-        return {
+        return applyShopAutoCheckPurchaseStats({
           ...current,
           diamonds: current.diamonds - priceDiamonds,
           walletAutoChecks: current.walletAutoChecks + amount,
-        }
+        })
       })
+      if (purchased && before) {
+        notifyAchievementUnlocks(before, after)
+      }
       return purchased
     },
-    [commitPlayer],
+    [commitPlayer, notifyAchievementUnlocks],
   )
 
   const watchSimulatedAd = useCallback(async () => {
@@ -167,6 +263,10 @@ export function usePlayer() {
     return paid
   }, [commitPlayer])
 
+  const resetAchievements = useCallback(() => {
+    commitPlayer((current) => resetAchievementProgress(current))
+  }, [commitPlayer])
+
   return {
     player,
     updateDisplayName,
@@ -175,12 +275,19 @@ export function usePlayer() {
     spendAutoCheck,
     setEquippedTheme,
     setEquippedBadge,
+    setEquippedTagEffect,
+    setEquippedKeypadStyle,
     purchaseTheme,
     purchaseBadge,
+    purchaseTagEffect,
+    purchaseKeypadStyle,
     purchaseAutoCheckWithDiamonds,
     rewardedAdsRemaining,
     watchSimulatedAd,
     payChallengeEntry,
     commitPlayer,
+    registerShopAchievementsListener,
+    notifyAchievementUnlocks,
+    resetAchievements,
   }
 }

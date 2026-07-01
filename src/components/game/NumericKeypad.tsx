@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from '../../lib/motion'
 import { memo, type ReactNode, useCallback, useRef, useState } from 'react'
 import type { BenchmarkVirtualKey } from '../../engine/benchmark-types'
+import type { KeypadStyleId } from '../../platform/storage'
 
 interface NumericKeypadProps {
   disabled?: boolean
@@ -8,6 +9,7 @@ interface NumericKeypadProps {
   autoCheckOnly?: boolean
   backspaceDisabled?: boolean
   autoCheckCharges?: number
+  keypadStyleId?: KeypadStyleId
   virtualPress?: { key: BenchmarkVirtualKey; token: number } | null
   onDigit: (digit: string) => void
   onBackspace: () => void
@@ -287,6 +289,7 @@ export const NumericKeypad = memo(function NumericKeypad({
   autoCheckOnly = false,
   backspaceDisabled = false,
   autoCheckCharges = 0,
+  keypadStyleId = 'default',
   virtualPress = null,
   onDigit,
   onBackspace,
@@ -300,7 +303,7 @@ export const NumericKeypad = memo(function NumericKeypad({
 
   return (
     <motion.div
-      className={`game-numeric-keypad w-full max-w-xs${interactionLocked ? ' pointer-events-none select-none' : ''}`}
+      className={`game-numeric-keypad game-numeric-keypad--${keypadStyleId} w-full max-w-xs${interactionLocked ? ' pointer-events-none select-none' : ''}`}
       aria-label="Teclado numérico"
       variants={keypadReveal.container}
       initial="hidden"
@@ -314,6 +317,7 @@ export const NumericKeypad = memo(function NumericKeypad({
               key={digit}
               disabled={numericDisabled}
               variants={keypadReveal.key}
+              className="game-numeric-keypad__key--digit"
               whileTap={numericDisabled ? undefined : { scale: 0.97, y: 1 }}
               virtualPressed={isVirtualPressed(digitVirtualKey(digit))}
               forceVisible={interactionLocked}
@@ -337,6 +341,7 @@ export const NumericKeypad = memo(function NumericKeypad({
           key="digit-0"
           disabled={numericDisabled}
           variants={keypadReveal.key}
+          className="game-numeric-keypad__key--digit"
           whileTap={numericDisabled ? undefined : { scale: 0.97, y: 1 }}
           virtualPressed={isVirtualPressed('digit-0')}
           forceVisible={interactionLocked}

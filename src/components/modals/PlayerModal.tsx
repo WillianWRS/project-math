@@ -3,7 +3,9 @@ import { xpProgressInLevel } from '../../engine/player-level'
 import { formatDuration } from '../../engine/rewards'
 import type { PlayerData, ScoreRecord } from '../../platform/storage'
 import { sanitizeDisplayName, DISPLAY_NAME_MAX_LENGTH } from '../../hooks/usePlayer'
-import { IconMenuAvatar } from '../game/icons'
+import { ACHIEVEMENT_TOTAL_COUNT } from '../../achievements/achievement-catalog'
+import { countUnlockedAchievements } from '../../achievements/achievement-evaluation'
+import { IconMenuAvatar, IconTrophy } from '../game/icons'
 import { Modal } from '../ui/Modal'
 
 interface PlayerModalProps {
@@ -136,16 +138,6 @@ function IconPlusOutline() {
   )
 }
 
-function IconTarget() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2" />
-      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-    </svg>
-  )
-}
-
 function StatBadge({
   children,
   variant = 'coin',
@@ -241,6 +233,7 @@ export function PlayerModal({
   onOpenAchievements,
 }: PlayerModalProps) {
   const progress = xpProgressInLevel(player.xp)
+  const unlockedAchievements = countUnlockedAchievements(player)
   const [nameEditing, setNameEditing] = useState(false)
   const [nameDraft, setNameDraft] = useState(player.displayName)
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -454,13 +447,15 @@ export function PlayerModal({
         <PlayerModalSectionTitle>Conquistas</PlayerModalSectionTitle>
 
         <div className="game-modal-card flex w-full items-center justify-between gap-3 px-3 py-2.5">
-          <p className="player-conquistas-progress font-mono text-sm font-bold">5/67</p>
+          <p className="player-conquistas-progress font-mono text-sm font-bold">
+            {unlockedAchievements}/{ACHIEVEMENT_TOTAL_COUNT}
+          </p>
           <button
             type="button"
             onClick={onOpenAchievements}
             className="player-conquistas-btn game-btn-push game-btn-push-amber inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold"
           >
-            <IconTarget />
+            <IconTrophy size={14} />
             Ver Conquistas
           </button>
         </div>

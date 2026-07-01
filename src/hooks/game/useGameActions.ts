@@ -3,8 +3,16 @@ import { setInputValue, submitAnswer } from "../../engine/game-state-machine";
 import { submitChallengeAnswer } from "../../engine/challenge-session";
 import { isAnyGameChangerActive } from "../../engine/game-changer-cycles";
 import { PERFECT_ANSWER_COINS } from "../../engine/rewards";
-import type { GameSession } from "../../engine/types";
+import type { GameSession, SubmitResult } from "../../engine/types";
 import type { PlayerData } from "../../platform/storage";
+import {
+  detectGameChangerCompletions,
+  isPlusOneAddition,
+  recordAutoCheckEarnedInNormalSession,
+  recordGameChangerCompletions,
+  recordPlusOneCalculationInSession,
+  type PendingNormalSessionStats,
+} from "../../platform/player-lifetime-stats";
 import {
   playCorrectAnswerSfx,
   playSfx,
@@ -20,6 +28,7 @@ export interface GameActionsOptions {
   spendAutoCheck: () => boolean;
   soundEnabledRef: React.MutableRefObject<boolean>;
   benchmarkSessionRef: React.MutableRefObject<boolean>;
+  pendingNormalSessionStatsRef: React.MutableRefObject<PendingNormalSessionStats>;
   cycleStartedAtRef: React.MutableRefObject<number>;
   cycleTimerMaxRef: React.MutableRefObject<number>;
   elapsedMsRef: React.MutableRefObject<number>;
@@ -45,6 +54,7 @@ export function useGameActions({
   spendAutoCheck,
   soundEnabledRef,
   benchmarkSessionRef,
+  pendingNormalSessionStatsRef,
   cycleStartedAtRef,
   cycleTimerMaxRef,
   elapsedMsRef,
@@ -57,6 +67,39 @@ export function useGameActions({
     return submitAnswer(current, { autoCheck });
   }, []);
 
+  const recordNormalSessionProgress = useCallback(
+    (
+      before: GameSession,
+      after: GameSession,
+      result: SubmitResult,
+      autoCheckGranted: boolean,
+    ) => {
+      if (benchmarkSessionRef.current || before.challengeMode) return;
+
+      if (autoCheckGranted) {
+        pendingNormalSessionStatsRef.current = recordAutoCheckEarnedInNormalSession(
+          pendingNormalSessionStatsRef.current,
+        );
+      }
+
+      if (result === "correct") {
+        if (isPlusOneAddition(before.operation)) {
+          pendingNormalSessionStatsRef.current = recordPlusOneCalculationInSession(
+            pendingNormalSessionStatsRef.current,
+          );
+        }
+        const kinds = detectGameChangerCompletions(before, after);
+        if (kinds.length > 0) {
+          pendingNormalSessionStatsRef.current = recordGameChangerCompletions(
+            pendingNormalSessionStatsRef.current,
+            kinds,
+          );
+        }
+      }
+    },
+    [benchmarkSessionRef, pendingNormalSessionStatsRef],
+  );
+
   const applyAnswerResult = useCallback(
     (current: GameSession, fromAutoCheck = false) => {
       const {
@@ -65,6 +108,8 @@ export function useGameActions({
         autoCheckGranted,
       } = resolveSubmit(current, fromAutoCheck);
       setSession(next);
+
+      recordNormalSessionProgress(current, next, result, autoCheckGranted);
 
       if (autoCheckGranted && !current.challengeMode) {
         grantAutoCheck(1);
@@ -107,6 +152,8 @@ export function useGameActions({
       cycleStartedAtRef,
       cycleTimerMaxRef,
       grantAutoCheck,
+      pendingNormalSessionStatsRef,
+      recordNormalSessionProgress,
       registerPerfectAnswer,
       resolveSubmit,
       setSession,
@@ -145,6 +192,8 @@ export function useGameActions({
       } = resolveSubmit(forcedAnswer, true);
       setSession(next);
 
+      recordNormalSessionProgress(current, next, result, autoCheckGranted);
+
       if (result === "locked" && spent && consumeWallet) {
         grantAutoCheck(1);
         return;
@@ -162,7 +211,7 @@ export function useGameActions({
         playSfx("error", soundEnabledRef.current);
       }
     },
-    [grantAutoCheck, resolveSubmit, sessionRef, setSession, soundEnabledRef, spendAutoCheck],
+    [grantAutoCheck, recordNormalSessionProgress, resolveSubmit, sessionRef, setSession, soundEnabledRef, spendAutoCheck],
   );
 
   const onAutoCorrect = useCallback(() => {
