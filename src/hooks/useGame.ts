@@ -51,7 +51,6 @@ export function useGame() {
     purchaseTheme,
     registerShopAchievementsListener,
     notifyAchievementUnlocks,
-    resetAchievements,
     ...playerActions
   } = usePlayer();
 
@@ -301,6 +300,5 @@ export function useGame() {
     playGoToMenu: audio.playGoToMenu,
     completeTutorial: cosmetics.completeTutorial,
     registerShopAchievementsListener,
-    resetAchievements,
   };
 }

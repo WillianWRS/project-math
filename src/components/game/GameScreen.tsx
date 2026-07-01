@@ -232,7 +232,6 @@ export function GameScreen() {
     completeTutorial: onCompleteTutorial,
     payChallengeEntry: onPayChallengeEntry,
     registerShopAchievementsListener,
-    resetAchievements,
   } = useGameContext()
   const { achievementToastVisible, showAchievementToast } = useAchievementToast()
   const rewardedAdsWatched = player.daily.rewardedAdsWatched
@@ -1076,11 +1075,6 @@ export function GameScreen() {
       : 1
   const avatarPreviewDrawWidth = avatarDraftNaturalSize.width * avatarPreviewBaseScale * avatarScale
   const avatarPreviewDrawHeight = avatarDraftNaturalSize.height * avatarPreviewBaseScale * avatarScale
-
-  const handleResetAchievements = useCallback(() => {
-    resetAchievements()
-    playUiClickAfterPaint(onPlayClick)
-  }, [onPlayClick, resetAchievements])
 
   const openShopModal = useCallback(() => {
     setExitConfirmOpen(false)
@@ -2881,7 +2875,6 @@ export function GameScreen() {
         onDeclineAutoCheckAtTimeout={onDeclineAutoCheckAtTimeout}
         onCloseExitConfirm={() => setExitConfirmOpen(false)}
         onConfirmExit={requestExitAppOrPreviousPage}
-        onResetAchievements={handleResetAchievements}
       />
 
       <PostGameAchievementsModal

@@ -56,7 +56,6 @@ export interface GameModalLayerProps {
   onDeclineAutoCheckAtTimeout: () => void
   onCloseExitConfirm: () => void
   onConfirmExit: () => void
-  onResetAchievements?: () => void
 }
 
 function GameModalLayerInner({
@@ -101,7 +100,6 @@ function GameModalLayerInner({
   onDeclineAutoCheckAtTimeout,
   onCloseExitConfirm,
   onConfirmExit,
-  onResetAchievements,
 }: GameModalLayerProps) {
   return (
     <>
@@ -145,7 +143,6 @@ function GameModalLayerInner({
         godModeEnabled={godModeEnabled}
         onGodModeChange={onGodModeChange}
         showGodModeToggle={showGodModeToggle}
-        onResetAchievements={onResetAchievements}
       />
 
       {rewardedOpen && (

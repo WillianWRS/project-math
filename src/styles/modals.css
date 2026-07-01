@@ -379,6 +379,46 @@
   background: linear-gradient(180deg, #e0f2fe 0%, #d1fae5 40%, #f5d0fe 100%);
 }
 
+.shop-subscription-teaser {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 0.125rem;
+}
+
+.shop-subscription-teaser__btn {
+  border-radius: 999px;
+  border: 1px solid rgba(253, 224, 71, 0.65);
+  background: linear-gradient(180deg, #fde68a 0%, #fbbf24 45%, #f59e0b 100%);
+  padding: 0.625rem 1.35rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #451a03;
+  box-shadow:
+    0 4px 0 #92400e,
+    0 8px 22px rgba(245, 158, 11, 0.48);
+  cursor: pointer;
+  animation: shop-subscription-teaser-pulse 2s ease-in-out infinite;
+}
+
+@keyframes shop-subscription-teaser-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 4px 0 #92400e,
+      0 8px 20px rgba(245, 158, 11, 0.42);
+  }
+
+  50% {
+    transform: scale(1.04);
+    box-shadow:
+      0 4px 0 #92400e,
+      0 10px 30px rgba(251, 191, 36, 0.72);
+  }
+}
+
 .shop-autocheck-offer__icon {
   display: inline-flex;
   width: 1.45rem;
@@ -1034,4 +1074,20 @@
   letter-spacing: 0.03em;
   color: #fde68a;
   white-space: nowrap;
+}
+
+.achievement-toast--coming-soon {
+  border-color: rgba(251, 146, 60, 0.58);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.38),
+    0 0 18px rgba(251, 146, 60, 0.32);
+}
+
+.achievement-toast--coming-soon .achievement-toast__icon {
+  color: #fb923c;
+  filter: drop-shadow(0 0 6px rgba(251, 146, 60, 0.55));
+}
+
+.achievement-toast--coming-soon .achievement-toast__text {
+  color: #fdba74;
 }

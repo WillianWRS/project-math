@@ -152,7 +152,6 @@ export function useGameActions({
       cycleStartedAtRef,
       cycleTimerMaxRef,
       grantAutoCheck,
-      pendingNormalSessionStatsRef,
       recordNormalSessionProgress,
       registerPerfectAnswer,
       resolveSubmit,

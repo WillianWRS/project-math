@@ -228,10 +228,7 @@ export function useGameRewards({
       playSfx("gameOver", soundEnabledRef.current);
     }
   }, [
-    session.phase,
-    session.score,
-    session.elapsedMs,
-    session.challengeProgress,
+    session,
     benchmarkSessionRef,
     challengeSessionRef,
     commitPlayer,

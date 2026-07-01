@@ -1,17 +1,29 @@
 import { AnimatePresence, motion } from '../../lib/motion'
-import { IconTrophy } from '../game/icons'
+import { IconGear, IconTrophy } from '../game/icons'
+
+export type AchievementToastVariant = 'achievement' | 'coming-soon'
 
 interface AchievementToastProps {
   visible: boolean
   message?: string
+  variant?: AchievementToastVariant
 }
 
-export function AchievementToast({ visible, message = 'Conquista realizada!' }: AchievementToastProps) {
+export function AchievementToast({
+  visible,
+  message,
+  variant = 'achievement',
+}: AchievementToastProps) {
+  const resolvedMessage =
+    message ?? (variant === 'coming-soon' ? 'Em breve' : 'Conquista realizada!')
+
   return (
     <AnimatePresence>
       {visible ? (
         <motion.div
-          className="achievement-toast"
+          className={`achievement-toast${
+            variant === 'coming-soon' ? ' achievement-toast--coming-soon' : ''
+          }`}
           initial={{ opacity: 0, y: -18, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -14, scale: 0.98 }}
@@ -20,9 +32,9 @@ export function AchievementToast({ visible, message = 'Conquista realizada!' }: 
           aria-live="polite"
         >
           <span className="achievement-toast__icon" aria-hidden>
-            <IconTrophy size={16} />
+            {variant === 'coming-soon' ? <IconGear size={16} /> : <IconTrophy size={16} />}
           </span>
-          <span className="achievement-toast__text">{message}</span>
+          <span className="achievement-toast__text">{resolvedMessage}</span>
         </motion.div>
       ) : null}
     </AnimatePresence>

@@ -1,8 +1,8 @@
 import type { RightCardVariant } from './side-card-types'
 
-export function IconGear() {
+export function IconGear({ size = 20 }: { size?: number }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"
         stroke="currentColor"

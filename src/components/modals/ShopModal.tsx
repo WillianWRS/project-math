@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { BackgroundTheme, BadgeVariant, KeypadStyleId, TagEffectId } from '../../platform/storage'
 import { THEME_CATALOG, getThemePurchasePrice, type ThemeCatalogEntry } from '../../cosmetics/theme-catalog'
 import { BADGE_CATALOG, type BadgeCatalogEntry } from '../../cosmetics/badge-catalog'
@@ -9,6 +10,8 @@ import type { PlayerData } from '../../platform/storage'
 import { PlayerLevelBadge } from '../game/PlayerLevelBadge'
 import { IconAutoCheck } from '../game/icons'
 import { Modal } from '../ui/Modal'
+import { AchievementToast } from '../ui/AchievementToast'
+import { useAchievementToast } from '../../hooks/useAchievementToast'
 
 interface ShopModalProps {
   open: boolean
@@ -134,6 +137,7 @@ export function ShopModal({
   const autoCheckPriceDiamonds = SHOP_AUTO_CHECK_OFFER.priceDiamonds
   const autoCheckAmount = SHOP_AUTO_CHECK_OFFER.amount
   const canBuyAutoCheck = player.diamonds >= autoCheckPriceDiamonds
+  const { achievementToastVisible, showAchievementToast } = useAchievementToast()
 
   const handleClose = () => {
     setPendingPurchase(null)
@@ -210,6 +214,16 @@ export function ShopModal({
         closeOnBackdrop={!pendingPurchase}
       >
         <div className="space-y-3">
+          <div className="shop-subscription-teaser">
+            <button
+              type="button"
+              className="shop-subscription-teaser__btn"
+              onClick={() => showAchievementToast()}
+            >
+              Seja Premium
+            </button>
+          </div>
+
           <p className="text-center text-lg font-extrabold uppercase tracking-[0.22em] text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
             Auto Check
           </p>
@@ -666,6 +680,13 @@ export function ShopModal({
           </div>
         )}
       </Modal>
+      {open &&
+        createPortal(
+          <div className="achievement-toast-layer pointer-events-none fixed inset-x-0 top-[max(0.85rem,env(safe-area-inset-top))] z-[95] flex justify-center px-4">
+            <AchievementToast visible={achievementToastVisible} variant="coming-soon" />
+          </div>,
+          document.body,
+        )}
     </>
   )
 }

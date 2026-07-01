@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { canStartChallenge, consumeChallengeAttempt } from '../challenges/challenge-helpers'
 import { getChallengeDefinition } from '../challenges/challenge-catalog'
 import { getNewlyUnlockedAchievementIds } from '../achievements/achievement-post-game'
-import { resetAchievementProgress } from '../achievements/reset-achievement-progress'
 import type { ChallengeModeId } from '../engine/types'
 import { SimulatedRewardedAds } from '../platform/ads'
 import { ensureDailyFresh } from '../platform/daily-reset'
@@ -263,10 +262,6 @@ export function usePlayer() {
     return paid
   }, [commitPlayer])
 
-  const resetAchievements = useCallback(() => {
-    commitPlayer((current) => resetAchievementProgress(current))
-  }, [commitPlayer])
-
   return {
     player,
     updateDisplayName,
@@ -288,6 +283,5 @@ export function usePlayer() {
     commitPlayer,
     registerShopAchievementsListener,
     notifyAchievementUnlocks,
-    resetAchievements,
   }
 }

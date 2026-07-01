@@ -10,7 +10,6 @@ interface SettingsModalProps {
   godModeEnabled: boolean
   onGodModeChange: (enabled: boolean) => void
   showGodModeToggle: boolean
-  onResetAchievements?: () => void
 }
 
 function IconGear() {
@@ -66,7 +65,6 @@ export function SettingsModal({
   godModeEnabled,
   onGodModeChange,
   showGodModeToggle,
-  onResetAchievements,
 }: SettingsModalProps) {
   return (
     <Modal open={open} title="Configurações" titleIcon={<IconGear />} onClose={onClose}>
@@ -97,15 +95,6 @@ export function SettingsModal({
           </label>
         )}
 
-        {devModeEnabled && onResetAchievements ? (
-          <button
-            type="button"
-            onClick={onResetAchievements}
-            className="game-btn-push game-btn-push-secondary w-full rounded-xl bg-charcoal-elevated px-4 py-3 text-sm font-semibold text-amber-200 ring-1 ring-amber-500/35"
-          >
-            Zerar conquistas (teste)
-          </button>
-        ) : null}
       </div>
     </Modal>
   )
